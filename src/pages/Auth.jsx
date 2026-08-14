@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { soundFx } from '../utils/soundEffects';
 import { MascotRobot } from '../components/MascotRobot';
-import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Shield } from 'lucide-react';
 
 export const Auth = () => {
   const { signIn, signUp, configError } = useAuth();
@@ -10,6 +10,7 @@ export const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState('teacher');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
@@ -20,13 +21,13 @@ export const Auth = () => {
       return 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.';
     }
     if (msg.includes('Email not confirmed')) {
-      return 'Tài khoản chưa được xác nhận Email. Vui lòng kiểm tra Hộp thư Email của bạn để xác nhận (hoặc vào Supabase Auth Settings tắt "Confirm email" để vào thẳng).';
+      return 'Tài khoản chưa xác nhận Email. Thầy vui lòng vào Supabase Dashboard -> Auth -> Providers -> Email -> Tắt công tắc "Confirm email" để đăng nhập vào ứng dụng ngay lập tức.';
     }
     if (msg.includes('User already registered')) {
-      return 'Email này đã được đăng ký tài khoản. Vui lòng bấm Đăng nhập.';
+      return 'Email này đã được đăng ký tài khoản Giáo viên. Vui lòng bấm "Đăng nhập".';
     }
     if (msg.includes('Password should be at least')) {
-      return 'Mật khẩu phải có ít nhất 6 ký tự.';
+      return 'Mật khẩu phải có độ dài ít nhất 6 ký tự.';
     }
     return msg || 'Đã xảy ra lỗi trong quá trình đăng nhập/đăng ký.';
   };
@@ -45,16 +46,23 @@ export const Auth = () => {
           setLoading(false);
           return;
         }
-        const { data, error } = await signUp(email, password, fullName);
-        if (error) throw error;
+
+        // 1. Đăng ký tài khoản mới với vai trò Giáo viên
+        const { data: signUpData, error: signUpErr } = await signUp(email, password, fullName);
+        if (signUpErr) throw signUpErr;
 
         soundFx.playCorrect();
-        if (data?.session) {
-          setSuccessMsg('Đăng ký thành công! Đang đăng nhập...');
-        } else {
-          setSuccessMsg('Đăng ký thành công! Bạn có thể Đăng nhập ngay (Nếu Supabase yêu cầu xác thực Email, vui lòng kiểm tra Hộp thư Email của bạn hoặc tắt "Confirm email" trong cài đặt Supabase).');
+
+        // 2. Thử Đăng nhập tự động ngay lập tức vào App
+        const { error: signInErr } = await signIn(email, password);
+        if (signInErr) {
+          // Nếu Supabase vẫn yêu cầu xác thực Email
+          setSuccessMsg('Đăng ký thành công! Nếu chưa vào được ứng dụng, Thầy vui lòng mở Supabase Dashboard -> Auth -> Providers -> Email -> Tắt "Confirm email" rồi bấm Đăng nhập.');
           setIsSignUp(false);
+        } else {
+          setSuccessMsg('Đăng ký thành công! Đang chuyển hướng vào ứng dụng...');
         }
+
       } else {
         const { data, error } = await signIn(email, password);
         if (error) throw error;
@@ -122,20 +130,37 @@ export const Auth = () => {
         <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
           
           {isSignUp && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Họ và tên Giáo viên:</label>
-              <div className="relative">
-                <User className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Ví dụ: Nguyễn Văn Hải"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none transition-all"
-                  required
-                />
+            <>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Họ và tên Giáo viên:</label>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Ví dụ: Nguyễn Văn Hải"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none transition-all"
+                    required
+                  />
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Vai trò hệ thống:</label>
+                <div className="relative">
+                  <Shield className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-bold text-mint-800 focus:ring-2 focus:ring-mint-500 outline-none transition-all"
+                  >
+                    <option value="teacher">Giáo viên Chủ nhiệm THCS</option>
+                    <option value="admin">Quản trị viên (Admin)</option>
+                  </select>
+                </div>
+              </div>
+            </>
           )}
 
           <div>
@@ -172,9 +197,9 @@ export const Auth = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-mint-500 to-coral-500 hover:from-mint-600 hover:to-coral-600 text-white font-extrabold text-sm rounded-2xl shadow-mint-glow transition-all flex items-center justify-center space-x-2 transform active:scale-95 disabled:opacity-50"
+            className="w-full py-3.5 bg-gradient-to-r from-mint-500 to-coral-500 hover:from-mint-600 hover:to-coral-600 text-white font-extrabold text-sm rounded-2xl shadow-mint-glow transition-all flex items-center justify-center space-x-2 transform active:scale-95 disabled:opacity-50"
           >
-            <span>{loading ? 'Đang xử lý...' : isSignUp ? 'TẠO TÀI KHOẢN GIÁO VIÊN' : 'ĐĂNG NHẬP SỔ CHỦ NHIỆM'}</span>
+            <span>{loading ? 'Đang xử lý...' : isSignUp ? 'TẠO TÀI KHOẢN & VÀO APP NGAY' : 'ĐĂNG NHẬP SỔ CHỦ NHIỆM'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -194,14 +219,6 @@ export const Auth = () => {
               ? 'Đã có tài khoản Giáo viên? Đăng nhập ngay'
               : 'Chưa có tài khoản? Nhấn vào đây để Đăng ký mới'}
           </button>
-        </div>
-
-        {/* Helpful Tip Notice */}
-        <div className="mt-4 p-3 bg-blue-50/60 border border-blue-100 rounded-2xl text-[11px] text-blue-700 flex items-start space-x-2">
-          <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-          <span>
-            <b>Lưu ý nhỏ:</b> Nếu Thầy đăng ký mới mà Supabase yêu cầu xác nhận Email, Thầy có thể mở Supabase Dashboard -> Auth -> Providers -> tắt ô <b>"Confirm email"</b> để có thể đăng ký và đăng nhập vào thẳng ứng dụng ngay lập tức!
-          </span>
         </div>
 
       </div>
