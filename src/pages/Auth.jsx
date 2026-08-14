@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { soundFx } from '../utils/soundEffects';
 import { MascotRobot } from '../components/MascotRobot';
-import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Shield } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Shield, Zap } from 'lucide-react';
 
 export const Auth = () => {
   const { signIn, signUp, configError } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('giaovien.thcs@gmail.com');
+  const [password, setPassword] = useState('123456');
+  const [fullName, setFullName] = useState('Giáo viên Chủ Nhiệm THCS');
   const [role, setRole] = useState('teacher');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -18,18 +18,52 @@ export const Auth = () => {
   const translateError = (err) => {
     const msg = err?.message || '';
     if (msg.includes('Invalid login credentials')) {
-      return 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.';
+      return 'Email hoặc mật khẩu chưa chính xác. Thầy bấm nút "VÀO THẲNG APP GIÁO VIÊN (1-CLICK)" bên dưới để hệ thống tự tạo tài khoản và vào thẳng App nhé!';
     }
     if (msg.includes('Email not confirmed')) {
-      return 'Tài khoản chưa xác nhận Email. Thầy vui lòng vào Supabase Dashboard -> Auth -> Providers -> Email -> Tắt công tắc "Confirm email" để đăng nhập vào ứng dụng ngay lập tức.';
+      return 'Tài khoản chưa được xác nhận Email trong Supabase. Thầy hãy dùng nút 1-Click bên dưới để vào ứng dụng ngay.';
     }
     if (msg.includes('User already registered')) {
-      return 'Email này đã được đăng ký tài khoản Giáo viên. Vui lòng bấm "Đăng nhập".';
+      return 'Email này đã được đăng ký. Thầy bấm nút Đăng nhập để vào App nhé.';
     }
-    if (msg.includes('Password should be at least')) {
-      return 'Mật khẩu phải có độ dài ít nhất 6 ký tự.';
+    return msg || 'Đã xảy ra lỗi trong quá trình xác thực.';
+  };
+
+  const handleQuickDemoLogin = async () => {
+    setLoading(true);
+    setErrorMsg(null);
+    setSuccessMsg('Đang kích hoạt tài khoản Giáo viên và vào ứng dụng...');
+    soundFx.playClick();
+
+    const demoEmail = email.trim() || 'giaovien.thcs@gmail.com';
+    const demoPass = password || '123456';
+    const demoName = fullName.trim() || 'Giáo viên Chủ Nhiệm THCS';
+
+    try {
+      // 1. Thử Đăng nhập trực tiếp
+      const { error: loginErr } = await signIn(demoEmail, demoPass);
+      if (!loginErr) {
+        soundFx.playCorrect();
+        return;
+      }
+
+      // 2. Nếu chưa có tài khoản, tự động Đăng ký mới
+      const { error: regErr } = await signUp(demoEmail, demoPass, demoName);
+      if (regErr && !regErr.message.includes('already registered')) {
+        throw regErr;
+      }
+
+      // 3. Đăng nhập lại ngay lập tức
+      const { error: retryErr } = await signIn(demoEmail, demoPass);
+      if (retryErr) throw retryErr;
+
+      soundFx.playCorrect();
+    } catch (err) {
+      console.error('Quick login error:', err);
+      setErrorMsg(translateError(err));
+    } finally {
+      setLoading(false);
     }
-    return msg || 'Đã xảy ra lỗi trong quá trình đăng nhập/đăng ký.';
   };
 
   const handleSubmit = async (e) => {
@@ -47,27 +81,28 @@ export const Auth = () => {
           return;
         }
 
-        // 1. Đăng ký tài khoản mới với vai trò Giáo viên
-        const { data: signUpData, error: signUpErr } = await signUp(email, password, fullName);
-        if (signUpErr) throw signUpErr;
-
-        soundFx.playCorrect();
-
-        // 2. Thử Đăng nhập tự động ngay lập tức vào App
-        const { error: signInErr } = await signIn(email, password);
-        if (signInErr) {
-          // Nếu Supabase vẫn yêu cầu xác thực Email
-          setSuccessMsg('Đăng ký thành công! Nếu chưa vào được ứng dụng, Thầy vui lòng mở Supabase Dashboard -> Auth -> Providers -> Email -> Tắt "Confirm email" rồi bấm Đăng nhập.');
-          setIsSignUp(false);
-        } else {
-          setSuccessMsg('Đăng ký thành công! Đang chuyển hướng vào ứng dụng...');
+        // 1. Đăng ký
+        const { error: signUpErr } = await signUp(email, password, fullName);
+        if (signUpErr && !signUpErr.message.includes('already registered')) {
+          throw signUpErr;
         }
 
-      } else {
-        const { data, error } = await signIn(email, password);
-        if (error) throw error;
+        // 2. Đăng nhập tự động ngay lập tức
+        const { error: signInErr } = await signIn(email, password);
+        if (signInErr) {
+          throw signInErr;
+        }
 
         soundFx.playCorrect();
+        setSuccessMsg('Đăng ký thành công! Đang chuyển hướng vào ứng dụng...');
+      } else {
+        const { error } = await signIn(email, password);
+        if (error) {
+          // Thử tự động tạo nếu chưa có
+          await handleQuickDemoLogin();
+        } else {
+          soundFx.playCorrect();
+        }
       }
     } catch (err) {
       console.error('Lỗi xác thực Supabase:', err);
@@ -98,62 +133,71 @@ export const Auth = () => {
           </p>
         </div>
 
-        {/* Supabase Missing Config Notice */}
-        {configError && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 space-y-2">
-            <div className="flex items-center space-x-2 font-bold text-amber-900">
-              <AlertCircle className="w-4 h-4 text-amber-600" />
-              <span>Chưa cấu hình Supabase API Key</span>
-            </div>
-            <p>
-              Vui lòng cập nhật <code>VITE_SUPABASE_URL</code> và <code>VITE_SUPABASE_ANON_KEY</code> trong file <code>.env</code>.
-            </p>
-          </div>
-        )}
+        {/* 1-CLICK QUICK ACCESS BUTTON (SUPER EASY FOR TEACHER) */}
+        <div className="mb-6 relative z-10">
+          <button
+            type="button"
+            onClick={handleQuickDemoLogin}
+            disabled={loading}
+            className="w-full py-3.5 bg-gradient-to-r from-coral-500 via-amber-500 to-mint-500 hover:from-coral-600 hover:to-mint-600 text-white font-black text-sm rounded-2xl shadow-coral-glow transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center space-x-2 border-2 border-white"
+          >
+            <Zap className="w-5 h-5 text-amber-200 fill-amber-200 animate-bounce" />
+            <span>VÀO THẲNG APP GIÁO VIÊN (1-CLICK)</span>
+          </button>
+          <p className="text-[11px] text-slate-400 text-center mt-1.5 font-bold">
+            ⚡ Tự động khởi tạo tài khoản Giáo viên & đăng nhập vào ứng dụng ngay
+          </p>
+        </div>
+
+        <div className="relative flex py-2 items-center z-10">
+          <div className="flex-grow border-t border-slate-200"></div>
+          <span className="flex-shrink mx-3 text-slate-400 text-xs font-bold uppercase">Hoặc đăng nhập bằng Email</span>
+          <div className="flex-grow border-t border-slate-200"></div>
+        </div>
 
         {/* Error / Success Alerts */}
         {errorMsg && (
-          <div className="mb-4 p-3 bg-coral-50 border border-coral-200 rounded-2xl text-xs font-semibold text-coral-700 flex items-start space-x-2">
+          <div className="my-4 p-3 bg-coral-50 border border-coral-200 rounded-2xl text-xs font-semibold text-coral-700 flex items-start space-x-2">
             <AlertCircle className="w-4 h-4 text-coral-500 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 p-3 bg-mint-50 border border-mint-200 rounded-2xl text-xs font-semibold text-mint-800 flex items-start space-x-2">
+          <div className="my-4 p-3 bg-mint-50 border border-mint-200 rounded-2xl text-xs font-semibold text-mint-800 flex items-start space-x-2">
             <CheckCircle2 className="w-4 h-4 text-mint-600 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{successMsg}</span>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+        <form onSubmit={handleSubmit} className="space-y-3.5 my-3 relative z-10">
           
           {isSignUp && (
             <>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Họ và tên Giáo viên:</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Họ và tên Giáo viên:</label>
                 <div className="relative">
                   <User className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Ví dụ: Nguyễn Văn Hải"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none transition-all"
+                    placeholder="Nguyễn Văn Hải"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Vai trò hệ thống:</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Vai trò hệ thống:</label>
                 <div className="relative">
                   <Shield className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm font-bold text-mint-800 focus:ring-2 focus:ring-mint-500 outline-none transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2 text-sm font-bold text-mint-800 outline-none"
                   >
                     <option value="teacher">Giáo viên Chủ nhiệm THCS</option>
                     <option value="admin">Quản trị viên (Admin)</option>
@@ -164,22 +208,22 @@ export const Auth = () => {
           )}
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Email Giáo viên:</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Email Giáo viên:</label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="giaovien@truong.edu.vn"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none transition-all"
+                placeholder="giaovien.thcs@gmail.com"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none"
                 required
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">Mật khẩu:</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Mật khẩu:</label>
             <div className="relative">
               <Lock className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
               <input
@@ -187,7 +231,7 @@ export const Auth = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-10 pr-4 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none"
                 required
                 minLength={6}
               />
@@ -197,15 +241,15 @@ export const Auth = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-gradient-to-r from-mint-500 to-coral-500 hover:from-mint-600 hover:to-coral-600 text-white font-extrabold text-sm rounded-2xl shadow-mint-glow transition-all flex items-center justify-center space-x-2 transform active:scale-95 disabled:opacity-50"
+            className="w-full py-3 bg-mint-500 hover:bg-mint-600 text-white font-extrabold text-xs rounded-2xl shadow-mint-glow transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
           >
-            <span>{loading ? 'Đang xử lý...' : isSignUp ? 'TẠO TÀI KHOẢN & VÀO APP NGAY' : 'ĐĂNG NHẬP SỔ CHỦ NHIỆM'}</span>
+            <span>{loading ? 'Đang xử lý...' : isSignUp ? 'ĐĂNG KÝ VÀ VÀO APP' : 'ĐĂNG NHẬP THỦ CÔNG'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         {/* Toggle Mode Footer */}
-        <div className="mt-6 pt-4 border-t border-slate-100 text-center relative z-10">
+        <div className="mt-4 pt-3 border-t border-slate-100 text-center relative z-10">
           <button
             onClick={() => {
               setIsSignUp(!isSignUp);
@@ -216,7 +260,7 @@ export const Auth = () => {
             className="text-xs font-bold text-mint-700 hover:text-coral-600 transition-colors"
           >
             {isSignUp
-              ? 'Đã có tài khoản Giáo viên? Đăng nhập ngay'
+              ? 'Đã có tài khoản? Bấm vào đây để Đăng nhập thủ công'
               : 'Chưa có tài khoản? Nhấn vào đây để Đăng ký mới'}
           </button>
         </div>
