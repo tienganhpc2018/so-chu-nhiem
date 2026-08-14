@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
 
         if (session?.user) {
           setUser(session.user);
-          await fetchProfile(session.user.id);
+          await fetchProfile(session.user);
         }
       } catch (err) {
         console.error('Lỗi khi lấy phiên đăng nhập Supabase:', err);
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
-        await fetchProfile(session.user.id);
+        await fetchProfile(session.user);
       } else {
         setUser(null);
         setProfile(null);
@@ -50,19 +50,28 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const fetchProfile = async (userId) => {
+  const fetchProfile = async (userData) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', userData.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Lỗi fetch profile:', error);
-      }
       if (data) {
         setProfile(data);
+      } else {
+        // Fallback upsert profile if trigger didn't create profile row yet
+        const fullName = userData.user_metadata?.full_name || userData.email.split('@')[0];
+        const newProfile = {
+          id: userData.id,
+          email: userData.email,
+          full_name: fullName,
+          role: 'teacher',
+          avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.id}`
+        };
+        await supabase.from('profiles').upsert(newProfile);
+        setProfile(newProfile);
       }
     } catch (err) {
       console.error('Fetch profile exception:', err);
@@ -112,7 +121,7 @@ export const AuthProvider = ({ children }) => {
         signIn,
         signUp,
         signOut,
-        refreshProfile: () => user && fetchProfile(user.id),
+        refreshProfile: () => user && fetchProfile(user),
       }}
     >
       {children}

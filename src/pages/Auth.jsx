@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { soundFx } from '../utils/soundEffects';
 import { MascotRobot } from '../components/MascotRobot';
-import { Sparkles, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 export const Auth = () => {
   const { signIn, signUp, configError } = useAuth();
@@ -14,6 +14,23 @@ export const Auth = () => {
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
+  const translateError = (err) => {
+    const msg = err?.message || '';
+    if (msg.includes('Invalid login credentials')) {
+      return 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại.';
+    }
+    if (msg.includes('Email not confirmed')) {
+      return 'Tài khoản chưa được xác nhận Email. Vui lòng kiểm tra Hộp thư Email của bạn để xác nhận (hoặc vào Supabase Auth Settings tắt "Confirm email" để vào thẳng).';
+    }
+    if (msg.includes('User already registered')) {
+      return 'Email này đã được đăng ký tài khoản. Vui lòng bấm Đăng nhập.';
+    }
+    if (msg.includes('Password should be at least')) {
+      return 'Mật khẩu phải có ít nhất 6 ký tự.';
+    }
+    return msg || 'Đã xảy ra lỗi trong quá trình đăng nhập/đăng ký.';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -24,7 +41,7 @@ export const Auth = () => {
     try {
       if (isSignUp) {
         if (!fullName.trim()) {
-          setErrorMsg('Vui lòng nhập họ và tên của Giáo viên.');
+          setErrorMsg('Vui lòng nhập đầy đủ Họ và tên Giáo viên.');
           setLoading(false);
           return;
         }
@@ -32,8 +49,12 @@ export const Auth = () => {
         if (error) throw error;
 
         soundFx.playCorrect();
-        setSuccessMsg('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
-        setIsSignUp(false);
+        if (data?.session) {
+          setSuccessMsg('Đăng ký thành công! Đang đăng nhập...');
+        } else {
+          setSuccessMsg('Đăng ký thành công! Bạn có thể Đăng nhập ngay (Nếu Supabase yêu cầu xác thực Email, vui lòng kiểm tra Hộp thư Email của bạn hoặc tắt "Confirm email" trong cài đặt Supabase).');
+          setIsSignUp(false);
+        }
       } else {
         const { data, error } = await signIn(email, password);
         if (error) throw error;
@@ -41,8 +62,8 @@ export const Auth = () => {
         soundFx.playCorrect();
       }
     } catch (err) {
-      console.error('Lỗi xác thực:', err);
-      setErrorMsg(err.message || 'Đã xảy ra lỗi trong quá trình xác thực.');
+      console.error('Lỗi xác thực Supabase:', err);
+      setErrorMsg(translateError(err));
     } finally {
       setLoading(false);
     }
@@ -52,7 +73,7 @@ export const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-mint-50 via-white to-coral-50 flex items-center justify-center p-4">
       <div className="bg-white/90 backdrop-blur-xl rounded-3xl max-w-md w-full p-8 shadow-2xl border border-mint-100 relative overflow-hidden">
         
-        {/* Decorative Mint & Coral background blur circles */}
+        {/* Background Blur Elements */}
         <div className="absolute -top-10 -right-10 w-40 h-40 bg-mint-200/40 rounded-full blur-2xl"></div>
         <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-coral-200/40 rounded-full blur-2xl"></div>
 
@@ -77,23 +98,23 @@ export const Auth = () => {
               <span>Chưa cấu hình Supabase API Key</span>
             </div>
             <p>
-              Vui lòng cập nhật <code>VITE_SUPABASE_URL</code> và <code>VITE_SUPABASE_ANON_KEY</code> trong file <code>.env</code> và chạy file <code>schema.sql</code> trong Supabase Editor.
+              Vui lòng cập nhật <code>VITE_SUPABASE_URL</code> và <code>VITE_SUPABASE_ANON_KEY</code> trong file <code>.env</code>.
             </p>
           </div>
         )}
 
         {/* Error / Success Alerts */}
         {errorMsg && (
-          <div className="mb-4 p-3 bg-coral-50 border border-coral-200 rounded-2xl text-xs font-semibold text-coral-700 flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 text-coral-500 shrink-0" />
-            <span>{errorMsg}</span>
+          <div className="mb-4 p-3 bg-coral-50 border border-coral-200 rounded-2xl text-xs font-semibold text-coral-700 flex items-start space-x-2">
+            <AlertCircle className="w-4 h-4 text-coral-500 shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 p-3 bg-mint-50 border border-mint-200 rounded-2xl text-xs font-semibold text-mint-800 flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-mint-600 shrink-0" />
-            <span>{successMsg}</span>
+          <div className="mb-4 p-3 bg-mint-50 border border-mint-200 rounded-2xl text-xs font-semibold text-mint-800 flex items-start space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-mint-600 shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{successMsg}</span>
           </div>
         )}
 
@@ -171,8 +192,16 @@ export const Auth = () => {
           >
             {isSignUp
               ? 'Đã có tài khoản Giáo viên? Đăng nhập ngay'
-              : 'Chưa có tài khoản? Đăng ký Giáo viên mới'}
+              : 'Chưa có tài khoản? Nhấn vào đây để Đăng ký mới'}
           </button>
+        </div>
+
+        {/* Helpful Tip Notice */}
+        <div className="mt-4 p-3 bg-blue-50/60 border border-blue-100 rounded-2xl text-[11px] text-blue-700 flex items-start space-x-2">
+          <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+          <span>
+            <b>Lưu ý nhỏ:</b> Nếu Thầy đăng ký mới mà Supabase yêu cầu xác nhận Email, Thầy có thể mở Supabase Dashboard -> Auth -> Providers -> tắt ô <b>"Confirm email"</b> để có thể đăng ký và đăng nhập vào thẳng ứng dụng ngay lập tức!
+          </span>
         </div>
 
       </div>
