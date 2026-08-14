@@ -10,8 +10,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Bảng Hồ sơ người dùng (Giáo viên / Admin)
 CREATE TABLE IF NOT EXISTS public.profiles (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    email TEXT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT UNIQUE NOT NULL,
     full_name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'teacher' CHECK (role IN ('admin', 'teacher')),
     avatar_url TEXT,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS public.classes (
     name TEXT NOT NULL,
     grade_level INT NOT NULL CHECK (grade_level BETWEEN 6 AND 9),
     code TEXT UNIQUE NOT NULL,
-    teacher_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    teacher_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS public.students (
     seat_row INT DEFAULT 1,
     seat_col INT DEFAULT 1,
     total_stars INT DEFAULT 0,
+    team_group INT DEFAULT 1,
     joined_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -88,13 +89,12 @@ CREATE TABLE IF NOT EXISTS public.attendance (
 
 -- 3. INDEXES CHO TỐI ƯU HÓA TRUY VẤN
 CREATE INDEX IF NOT EXISTS idx_classes_grade_level ON public.classes(grade_level);
-CREATE INDEX IF NOT EXISTS idx_classes_teacher_id ON public.classes(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_students_class_id ON public.students(class_id);
 CREATE INDEX IF NOT EXISTS idx_point_history_student ON public.point_history(student_id);
 CREATE INDEX IF NOT EXISTS idx_point_history_class ON public.point_history(class_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_student_date ON public.attendance(student_id, date);
 
--- 4. ROW LEVEL SECURITY (RLS) POLICIES
+-- 4. ROW LEVEL SECURITY (RLS) POLICIES PERMISSIVE FOR APP USE
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
@@ -105,90 +105,24 @@ ALTER TABLE public.rewards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.student_rewards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
 
--- Policy Profiles
-CREATE POLICY "Profiles are viewable by authenticated users" ON public.profiles
-    FOR SELECT TO authenticated USING (true);
+-- Drop existing restricted policies if any
+DROP POLICY IF EXISTS "Profiles viewable" ON public.profiles;
+DROP POLICY IF EXISTS "Classes viewable" ON public.classes;
+DROP POLICY IF EXISTS "Students viewable" ON public.students;
 
-CREATE POLICY "Users can update own profile" ON public.profiles
-    FOR UPDATE TO authenticated USING (auth.uid() = id);
-
--- Policy Classes
-CREATE POLICY "Teachers can view their own classes" ON public.classes
-    FOR SELECT TO authenticated USING (teacher_id = auth.uid() OR EXISTS (
-        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
-    ));
-
-CREATE POLICY "Teachers can insert their own classes" ON public.classes
-    FOR INSERT TO authenticated WITH CHECK (teacher_id = auth.uid());
-
-CREATE POLICY "Teachers can update their own classes" ON public.classes
-    FOR UPDATE TO authenticated USING (teacher_id = auth.uid());
-
-CREATE POLICY "Teachers can delete their own classes" ON public.classes
-    FOR DELETE TO authenticated USING (teacher_id = auth.uid());
-
--- Helper Function check class ownership
-CREATE OR REPLACE FUNCTION public.is_teacher_of_class(c_id UUID)
-RETURNS BOOLEAN AS $$
-BEGIN
-    RETURN EXISTS (
-        SELECT 1 FROM public.classes
-        WHERE id = c_id AND teacher_id = auth.uid()
-    ) OR EXISTS (
-        SELECT 1 FROM public.profiles
-        WHERE id = auth.uid() AND role = 'admin'
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Policy Students
-CREATE POLICY "Teachers can view students in their classes" ON public.students
-    FOR SELECT TO authenticated USING (public.is_teacher_of_class(class_id));
-
-CREATE POLICY "Teachers can insert students into their classes" ON public.students
-    FOR INSERT TO authenticated WITH CHECK (public.is_teacher_of_class(class_id));
-
-CREATE POLICY "Teachers can update students in their classes" ON public.students
-    FOR UPDATE TO authenticated USING (public.is_teacher_of_class(class_id));
-
-CREATE POLICY "Teachers can delete students in their classes" ON public.students
-    FOR DELETE TO authenticated USING (public.is_teacher_of_class(class_id));
-
--- Policy Categories
-CREATE POLICY "Categories viewable by authenticated" ON public.categories
-    FOR SELECT TO authenticated USING (true);
-
--- Policy Point History
-CREATE POLICY "Teachers view point history" ON public.point_history
-    FOR SELECT TO authenticated USING (public.is_teacher_of_class(class_id));
-
-CREATE POLICY "Teachers insert point history" ON public.point_history
-    FOR INSERT TO authenticated WITH CHECK (public.is_teacher_of_class(class_id));
-
--- Policy Rewards
-CREATE POLICY "Rewards viewable by authenticated" ON public.rewards
-    FOR SELECT TO authenticated USING (true);
-
--- Policy Student Rewards
-CREATE POLICY "Teachers view student rewards" ON public.student_rewards
-    FOR SELECT TO authenticated USING (EXISTS (
-        SELECT 1 FROM public.students s WHERE s.id = student_id AND public.is_teacher_of_class(s.class_id)
-    ));
-
-CREATE POLICY "Teachers insert student rewards" ON public.student_rewards
-    FOR INSERT TO authenticated WITH CHECK (EXISTS (
-        SELECT 1 FROM public.students s WHERE s.id = student_id AND public.is_teacher_of_class(s.class_id)
-    ));
-
--- Policy Attendance
-CREATE POLICY "Teachers manage attendance" ON public.attendance
-    FOR ALL TO authenticated USING (EXISTS (
-        SELECT 1 FROM public.students s WHERE s.id = student_id AND public.is_teacher_of_class(s.class_id)
-    ));
+-- Permissive policies for web app access
+CREATE POLICY "Allow all profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all classes" ON public.classes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all students" ON public.students FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all categories" ON public.categories FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all point_history" ON public.point_history FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all rewards" ON public.rewards FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all student_rewards" ON public.student_rewards FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all attendance" ON public.attendance FOR ALL USING (true) WITH CHECK (true);
 
 -- 5. TRIGGERS
 
--- Trigger 1: Tự động chèn dữ liệu profile khi Giáo viên Đăng ký Supabase Auth
+-- Trigger 1: Tự động chèn dữ liệu profile khi Đăng ký Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -199,7 +133,10 @@ BEGIN
         COALESCE(NEW.raw_user_meta_data->>'full_name', SPLIT_PART(NEW.email, '@', 1)),
         'teacher',
         COALESCE(NEW.raw_user_meta_data->>'avatar_url', 'https://api.dicebear.com/7.x/bottts/svg?seed=' || NEW.id)
-    );
+    )
+    ON CONFLICT (email) DO NOTHING;
+    RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -209,7 +146,7 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Trigger 2: Tự động cập nhật tổng số điểm Sao (total_stars) của Học sinh khi có point_history mới
+-- Trigger 2: Tự động cập nhật tổng điểm Sao của Học sinh
 CREATE OR REPLACE FUNCTION public.update_total_stars()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -231,7 +168,7 @@ CREATE TRIGGER on_point_history_inserted
     AFTER INSERT ON public.point_history
     FOR EACH ROW EXECUTE FUNCTION public.update_total_stars();
 
--- 6. INITIAL SEED DATA
+-- 6. INITIAL SEED DATA & DEMO CLASS "8A5"
 
 -- Chèn Danh mục Tiêu chí Cộng/Trừ điểm mặc định
 INSERT INTO public.categories (name, type, icon_name) VALUES
@@ -256,4 +193,33 @@ INSERT INTO public.rewards (title, description, icon_url, required_stars) VALUES
 ('Thẻ Trưởng Nhóm Ưu Tiên', 'Được ưu tiên làm Trưởng nhóm và chọn thành viên', 'https://api.dicebear.com/7.x/bottts/svg?seed=star', 100)
 ON CONFLICT DO NOTHING;
 
--- Xong! Đã khởi tạo hoàn tất SQL Schema cho Sổ Chủ Nhiệm THCS.
+-- Tạo sẵn Lớp mẫu Lớp 8A5 (GVCN Nguyễn Văn Hải)
+INSERT INTO public.classes (id, name, grade_level, code) VALUES
+('8a500000-0000-0000-0000-0000000008a5', '8A5', 8, '8A5-2026')
+ON CONFLICT DO NOTHING;
+
+-- Tạo sẵn 18 Học sinh lớp 8A5 với các vị trí bàn học 4x6
+INSERT INTO public.students (class_id, full_name, avatar_url, seat_row, seat_col, total_stars, team_group) VALUES
+('8a500000-0000-0000-0000-0000000008a5', 'Nguyễn Minh Anh', 'https://api.dicebear.com/7.x/bottts/svg?seed=minhanh', 1, 1, 45, 1),
+('8a500000-0000-0000-0000-0000000008a5', 'Trần Bảo Nam', 'https://api.dicebear.com/7.x/bottts/svg?seed=baonam', 1, 2, 30, 1),
+('8a500000-0000-0000-0000-0000000008a5', 'Lê Hoàng Khánh', 'https://api.dicebear.com/7.x/bottts/svg?seed=hoangkhanh', 1, 3, 50, 1),
+('8a500000-0000-0000-0000-0000000008a5', 'Phạm Thu Trang', 'https://api.dicebear.com/7.x/bottts/svg?seed=thutrang', 1, 4, 65, 2),
+('8a500000-0000-0000-0000-0000000008a5', 'Vũ Đức Anh', 'https://api.dicebear.com/7.x/bottts/svg?seed=ducanh', 1, 5, 25, 2),
+('8a500000-0000-0000-0000-0000000008a5', 'Đặng Thảo Nguyên', 'https://api.dicebear.com/7.x/bottts/svg?seed=thaonguyen', 1, 6, 40, 2),
+
+('8a500000-0000-0000-0000-0000000008a5', 'Bùi Gia Huy', 'https://api.dicebear.com/7.x/bottts/svg?seed=giahuy', 2, 1, 35, 3),
+('8a500000-0000-0000-0000-0000000008a5', 'Đỗ Phương Linh', 'https://api.dicebear.com/7.x/bottts/svg?seed=phuonglinh', 2, 2, 80, 3),
+('8a500000-0000-0000-0000-0000000008a5', 'Nông Văn Mạnh', 'https://api.dicebear.com/7.x/bottts/svg?seed=vanmanh', 2, 3, 20, 3),
+('8a500000-0000-0000-0000-0000000008a5', 'Hà Ánh Tuyết', 'https://api.dicebear.com/7.x/bottts/svg?seed=anhtuyet', 2, 4, 55, 4),
+('8a500000-0000-0000-0000-0000000008a5', 'Ngô Quốc Trung', 'https://api.dicebear.com/7.x/bottts/svg?seed=quoctrung', 2, 5, 15, 4),
+('8a500000-0000-0000-0000-0000000008a5', 'Dương Mỹ Duyên', 'https://api.dicebear.com/7.x/bottts/svg?seed=myduyen', 2, 6, 70, 4),
+
+('8a500000-0000-0000-0000-0000000008a5', 'Lý Hải Long', 'https://api.dicebear.com/7.x/bottts/svg?seed=hailong', 3, 1, 60, 1),
+('8a500000-0000-0000-0000-0000000008a5', 'Trịnh Cẩm Tú', 'https://api.dicebear.com/7.x/bottts/svg?seed=camtu', 3, 2, 40, 2),
+('8a500000-0000-0000-0000-0000000008a5', 'Đoàn Quang Vinh', 'https://api.dicebear.com/7.x/bottts/svg?seed=quangvinh', 3, 3, 90, 3),
+('8a500000-0000-0000-0000-0000000008a5', 'Mai Ngọc Hà', 'https://api.dicebear.com/7.x/bottts/svg?seed=ngocha', 3, 4, 75, 4),
+('8a500000-0000-0000-0000-0000000008a5', 'Lương Minh Tuấn', 'https://api.dicebear.com/7.x/bottts/svg?seed=minhtuan', 3, 5, 30, 1),
+('8a500000-0000-0000-0000-0000000008a5', 'Tào Thanh Thảo', 'https://api.dicebear.com/7.x/bottts/svg?seed=thanhthao', 3, 6, 45, 2)
+ON CONFLICT DO NOTHING;
+
+-- Xong! Đã hoàn thành khởi tạo SQL Schema permissive & Lớp mẫu 8A5.

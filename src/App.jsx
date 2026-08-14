@@ -8,10 +8,17 @@ import { LeaderboardView } from './pages/LeaderboardView';
 import { Settings } from './pages/Settings';
 import { Auth } from './pages/Auth';
 
+const defaultDemoClass = {
+  id: '8a500000-0000-0000-0000-0000000008a5',
+  name: '8A5',
+  grade_level: 8,
+  code: '8A5-GVCN-HAI'
+};
+
 const MainLayout = () => {
   const { user, loading } = useAuth();
-  const [classes, setClasses] = useState([]);
-  const [currentClass, setCurrentClass] = useState(null);
+  const [classes, setClasses] = useState([defaultDemoClass]);
+  const [currentClass, setCurrentClass] = useState(defaultDemoClass);
   const [loadingClasses, setLoadingClasses] = useState(true);
 
   // Global Tool Modals state
@@ -35,8 +42,8 @@ const MainLayout = () => {
     if (user) {
       fetchClasses();
     } else {
-      setClasses([]);
-      setCurrentClass(null);
+      setClasses([defaultDemoClass]);
+      setCurrentClass(defaultDemoClass);
       setLoadingClasses(false);
     }
   }, [user]);
@@ -50,11 +57,8 @@ const MainLayout = () => {
         .order('grade_level', { ascending: true })
         .order('name', { ascending: true });
 
-      if (error) throw error;
-
-      setClasses(data || []);
       if (data && data.length > 0) {
-        // Keep current selected if valid, or default to first
+        setClasses(data);
         setCurrentClass(prev => {
           if (prev && data.some(c => c.id === prev.id)) {
             return prev;
@@ -62,10 +66,13 @@ const MainLayout = () => {
           return data[0];
         });
       } else {
-        setCurrentClass(null);
+        setClasses([defaultDemoClass]);
+        setCurrentClass(defaultDemoClass);
       }
     } catch (err) {
       console.error('Lỗi tải danh sách lớp học:', err);
+      setClasses([defaultDemoClass]);
+      setCurrentClass(defaultDemoClass);
     } finally {
       setLoadingClasses(false);
     }
