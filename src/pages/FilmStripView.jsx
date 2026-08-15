@@ -73,7 +73,7 @@ export const FilmStripView = ({ currentClass, students = [] }) => {
 
       setWinnerStudent(winner);
       setIsSpinning(false);
-      setShowWinnerModal(true);
+      setShowWinnerModal(false); // Display result directly on the page (Screenshot 2)
 
       soundFx.playWinner();
       confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 } });

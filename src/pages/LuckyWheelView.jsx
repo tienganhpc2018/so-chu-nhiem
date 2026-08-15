@@ -219,7 +219,7 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
       setWinnerStudent(winner);
       setIsSpinning(false);
-      setShowWinnerModal(true);
+      setShowWinnerModal(false); // Display inline directly on page (Screenshot 2 & 3)
 
       if (!isMuted) soundFx.playWinner();
       confetti({ particleCount: 75, spread: 100, origin: { y: 0.5 } });
@@ -338,27 +338,40 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
             </span>
           </div>
 
-          {/* 3D LOTTERY CAGE CANVAS GLOBE */}
-          <div className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto flex items-center justify-center">
+          {/* COMPUTER MONITOR WHEEL FRAME WITH PINWHEEL & COMPUTER MOUSE (Screenshot 3) */}
+          <div className="relative w-80 h-80 sm:w-96 sm:h-96 mx-auto flex flex-col items-center justify-center pt-2">
             
-            <div className={`absolute inset-0 rounded-full border-8 border-purple-400/80 bg-gradient-to-b from-purple-100/50 via-white/80 to-purple-50/50 shadow-2xl backdrop-blur-sm flex items-center justify-center ${
-              isSpinning ? 'animate-spin border-purple-600 ring-8 ring-purple-300/60' : ''
+            {/* Outer Circle Wheel Frame */}
+            <div className={`relative w-72 h-72 sm:w-80 sm:h-80 rounded-full border-8 border-indigo-500 bg-gradient-to-b from-purple-100/60 via-white/90 to-indigo-50/60 shadow-2xl backdrop-blur-sm flex items-center justify-center overflow-hidden ${
+              isSpinning ? 'ring-8 ring-indigo-300' : ''
             }`}>
               
-              <div className="absolute inset-4 rounded-full border-2 border-purple-200 border-dashed opacity-40"></div>
-              <div className="w-12 h-12 bg-purple-600 rounded-full border-4 border-white shadow-md z-20 flex items-center justify-center text-white text-xs font-black">
-                ★
+              {/* Outer Dashed Ring */}
+              <div className="absolute inset-4 rounded-full border-2 border-indigo-200 border-dashed opacity-50"></div>
+
+              {/* PINWHEEL PROPELLER SPINNER IN CENTER (Chong chóng chính giữa - Screenshot 3) */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <div className={`w-40 h-40 relative transition-transform duration-300 ${isSpinning ? 'animate-spin' : ''}`}>
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-0"></div>
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-90"></div>
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-180"></div>
+                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-270"></div>
+                  <div className="absolute inset-0 m-auto w-8 h-8 bg-indigo-600 rounded-full border-4 border-white shadow-md z-30 flex items-center justify-center text-white text-xs font-black">
+                    ✦
+                  </div>
+                </div>
               </div>
 
+              {/* STUDENT AVATARS FLOATING ON WHEEL RING */}
               {ballPositions.slice(0, 16).map((ball) => {
                 const isSelectedWinner = winnerStudent?.id === ball.id && !isSpinning;
                 return (
                   <div
                     key={ball.id}
-                    className={`absolute w-11 h-11 rounded-full p-0.5 shadow-md border-2 transition-transform duration-75 flex items-center justify-center bg-white ${
+                    className={`absolute w-12 h-12 rounded-full p-0.5 shadow-md border-2 transition-transform duration-75 flex items-center justify-center bg-white ${
                       isSelectedWinner
                         ? 'scale-125 border-amber-400 ring-4 ring-amber-300 z-30'
-                        : 'border-purple-300 z-10'
+                        : 'border-indigo-300 z-10'
                     }`}
                     style={{
                       transform: `translate(${ball.x}px, ${ball.y}px)`
@@ -375,67 +388,99 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
             </div>
 
-            <div className="absolute -bottom-8 w-44 h-8 bg-slate-300 rounded-b-3xl border-2 border-slate-400 shadow-md"></div>
+            {/* COMPUTER MONITOR STAND BASE & COMPUTER MOUSE (Màn hình máy tính & Con chuột - Screenshot 3) */}
+            <div className="relative flex flex-col items-center mt-1">
+              <div className="w-10 h-6 bg-slate-700 rounded-sm"></div>
+              <div className="w-56 h-8 bg-gradient-to-r from-slate-400 via-slate-200 to-slate-400 rounded-t-xl border-t-2 border-slate-300 shadow-md"></div>
+              
+              {/* Wire & Computer Mouse */}
+              <div className="absolute right-[-45px] bottom-1 flex items-center">
+                <svg className="w-14 h-6 text-slate-400" viewBox="0 0 60 30" fill="none">
+                  <path d="M0 15 Q25 28 40 15" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+                <div className="w-7 h-11 bg-white border-2 border-slate-300 rounded-t-2xl rounded-b-xl shadow-md p-1 flex flex-col items-center justify-start">
+                  <div className="w-1 h-3 bg-indigo-500 rounded-full mt-0.5"></div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          {/* SPIN ACTION BUTTON */}
-          <div className="w-full space-y-3 pt-4">
+          {/* INLINE RESULT DISPLAY BOX ON THE PAGE (Screenshot 2 & 3) */}
+          <div className="w-full bg-gradient-to-r from-amber-50 via-white to-purple-50 rounded-3xl p-5 border-2 border-amber-300/80 shadow-md space-y-3">
+            <div className="text-xs font-black text-amber-700 uppercase tracking-widest flex items-center justify-center space-x-1">
+              <Trophy className="w-4 h-4 text-amber-500" />
+              <span>🏆 KẾT QUẢ VÒNG QUAY 🏆</span>
+            </div>
+
+            <h3 className="text-2xl font-black text-slate-900">
+              {winnerStudent ? winnerStudent.full_name : '???'}
+            </h3>
+
+            {/* Quick Reward Action Pill (Screenshot 2 & 3) */}
+            {winnerStudent && (
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                <select
+                  value={attachedReward}
+                  onChange={(e) => setAttachedReward(e.target.value)}
+                  className="bg-white border border-amber-300 text-amber-950 font-black text-xs px-3 py-1.5 rounded-xl outline-none"
+                >
+                  {rewardOptions.map(r => (
+                    <option key={r.id} value={r.id}>{r.title}</option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={() => {
+                    soundFx.playCorrect();
+                    confetti({ particleCount: 50, spread: 80 });
+                    winnerStudent.total_stars = (winnerStudent.total_stars || 0) + (attachedReward === 'plus_10_stars' ? 10 : 5);
+                    alert(`Đã thưởng xu cho ${winnerStudent.full_name}!`);
+                  }}
+                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-xl shadow-md flex items-center space-x-1"
+                >
+                  <Coins className="w-3.5 h-3.5 fill-amber-400" />
+                  <span>Thưởng xu</span>
+                </button>
+
+                <button
+                  onClick={() => setWinnerStudent(null)}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl flex items-center space-x-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* MAIN START SPIN BUTTON (Screenshot 2 & 3) */}
+          <div className="w-full space-y-3 pt-2">
             <button
               onClick={handleStartSpin}
               disabled={isSpinning || availableStudents.length === 0}
               className={`w-full py-4 rounded-3xl font-black text-base tracking-wider uppercase transition-all shadow-2xl flex items-center justify-center space-x-2 transform active:scale-95 ${
                 isSpinning
                   ? 'bg-purple-400 text-white cursor-not-allowed animate-pulse'
-                  : 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-glow hover:scale-[1.02]'
+                  : 'bg-gradient-to-r from-coral-500 to-amber-500 hover:from-coral-600 hover:to-amber-600 text-white shadow-coral-glow hover:scale-[1.02]'
               }`}
             >
-              <Sparkles className="w-5 h-5" />
-              <span>{isSpinning ? '✨ ĐANG QUAY LỒNG CẦU...' : '✨ QUAY NGAY'}</span>
+              <Play className="w-5 h-5 fill-white" />
+              <span>{isSpinning ? '✨ ĐANG QUAY VÒNG QUAY...' : '► 🎡 Bấm Quay Vòng Quay!'}</span>
             </button>
 
-            {/* FEATURE 4: ATTACHED REWARD SELECTOR */}
-            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
-              <span className="font-extrabold text-amber-950 flex items-center space-x-1.5">
-                <Gift className="w-4 h-4 text-amber-600" />
-                <span>Phần thưởng đính kèm:</span>
-              </span>
-
-              <select
-                value={attachedReward}
-                onChange={(e) => setAttachedReward(e.target.value)}
-                className="bg-white border border-amber-300 text-amber-950 rounded-xl px-3 py-1 text-xs font-black outline-none"
-              >
-                {rewardOptions.map(r => (
-                  <option key={r.id} value={r.id}>{r.title}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* FEATURE 3: QUIET STUDENTS PRIORITY & EXCLUDE TOGGLE */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-              <div className="p-2.5 bg-purple-50/70 rounded-2xl border border-purple-200 flex items-center justify-between">
-                <span className="font-extrabold text-purple-950 text-[11px]">
-                  🤫 Ưu tiên học sinh trầm lặng
-                </span>
-                <input
-                  type="checkbox"
-                  checked={quietPriority}
-                  onChange={(e) => setQuietPriority(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded cursor-pointer"
-                />
-              </div>
-
-              <div className="p-2.5 bg-purple-50/70 rounded-2xl border border-purple-200 flex items-center justify-between">
-                <span className="font-extrabold text-purple-950 text-[11px]">
-                  👤 Loại trừ sau khi trúng
-                </span>
-                <input
-                  type="checkbox"
-                  checked={excludeWinner}
-                  onChange={(e) => setExcludeWinner(e.target.checked)}
-                  className="w-4 h-4 text-purple-600 rounded cursor-pointer"
-                />
-              </div>
+            {/* TOGGLE OPTIONS (Screenshot 2) */}
+            <div className="flex items-center justify-center space-x-2 pt-1">
+              <input
+                type="checkbox"
+                id="autoExCheck"
+                checked={excludeWinner}
+                onChange={(e) => setExcludeWinner(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+              />
+              <label htmlFor="autoExCheck" className="text-xs font-black text-slate-700 cursor-pointer">
+                Tự động loại học sinh sau khi chọn
+              </label>
             </div>
 
           </div>
