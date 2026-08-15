@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { soundFx } from '../utils/soundEffects';
 import confetti from 'canvas-confetti';
+import { PrintSeatingChartModal } from './PrintSeatingChartModal';
 import {
   Grid,
   Monitor,
@@ -11,13 +12,19 @@ import {
   Maximize2,
   Shuffle,
   RotateCcw,
-  Image as ImageIcon,
+  Printer,
   Check,
   Plus,
   Star,
-  User,
-  Sparkles,
-  Pin
+  Users,
+  Pin,
+  Glasses,
+  Handshake,
+  Glasses as GlassesIcon,
+  Save,
+  FolderOpen,
+  Eye,
+  Camera
 } from 'lucide-react';
 
 export const SeatingGrid = ({
@@ -31,23 +38,42 @@ export const SeatingGrid = ({
   onSelectStudent,
   onOpenAvatarModal
 }) => {
-  // Toolbar States (Matching Screenshots 1, 2, 3)
+  // Toolbar States
   const [dayCount, setDayCount] = useState(4); // 2, 3, 4, 6 Dãy
-  const [capacity, setCapacity] = useState('auto'); // 'auto', 20, 24, 30, 36
-  const [viewMode, setViewMode] = useState('3D'); // '3D' | '2D'
-  const [zoomLevel, setZoomLevel] = useState(85); // 50% - 150%
+  const [viewMode, setViewMode] = useState('3D'); // '3D' | '2D' | 'VR'
+  const [zoomLevel, setZoomLevel] = useState(85);
   const [perspective, setPerspective] = useState('normal'); // 'near' | 'normal' | 'deep'
   const [selectedUnseatedId, setSelectedUnseatedId] = useState(null);
-  const [dragOverCell, setDragOverCell] = useState(null);
 
-  const containerRef = useRef(null);
+  // Preset Layout State (Feature 2)
+  const [selectedPreset, setSelectedPreset] = useState('hk1'); // 'hk1' | 'exam' | 'group'
+  const [savedPresets, setSavedPresets] = useState({
+    hk1: null,
+    exam: null,
+    group: null
+  });
+
+  // VR 360 State (Feature 5)
+  const [vrAngle, setVrAngle] = useState(0);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
+  // Load saved presets from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`seating_presets_${currentClass?.id || 'demo'}`);
+      if (stored) {
+        setSavedPresets(JSON.parse(stored));
+      }
+    } catch (err) {
+      console.error('Lỗi tải phương án sơ đồ:', err);
+    }
+  }, [currentClass]);
 
   // Unseated students filter
   const unseatedStudents = students.filter(
     s => !s.seat_row || !s.seat_col || s.seat_row > 6 || s.seat_col > dayCount
   );
 
-  // Map student at seat (row r, col c)
   const getStudentAtSeat = (r, c) => {
     return students.find(s => Number(s.seat_row) === r && Number(s.seat_col) === c);
   };
@@ -63,15 +89,94 @@ export const SeatingGrid = ({
     soundFx.playCorrect();
     confetti({ particleCount: 30, spread: 70, origin: { y: 0.6 } });
 
-    const totalDesks = dayCount * 6;
-    let deskIndex = 0;
-
-    // Fill empty desks sequentially with unseated students
     students.forEach((st, idx) => {
       const col = (idx % dayCount) + 1;
       const row = Math.floor(idx / dayCount) + 1;
       onMoveStudentSeat(st.id, row, col);
     });
+  };
+
+  // Feature 3: Smart Auto-Seating for Glasses / Height
+  const handleSeatGlassesAndHeight = () => {
+    soundFx.playCorrect();
+    confetti({ particleCount: 35, spread: 80, origin: { y: 0.5 } });
+
+    // Separate students with glasses or shorter height
+    const priorityStudents = [...students].sort((a, b) => {
+      if (a.has_glasses && !b.has_glasses) return -1;
+      if (!a.has_glasses && b.has_glasses) return 1;
+      return 0;
+    });
+
+    priorityStudents.forEach((st, idx) => {
+      const col = (idx % dayCount) + 1;
+      const row = Math.floor(idx / dayCount) + 1; // Row 1 & 2 filled first!
+      onMoveStudentSeat(st.id, row, col);
+    });
+  };
+
+  // Feature 4: Pair Study Rule (Ghép Đôi Bạn Cùng Tiến)
+  const handlePairStudyRule = () => {
+    soundFx.playCorrect();
+    confetti({ particleCount: 40, spread: 90, origin: { y: 0.5 } });
+
+    // Sort by total stars: highest stars (Top) and lowest stars
+    const sorted = [...students].sort((a, b) => (b.total_stars || 0) - (a.total_stars || 0));
+    const paired = [];
+
+    const half = Math.floor(sorted.length / 2);
+    const topHalf = sorted.slice(0, half);
+    const bottomHalf = sorted.slice(half).reverse();
+
+    for (let i = 0; i < half; i++) {
+      if (topHalf[i]) paired.push(topHalf[i]);
+      if (bottomHalf[i]) paired.push(bottomHalf[i]);
+    }
+    // Add any remaining
+    sorted.forEach(st => {
+      if (!paired.includes(st)) paired.push(st);
+    });
+
+    paired.forEach((st, idx) => {
+      const col = (idx % dayCount) + 1;
+      const row = Math.floor(idx / dayCount) + 1;
+      onMoveStudentSeat(st.id, row, col);
+    });
+  };
+
+  // Feature 2: Save current seating layout as Preset
+  const handleSavePreset = () => {
+    soundFx.playCorrect();
+    const layoutSnapshot = students.map(s => ({
+      id: s.id,
+      seat_row: s.seat_row,
+      seat_col: s.seat_col
+    }));
+
+    const updatedPresets = {
+      ...savedPresets,
+      [selectedPreset]: layoutSnapshot
+    };
+
+    setSavedPresets(updatedPresets);
+    localStorage.setItem(
+      `seating_presets_${currentClass?.id || 'demo'}`,
+      JSON.stringify(updatedPresets)
+    );
+  };
+
+  // Feature 2: Load selected Preset layout
+  const handleLoadPreset = (presetKey) => {
+    soundFx.playClick();
+    setSelectedPreset(presetKey);
+
+    const snapshot = savedPresets[presetKey];
+    if (snapshot && Array.isArray(snapshot)) {
+      snapshot.forEach(item => {
+        onMoveStudentSeat(item.id, item.seat_row, item.seat_col);
+      });
+      soundFx.playCorrect();
+    }
   };
 
   // Clear all seats
@@ -93,7 +198,6 @@ export const SeatingGrid = ({
       return;
     }
 
-    // If an unseated student is selected, place them here!
     if (selectedUnseatedId) {
       soundFx.playCorrect();
       onMoveStudentSeat(selectedUnseatedId, r, c);
@@ -101,101 +205,82 @@ export const SeatingGrid = ({
     }
   };
 
-  // Export to PNG Image
-  const handleExportPNG = () => {
-    soundFx.playCorrect();
-    // Native canvas exporter
-    const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 900;
-    const ctx = canvas.getContext('2d');
-
-    // Background fill
-    ctx.fillStyle = '#F8FAFC';
-    ctx.fillRect(0, 0, 1200, 900);
-
-    // Title
-    ctx.fillStyle = '#1E293B';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`SƠ ĐỒ PHÒNG HỌC LỚP ${currentClass?.name || '8A5'}`, 600, 50);
-
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillStyle = '#64748B';
-    ctx.fillText(`GVCN: ${teacherProfile?.full_name || 'Nguyễn Văn Hải'} • Sĩ số: ${students.length} HS`, 600, 85);
-
-    // Save image
-    const link = document.createElement('a');
-    link.download = `SoDoPhongHoc_Lop_${currentClass?.name || '8A5'}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-  };
-
-  // Rows and Cols arrays
   const rows = [1, 2, 3, 4];
   const cols = Array.from({ length: dayCount }, (_, i) => i + 1);
 
   return (
-    <div className="space-y-6 select-none" ref={containerRef}>
+    <div className="space-y-6 select-none">
       
-      {/* TOOLBAR 1: Row count, Desk Capacity & Action Buttons (Matching Screenshot 3) */}
+      {/* TOOLBAR 1: Layout Presets & Smart Auto-Seating Rules (Features 2, 3, 4, 1) */}
       <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-soft flex flex-wrap items-center justify-between gap-4">
         
-        {/* Row Count Selector */}
+        {/* Feature 2: Layout Presets Switcher */}
         <div className="flex items-center space-x-2">
           <span className="text-xs font-black text-slate-500 flex items-center space-x-1">
-            <Grid className="w-4 h-4 text-purple-600" />
-            <span>Dãy bàn:</span>
+            <FolderOpen className="w-4 h-4 text-purple-600" />
+            <span>Phương án:</span>
           </span>
 
-          {[2, 3, 4, 6].map(num => (
-            <button
-              key={num}
-              onClick={() => {
-                soundFx.playClick();
-                setDayCount(num);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
-                dayCount === num ? 'bg-purple-600 text-white shadow-purple-glow' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {num} Dãy
-            </button>
-          ))}
+          <select
+            value={selectedPreset}
+            onChange={(e) => handleLoadPreset(e.target.value)}
+            className="bg-purple-50 border border-purple-200 text-purple-900 rounded-xl px-3 py-1.5 text-xs font-extrabold outline-none"
+          >
+            <option value="hk1">Sơ đồ Học kỳ I {savedPresets.hk1 ? '✓' : ''}</option>
+            <option value="exam">Sơ đồ Ôn thi {savedPresets.exam ? '✓' : ''}</option>
+            <option value="group">Sơ đồ Thảo luận nhóm {savedPresets.group ? '✓' : ''}</option>
+          </select>
+
+          <button
+            onClick={handleSavePreset}
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all flex items-center space-x-1"
+            title="Lưu vị trí chỗ ngồi hiện tại vào phương án này"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>Lưu sơ đồ</span>
+          </button>
         </div>
 
-        {/* Action Buttons (Matching Screenshot 3) */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        {/* Feature 3 & 4: Smart Seating Rules */}
+        <div className="flex flex-wrap items-center gap-2">
           
+          {/* Feature 3: Glasses & Height Rule */}
           <button
-            onClick={handleAutoSeatAll}
-            className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-2xl text-xs font-extrabold transition-all flex items-center space-x-1.5 shadow-sm"
+            onClick={handleSeatGlassesAndHeight}
+            className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
+            title="Ưu tiên xếp học sinh cận thị & chiều cao khiêm tốn vào Hàng 1-2"
           >
-            <Shuffle className="w-4 h-4 text-emerald-600" />
-            <span>Xếp tất cả ({students.length} HS)</span>
+            <GlassesIcon className="w-3.5 h-3.5 text-blue-600" />
+            <span>Xếp Cận Thị / Thấp</span>
           </button>
 
+          {/* Feature 4: Pair Study Rule */}
           <button
-            onClick={handleClearAllSeats}
-            className="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-2xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
+            onClick={handlePairStudyRule}
+            className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
+            title="Ghép 1 học sinh tiêu biểu ngồi cạnh 1 học sinh cần hỗ trợ"
           >
-            <RotateCcw className="w-4 h-4 text-purple-600" />
-            <span>Xóa xếp chỗ</span>
+            <Handshake className="w-3.5 h-3.5 text-amber-600" />
+            <span>Đôi Bạn Cùng Tiến</span>
           </button>
 
+          {/* Feature 1: Print A4 PDF Modal */}
           <button
-            onClick={handleExportPNG}
-            className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs font-extrabold shadow-purple-glow transition-all flex items-center space-x-1.5"
+            onClick={() => {
+              soundFx.playClick();
+              setShowPrintModal(true);
+            }}
+            className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-extrabold shadow-purple-glow transition-all flex items-center space-x-1.5"
           >
-            <ImageIcon className="w-4 h-4" />
-            <span>Xuất ra Ảnh (PNG)</span>
+            <Printer className="w-3.5 h-3.5" />
+            <span>In Sơ Đồ A4 (PDF)</span>
           </button>
 
         </div>
 
       </div>
 
-      {/* TOOLBAR 2: View Mode, Zoom & 3D Angles (Matching Screenshot 1 & 2) */}
+      {/* TOOLBAR 2: View Mode, VR 360 Camera & Zoom Controls */}
       <div className="bg-white/80 backdrop-blur-md rounded-3xl p-3 px-5 border border-purple-100 shadow-soft flex flex-wrap items-center justify-between gap-3">
         
         <div className="flex items-center space-x-2">
@@ -203,25 +288,40 @@ export const SeatingGrid = ({
             <Box className="w-5 h-5 text-purple-600" />
             <span>SƠ ĐỒ PHÒNG HỌC</span>
           </span>
-          <span className="bg-purple-100 text-purple-800 text-[11px] font-extrabold px-3 py-0.5 rounded-full">
-            {dayCount} Dãy • {dayCount * 4} Bàn Học
-          </span>
+
+          {/* Day count selector */}
+          <div className="flex items-center space-x-1 ml-2">
+            {[2, 3, 4, 6].map(num => (
+              <button
+                key={num}
+                onClick={() => {
+                  soundFx.playClick();
+                  setDayCount(num);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-extrabold ${
+                  dayCount === num ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {num} Dãy
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           
-          {/* Mode Switcher */}
+          {/* Mode Switcher: 3D, 2D, VR 360 (Feature 5) */}
           <div className="flex items-center p-1 bg-slate-100 rounded-2xl">
             <button
               onClick={() => {
                 soundFx.playClick();
                 setViewMode('3D');
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 ${
-                viewMode === '3D' ? 'bg-purple-600 text-white shadow-purple-glow' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1 ${
+                viewMode === '3D' ? 'bg-purple-600 text-white shadow-purple-glow' : 'text-slate-600'
               }`}
             >
-              <Box className="w-4 h-4" />
+              <Box className="w-3.5 h-3.5" />
               <span>3D Không Gian</span>
             </button>
 
@@ -230,12 +330,26 @@ export const SeatingGrid = ({
                 soundFx.playClick();
                 setViewMode('2D');
               }}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 ${
-                viewMode === '2D' ? 'bg-purple-600 text-white shadow-purple-glow' : 'text-slate-600 hover:text-slate-900'
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1 ${
+                viewMode === '2D' ? 'bg-purple-600 text-white shadow-purple-glow' : 'text-slate-600'
               }`}
             >
-              <Layers className="w-4 h-4" />
+              <Layers className="w-3.5 h-3.5" />
               <span>2D Phẳng</span>
+            </button>
+
+            {/* Feature 5: 3D VR Mode */}
+            <button
+              onClick={() => {
+                soundFx.playCorrect();
+                setViewMode('VR');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1 ${
+                viewMode === 'VR' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-purple-glow' : 'text-slate-600'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5 text-pink-300" />
+              <span>3D VR 360°</span>
             </button>
           </div>
 
@@ -253,53 +367,51 @@ export const SeatingGrid = ({
             </button>
           </div>
 
-          {/* 3D Angles */}
-          {viewMode === '3D' && (
-            <div className="flex items-center space-x-1 text-xs font-bold text-slate-500 bg-slate-50 p-1 rounded-2xl border border-slate-200">
-              <span className="px-2 text-[10px] uppercase font-extrabold text-slate-400">Góc 3D:</span>
-              <button
-                onClick={() => setPerspective('near')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold ${perspective === 'near' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600'}`}
-              >
-                Gần
-              </button>
-              <button
-                onClick={() => setPerspective('normal')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold ${perspective === 'normal' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600'}`}
-              >
-                Chuẩn
-              </button>
-              <button
-                onClick={() => setPerspective('deep')}
-                className={`px-2.5 py-1 rounded-xl text-xs font-extrabold ${perspective === 'deep' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600'}`}
-              >
-                Sâu
-              </button>
-            </div>
-          )}
-
         </div>
       </div>
 
-      {/* MAIN LAYOUT: CANVAS 3D/2D + UNSEATED TRAY (Matching Screenshots 1, 2, 4, 5) */}
+      {/* MAIN CANVAS AREA (3D / 2D / VR 360) */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
-        {/* Left Column 1, 2, 3: Classroom Stage Area */}
+        {/* Left 3 Columns: Classroom Stage */}
         <div className="lg:col-span-3 space-y-6">
           
           <div
-            className={`transition-all duration-300 transform origin-top ${
+            className={`transition-all duration-500 transform origin-top ${
               viewMode === '3D'
                 ? perspective === 'near'
                   ? 'rotate-x-6 scale-95'
                   : perspective === 'deep'
                   ? 'rotate-x-16 scale-90'
                   : 'rotate-x-12'
+                : viewMode === 'VR'
+                ? 'rotate-x-24 scale-95 bg-slate-950 p-6 rounded-3xl shadow-2xl text-white'
                 : ''
             }`}
-            style={{ transform: `scale(${zoomLevel / 100})` }}
+            style={{
+              transform: viewMode === 'VR' ? `rotateY(${vrAngle}deg) rotateX(20deg) scale(${zoomLevel / 100})` : `scale(${zoomLevel / 100})`
+            }}
           >
-            {/* Blackboard Banner (Matching Screenshot 1 & 2) */}
+            
+            {/* Feature 5 VR Angle Slider */}
+            {viewMode === 'VR' && (
+              <div className="flex items-center justify-between mb-4 bg-white/10 backdrop-blur-md p-3 rounded-2xl text-white text-xs font-extrabold">
+                <span className="flex items-center space-x-1.5">
+                  <Eye className="w-4 h-4 text-pink-400" />
+                  <span>Xoay Góc Nhìn Camera VR 360° (Góc Bàn Giáo Viên):</span>
+                </span>
+                <input
+                  type="range"
+                  min="-45"
+                  max="45"
+                  value={vrAngle}
+                  onChange={(e) => setVrAngle(Number(e.target.value))}
+                  className="w-48 accent-pink-500 cursor-pointer"
+                />
+              </div>
+            )}
+
+            {/* Blackboard Banner */}
             <div className="w-full bg-slate-900 text-white rounded-3xl p-6 shadow-2xl border-4 border-amber-500/40 text-center relative overflow-hidden mb-6">
               <div className="text-[11px] font-extrabold tracking-widest text-amber-400 uppercase mb-1">
                 ✦ KỶ LUẬT - TRI THỨC ✦ SÁNG TẠO ✦
@@ -316,7 +428,7 @@ export const SeatingGrid = ({
               </div>
             </div>
 
-            {/* Teacher Desk Box (Matching Screenshot 1, 2, 4) */}
+            {/* Teacher Desk Box */}
             <div className="w-64 mx-auto bg-purple-100/90 border-2 border-purple-300 rounded-3xl p-3.5 text-center shadow-md mb-8">
               <div className="text-xs font-black text-purple-800 flex items-center justify-center space-x-1.5 uppercase">
                 <Monitor className="w-4 h-4 text-purple-600" />
@@ -327,20 +439,18 @@ export const SeatingGrid = ({
               </div>
             </div>
 
-            {/* Desk Columns Grid (Dãy 1, Dãy 2, Dãy 3, Dãy 4...) */}
+            {/* Desk Columns Grid */}
             <div className={`grid gap-6 ${
               dayCount === 2 ? 'grid-cols-2' : dayCount === 3 ? 'grid-cols-3' : dayCount === 4 ? 'grid-cols-4' : 'grid-cols-6'
             }`}>
               {cols.map(c => (
                 <div key={`col-${c}`} className="space-y-4">
                   
-                  {/* Row Pin Banner */}
                   <div className="bg-purple-600 text-white rounded-2xl py-1.5 px-3 text-center text-xs font-black shadow-md flex items-center justify-center space-x-1">
                     <Pin className="w-3.5 h-3.5 fill-white" />
                     <span>DÃY {c}</span>
                   </div>
 
-                  {/* Desks in this Column */}
                   {rows.map(r => {
                     const student = getStudentAtSeat(r, c);
                     const deskNumber = (r - 1) * dayCount + c;
@@ -351,10 +461,10 @@ export const SeatingGrid = ({
                         onClick={() => handleCellClick(r, c)}
                         className={`rounded-3xl p-3 transition-all relative border-2 ${
                           student
-                            ? 'bg-white border-purple-200 shadow-soft hover:shadow-xl'
+                            ? 'bg-white border-purple-200 shadow-soft hover:shadow-xl text-slate-800'
                             : selectedUnseatedId
                             ? 'bg-purple-50 border-dashed border-purple-500 animate-pulse cursor-pointer'
-                            : 'bg-slate-50/60 border-dashed border-slate-200 hover:border-purple-300'
+                            : 'bg-slate-50/60 border-dashed border-slate-200 hover:border-purple-300 text-slate-600'
                         }`}
                       >
                         <div className="text-[10px] font-bold text-slate-400 mb-1 flex items-center justify-between">
@@ -386,7 +496,10 @@ export const SeatingGrid = ({
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <h4 className="text-xs font-black text-slate-800 truncate">{student.full_name}</h4>
+                              <h4 className="text-xs font-black text-slate-800 truncate flex items-center space-x-1">
+                                <span>{student.full_name}</span>
+                                {student.has_glasses && <span title="Cận thị">👓</span>}
+                              </h4>
                               <span className="text-[10px] font-bold text-slate-400 block">
                                 {student.gender === 'male' ? 'Nam' : 'Nữ'} • Tổ {student.team_group || 1}
                               </span>
@@ -413,7 +526,7 @@ export const SeatingGrid = ({
 
         </div>
 
-        {/* Right Column 4: Unseated Students Tray (Matching Screenshot 2, 3, 5) */}
+        {/* Right Column 4: Unseated Students Tray */}
         <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft flex flex-col h-fit sticky top-24 space-y-4">
           
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -453,7 +566,10 @@ export const SeatingGrid = ({
                       }`}>
                         {st.full_name.charAt(0)}
                       </div>
-                      <span className="text-xs font-extrabold truncate">{st.full_name}</span>
+                      <div className="min-w-0">
+                        <span className="text-xs font-extrabold truncate block">{st.full_name}</span>
+                        {st.has_glasses && <span className="text-[10px] text-blue-500 font-bold block">👓 Cận thị</span>}
+                      </div>
                     </div>
 
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -470,6 +586,15 @@ export const SeatingGrid = ({
         </div>
 
       </div>
+
+      {/* Feature 1: Print A4 PDF Modal */}
+      <PrintSeatingChartModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        currentClass={currentClass}
+        students={students}
+        teacherProfile={teacherProfile}
+      />
 
     </div>
   );

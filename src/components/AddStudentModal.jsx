@@ -11,6 +11,7 @@ export const AddStudentModal = ({ isOpen, onClose, currentClass, onAddStudents }
   const [teamGroup, setTeamGroup] = useState(1);
   const [seatRow, setSeatRow] = useState(1);
   const [seatCol, setSeatCol] = useState(1);
+  const [hasGlasses, setHasGlasses] = useState(false);
 
   // Bulk Form State
   const [bulkText, setBulkText] = useState('');
@@ -31,6 +32,7 @@ export const AddStudentModal = ({ isOpen, onClose, currentClass, onAddStudents }
       team_group: Number(teamGroup),
       seat_row: Number(seatRow),
       seat_col: Number(seatCol),
+      has_glasses: hasGlasses,
       total_stars: 0,
       avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fullName.trim() + Date.now())}`
     };
@@ -224,6 +226,19 @@ export const AddStudentModal = ({ isOpen, onClose, currentClass, onAddStudents }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
                 />
               </div>
+            </div>
+
+            <div className="p-3 bg-purple-50 rounded-2xl border border-purple-200 flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="glassesCheck"
+                checked={hasGlasses}
+                onChange={(e) => setHasGlasses(e.target.checked)}
+                className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+              />
+              <label htmlFor="glassesCheck" className="text-xs font-extrabold text-purple-900 cursor-pointer">
+                👓 Học sinh bị Cận thị (Ưu tiên tự động xếp Hàng 1 - 2 bàn đầu)
+              </label>
             </div>
 
             <div className="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
