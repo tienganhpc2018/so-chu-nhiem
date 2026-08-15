@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { soundFx } from '../utils/soundEffects';
 import confetti from 'canvas-confetti';
+import { getSmartDisplayName } from '../utils/nameFormatter';
 import { PrintSeatingChartModal } from './PrintSeatingChartModal';
 import { EditStudentModal } from './EditStudentModal';
 import {
@@ -617,7 +618,9 @@ export const SeatingGrid = ({
                                     className="w-9 h-9 rounded-xl mx-auto object-cover border border-purple-200 bg-white"
                                   />
                                 </div>
-                                <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">{studentLeft.full_name}</h5>
+                                <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">
+                                  {getSmartDisplayName(studentLeft.full_name, students)}
+                                </h5>
                                 
                                 {/* Badges & Officer Role (Feature 1) */}
                                 <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
@@ -670,7 +673,9 @@ export const SeatingGrid = ({
                                     className="w-9 h-9 rounded-xl mx-auto object-cover border border-purple-200 bg-white"
                                   />
                                 </div>
-                                <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">{studentRight.full_name}</h5>
+                                <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">
+                                  {getSmartDisplayName(studentRight.full_name, students)}
+                                </h5>
                                 
                                 {/* Badges & Officer Role (Feature 1) */}
                                 <div className="flex flex-wrap items-center justify-center gap-1 mt-1">

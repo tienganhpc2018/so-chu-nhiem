@@ -1,6 +1,7 @@
 import React from 'react';
 import { soundFx } from '../utils/soundEffects';
-import { Printer, X, ShieldCheck } from 'lucide-react';
+import { getSmartDisplayName } from '../utils/nameFormatter';
+import { Printer, X } from 'lucide-react';
 
 export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students = [], teacherProfile }) => {
   if (!isOpen) return null;
@@ -10,11 +11,13 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
     window.print();
   };
 
+  const dayCount = 4; // 4 Dãy Bàn
   const rows = [1, 2, 3, 4];
   const cols = [1, 2, 3, 4];
 
-  const getStudentAtSeat = (r, c) => {
-    return students.find(s => Number(s.seat_row) === r && Number(s.seat_col) === c);
+  // Get student at Double Desk (row r, col c, seatPos 1=Left, 2=Right)
+  const getStudentAtSeatPos = (r, c, seatPos) => {
+    return students.find(s => Number(s.seat_row) === r && Number(s.seat_col) === (c - 1) * 2 + seatPos);
   };
 
   return (
@@ -23,7 +26,7 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
       {/* Modal Card Container */}
       <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-purple-100 my-auto relative flex flex-col max-h-[92vh]">
         
-        {/* STICKY TOP HEADER BAR - Always Visible (Hidden only during actual printing) */}
+        {/* SINGLE STICKY HEADER - Only 1 Close button */}
         <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pb-4 border-b border-slate-200 flex items-center justify-between gap-4 print:hidden">
           <div className="flex items-center space-x-2">
             <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
@@ -44,14 +47,14 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
               <span>In Ngay (Khổ A4)</span>
             </button>
 
-            {/* Prominent Red/Purple Close Button */}
+            {/* ONE Clean Close Button */}
             <button
               onClick={() => {
                 soundFx.playClick();
                 onClose();
               }}
               className="px-4 py-2.5 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 hover:border-red-300 font-extrabold text-xs rounded-xl flex items-center space-x-1 transition-all"
-              title="Đóng trang này"
+              title="Đóng trang"
             >
               <X className="w-4 h-4" />
               <span>Đóng trang (X)</span>
@@ -59,20 +62,8 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
           </div>
         </div>
 
-        {/* Floating Quick Close Button in top right corner */}
-        <button
-          onClick={() => {
-            soundFx.playClick();
-            onClose();
-          }}
-          className="absolute -top-3 -right-3 z-30 w-9 h-9 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white print:hidden transition-transform hover:scale-110"
-          title="Đóng cửa sổ"
-        >
-          <X className="w-5 h-5 stroke-[3]" />
-        </button>
-
-        {/* Printable A4 Document Content */}
-        <div className="overflow-y-auto flex-1 p-6 print-area bg-white font-serif text-slate-900 border-4 border-double border-purple-900 rounded-2xl relative my-2">
+        {/* Printable A4 Document Content - Clean Sans-Serif Font with Proper Accents */}
+        <div className="overflow-y-auto flex-1 p-6 print-area bg-white font-sans text-slate-900 border-4 border-double border-purple-900 rounded-2xl relative my-2">
           
           {/* Decorative Ornaments */}
           <div className="absolute top-2 left-2 text-purple-800 text-xs">❖</div>
@@ -80,7 +71,7 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
           <div className="absolute bottom-2 left-2 text-purple-800 text-xs">❖</div>
           <div className="absolute bottom-2 right-2 text-purple-800 text-xs">❖</div>
 
-          {/* Header Info */}
+          {/* Header Info - Clean Unicode Vietnamese Accents */}
           <div className="text-center space-y-1 pb-4 border-b-2 border-purple-900 mb-6">
             <div className="text-xs font-bold uppercase tracking-widest text-slate-600">
               TRƯỜNG THCS CÁT MINH • KHỐI {currentClass?.grade_level || 8}
@@ -98,45 +89,72 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
           </div>
 
           {/* Blackboard Banner */}
-          <div className="w-full bg-slate-900 text-white rounded-xl p-3 text-center mb-4 font-sans shadow-md border-2 border-amber-400">
+          <div className="w-full bg-slate-900 text-white rounded-xl p-3 text-center mb-4 shadow-md border-2 border-amber-400">
             <span className="text-sm font-black tracking-widest text-amber-300">
               ✦ BẢNG ĐEN / BÀN GIÁO VIÊN CHỦ NHIỆM ✦
             </span>
           </div>
 
-          {/* 4 Columns Seating Grid */}
-          <div className="grid grid-cols-4 gap-4 mb-8 font-sans">
+          {/* 4 DÃY BÀN ĐÔI (2 HỌC SINH / 1 BÀN) */}
+          <div className="grid grid-cols-4 gap-4 mb-8">
             {cols.map(c => (
               <div key={`p-col-${c}`} className="space-y-3">
-                <div className="bg-purple-800 text-white font-extrabold text-xs py-1 text-center rounded-lg uppercase tracking-wider">
+                <div className="bg-purple-800 text-white font-black text-xs py-1 text-center rounded-lg uppercase tracking-wider">
                   DÃY {c}
                 </div>
 
                 {rows.map(r => {
-                  const student = getStudentAtSeat(r, c);
+                  const studentLeft = getStudentAtSeatPos(r, c, 1);
+                  const studentRight = getStudentAtSeatPos(r, c, 2);
                   const deskNum = (r - 1) * 4 + c;
+
                   return (
                     <div
-                      key={`p-cell-${r}-${c}`}
-                      className="border-2 border-purple-200 rounded-xl p-2 text-center min-h-[70px] flex flex-col justify-between bg-slate-50/50"
+                      key={`p-desk-${r}-${c}`}
+                      className="border-2 border-purple-200 rounded-xl p-2 bg-slate-50/50 space-y-1"
                     >
-                      <div className="text-[9px] font-bold text-slate-400 flex justify-between">
-                        <span>Bàn {deskNum}</span>
+                      <div className="text-[9px] font-extrabold text-purple-900 bg-purple-100 px-1.5 py-0.5 rounded flex justify-between">
+                        <span>Bàn Đôi {deskNum}</span>
                         <span>Hàng {r}</span>
                       </div>
 
-                      {student ? (
-                        <div className="my-1">
-                          <span className="text-xs font-black text-slate-900 block line-clamp-1">
-                            {student.full_name}
-                          </span>
-                          <span className="text-[9px] text-purple-700 font-bold block">
-                            Tổ {student.team_group || 1} {student.has_glasses ? '👓 (Cận)' : ''}
-                          </span>
+                      {/* 2 Seats per Desk */}
+                      <div className="grid grid-cols-2 gap-1 text-center min-h-[50px]">
+                        
+                        {/* Seat Left */}
+                        <div className="p-1 bg-white rounded border border-purple-100 flex flex-col justify-center">
+                          {studentLeft ? (
+                            <div>
+                              <span className="text-xs font-black text-slate-900 block truncate">
+                                {getSmartDisplayName(studentLeft.full_name, students)}
+                              </span>
+                              <span className="text-[8px] text-purple-700 font-bold block">
+                                Tổ {studentLeft.team_group || 1} {studentLeft.has_glasses ? '👓' : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[9px] italic text-slate-300">Trống</span>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-[10px] italic text-slate-300 my-auto">Bàn Trống</span>
-                      )}
+
+                        {/* Seat Right */}
+                        <div className="p-1 bg-white rounded border border-purple-100 flex flex-col justify-center">
+                          {studentRight ? (
+                            <div>
+                              <span className="text-xs font-black text-slate-900 block truncate">
+                                {getSmartDisplayName(studentRight.full_name, students)}
+                              </span>
+                              <span className="text-[8px] text-purple-700 font-bold block">
+                                Tổ {studentRight.team_group || 1} {studentRight.has_glasses ? '👓' : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[9px] italic text-slate-300">Trống</span>
+                          )}
+                        </div>
+
+                      </div>
+
                     </div>
                   );
                 })}
@@ -145,9 +163,9 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
           </div>
 
           {/* Signature Area */}
-          <div className="flex justify-between items-end pt-6 border-t border-slate-300 font-sans text-xs">
+          <div className="flex justify-between items-end pt-6 border-t border-slate-300 text-xs">
             <div className="text-slate-500 space-y-1">
-              <div>* Ghi chú: Cận thị xếp bàn đầu (Hàng 1-2).</div>
+              <div>* Quy tắc: Bàn đôi 2 em/bàn. Cận thị xếp Hàng 1-2.</div>
               <div>* Sơ đồ áp dụng từ ngày: {new Date().toLocaleDateString('vi-VN')}</div>
             </div>
 
@@ -163,20 +181,6 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
             </div>
           </div>
 
-        </div>
-
-        {/* Bottom Footer Close Button (Hidden during print) */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3 print:hidden">
-          <button
-            onClick={() => {
-              soundFx.playClick();
-              onClose();
-            }}
-            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-extrabold shadow-md flex items-center space-x-1.5"
-          >
-            <X className="w-4 h-4" />
-            <span>Đóng Cửa Sổ (Close)</span>
-          </button>
         </div>
 
       </div>

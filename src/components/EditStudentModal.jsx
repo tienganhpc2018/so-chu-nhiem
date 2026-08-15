@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { soundFx } from '../utils/soundEffects';
-import { X, Edit3, Glasses, Award, AlertTriangle, Save, Check, Crown, Shield } from 'lucide-react';
+import { X, Edit3, Glasses, Award, AlertTriangle, Save, Check, Crown, Shield, Camera, Sparkles } from 'lucide-react';
 
 export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }) => {
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('female');
   const [teamGroup, setTeamGroup] = useState(1);
   const [hasGlasses, setHasGlasses] = useState(false);
-  const [academicLevel, setAcademicLevel] = useState('good'); // 'top' | 'good' | 'weak'
-  const [heightLevel, setHeightLevel] = useState('normal'); // 'short' | 'normal' | 'tall'
-  const [classRole, setClassRole] = useState('member'); // 'member' | 'leader' | 'vice_study' | 'vice_art' | 'team_leader'
+  const [academicLevel, setAcademicLevel] = useState('good');
+  const [heightLevel, setHeightLevel] = useState('normal');
+  const [classRole, setClassRole] = useState('member');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+
+  const presetAvatars = [
+    { id: 'm1', name: 'Nam Mũ Cáo', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=boy_cap' },
+    { id: 'm2', name: 'Nam Đeo Kính', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=boy_glasses' },
+    { id: 'm3', name: 'Nam Tóc Xoăn', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=boy_curly' },
+    { id: 'f1', name: 'Nữ Nơ Hồng', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=girl_bow' },
+    { id: 'f2', name: 'Nữ Tóc Na Tra', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=girl_twins' },
+    { id: 'f3', name: 'Nữ Đeo Kính', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=girl_glasses' },
+    { id: 'r1', name: 'Robot Vui Vẻ', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=robot_happy' },
+    { id: 'r2', name: 'Gấu Panda', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=panda_cute' }
+  ];
 
   useEffect(() => {
     if (student) {
@@ -20,6 +33,8 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
       setAcademicLevel(student.academic_level || 'good');
       setHeightLevel(student.height_level || 'normal');
       setClassRole(student.class_role || 'member');
+      setAvatarUrl(student.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${student.id}`);
+      setShowAvatarPicker(false);
     }
   }, [student]);
 
@@ -37,7 +52,8 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
       has_glasses: hasGlasses,
       academic_level: academicLevel,
       height_level: heightLevel,
-      class_role: classRole
+      class_role: classRole,
+      avatar_url: avatarUrl
     };
 
     onSaveStudentInfo(updatedInfo);
@@ -46,7 +62,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-purple-100">
+      <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-purple-100 max-h-[92vh] flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -59,8 +75,63 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 my-4">
+        <form onSubmit={handleSubmit} className="space-y-4 my-4 overflow-y-auto flex-1 pr-1 custom-scrollbar">
           
+          {/* AVATAR HEADER DISPLAY & CHANGE AVATAR BUTTON (Thầy Yêu Cầu) */}
+          <div className="bg-purple-50/70 p-4 rounded-3xl border border-purple-200 flex items-center space-x-4">
+            <div className="relative">
+              <img
+                src={avatarUrl}
+                alt={fullName}
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-purple-300 bg-white shadow-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                className="absolute -bottom-1 -right-1 bg-purple-600 text-white p-1 rounded-full text-xs shadow-md hover:scale-110 transition-transform"
+                title="Đổi ảnh đại diện"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-black text-slate-800">{fullName || 'Học sinh'}</h4>
+              <p className="text-xs font-bold text-purple-700">Tổ {teamGroup} • {gender === 'male' ? 'Nam' : 'Nữ'}</p>
+              <button
+                type="button"
+                onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                className="text-[11px] font-extrabold text-purple-600 hover:text-purple-900 underline mt-0.5 block"
+              >
+                {showAvatarPicker ? 'Đóng chọn avatar' : '📸 Đổi ảnh đại diện học sinh...'}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Avatar Gallery Picker inside Edit Student Modal */}
+          {showAvatarPicker && (
+            <div className="bg-white p-3 rounded-2xl border border-purple-200 shadow-sm space-y-2 animate-in fade-in">
+              <label className="block text-[11px] font-bold text-slate-600">Chọn Avatar Hoạt Hình Nhanh:</label>
+              <div className="grid grid-cols-4 gap-2">
+                {presetAvatars.map(av => (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => {
+                      soundFx.playClick();
+                      setAvatarUrl(av.url);
+                    }}
+                    className={`p-1 rounded-xl border-2 transition-transform hover:scale-105 ${
+                      avatarUrl === av.url ? 'border-purple-600 bg-purple-100' : 'border-slate-100 hover:border-purple-200'
+                    }`}
+                  >
+                    <img src={av.url} alt={av.name} className="w-10 h-10 mx-auto rounded-lg" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">Họ và tên Học sinh *</label>
             <input
@@ -72,7 +143,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
             />
           </div>
 
-          {/* Feature 1: Class Officer Role Selector */}
+          {/* Class Officer Role Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">Chức Vụ Ban Cán Sự Lớp:</label>
             <select
@@ -161,7 +232,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
           </div>
 
           {/* Footer Submit Buttons */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3">
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3 mt-auto">
             <button
               type="button"
               onClick={onClose}
