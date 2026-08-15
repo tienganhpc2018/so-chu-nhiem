@@ -31,9 +31,8 @@ export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) 
   const [selectedReward, setSelectedReward] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // Modals state
-  const [showAddRewardModal, setShowAddRewardModal] = useState(false);
-  const [showStudentCoinModal, setShowStudentCoinModal] = useState(false);
+  // Event Double Coins
+  const [isDoubleCoinsEvent, setIsDoubleCoinsEvent] = useState(false);
 
   // Add reward form
   const [newTitle, setNewTitle] = useState('');
@@ -163,8 +162,28 @@ export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) 
           </p>
         </div>
 
-        {/* Top Action Bar: Search & Add Gift Button (Screenshot 4) */}
+        {/* Top Action Bar: Search, X2 Event & Add Gift Button (Screenshot 4 & Feature 3) */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          
+          {/* Double Coins Event Toggle Pill */}
+          <button
+            onClick={() => {
+              soundFx.playCorrect();
+              setIsDoubleCoinsEvent(!isDoubleCoinsEvent);
+            }}
+            className={`px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center space-x-1.5 border shadow-sm ${
+              isDoubleCoinsEvent
+                ? 'bg-amber-400 text-purple-950 border-amber-500 shadow-amber-glow animate-pulse'
+                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-purple-50'
+            }`}
+            title="Bật chế độ nhân đôi xu thưởng khi học sinh phát biểu trong tiết Tiếng Anh"
+          >
+            <span>⚡ Event X2 Xu Tiếng Anh</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isDoubleCoinsEvent ? 'bg-purple-950 text-amber-300' : 'bg-slate-200 text-slate-600'}`}>
+              {isDoubleCoinsEvent ? 'ĐANG BẬT 🔥' : 'TẮT'}
+            </span>
+          </button>
+
           <div className="relative w-full md:w-64">
             <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-purple-400" />
             <input

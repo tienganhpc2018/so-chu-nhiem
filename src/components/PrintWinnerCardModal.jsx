@@ -61,7 +61,7 @@ export const PrintWinnerCardModal = ({ isOpen, onClose, winnerStudent, rewardTit
 
           <div className="py-2">
             <h2 className="text-2xl font-black text-amber-700 uppercase tracking-tight">
-              GIẤY CÔNG NHẬN THI ĐƯA
+              GIẤY CÔNG NHẬN THI ĐUA
             </h2>
             <div className="text-xs font-bold text-slate-600 tracking-wide mt-0.5">
               HỌC SINH MAY MẮN TRÚNG THƯỞNG VÒNG QUAY
@@ -79,7 +79,7 @@ export const PrintWinnerCardModal = ({ isOpen, onClose, winnerStudent, rewardTit
 
           <div>
             <h3 className="text-xl font-black text-slate-900">{winnerStudent.full_name}</h3>
-            <p className="text-xs font-bold text-purple-700">Tổ {winnerStudent.team_group || 1} • Lớp {currentClass?.name || '8A5'}</p>
+            <p className="text-xs font-bold text-purple-700">Tổ {winnerStudent.team_group || 1}</p>
           </div>
 
           <div className="p-3 bg-amber-100/70 border border-amber-300 rounded-2xl text-xs font-black text-amber-950">

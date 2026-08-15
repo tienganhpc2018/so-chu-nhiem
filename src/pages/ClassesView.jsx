@@ -14,15 +14,15 @@ export const ClassesView = ({
   const [editingClass, setEditingClass] = useState(null);
   const [className, setClassName] = useState('');
   const [gradeLevel, setGradeLevel] = useState(8);
-  const [academicYear, setAcademicYear] = useState('2025 - 2026');
+  const [academicYear, setAcademicYear] = useState('2026 - 2027');
   const [selectedYearFilter, setSelectedYearFilter] = useState('all');
   const [saving, setSaving] = useState(false);
 
-  const academicYearsList = ['all', '2025 - 2026', '2024 - 2025', '2023 - 2024'];
+  const academicYearsList = ['all', '2026 - 2027'];
 
   const filteredClasses = classes.filter(cls => {
     if (selectedYearFilter === 'all') return true;
-    const clsYear = cls.academic_year || '2025 - 2026';
+    const clsYear = cls.academic_year || '2026 - 2027';
     return clsYear === selectedYearFilter;
   });
 
@@ -31,7 +31,7 @@ export const ClassesView = ({
     setEditingClass(null);
     setClassName('');
     setGradeLevel(8);
-    setAcademicYear('2025 - 2026');
+    setAcademicYear('2026 - 2027');
     setShowAddModal(true);
   };
 
@@ -40,7 +40,7 @@ export const ClassesView = ({
     setEditingClass(cls);
     setClassName(cls.name);
     setGradeLevel(cls.grade_level || 8);
-    setAcademicYear(cls.academic_year || '2025 - 2026');
+    setAcademicYear(cls.academic_year || '2026 - 2027');
     setShowAddModal(true);
   };
 
@@ -292,9 +292,7 @@ export const ClassesView = ({
                   onChange={(e) => setAcademicYear(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none"
                 >
-                  <option value="2025 - 2026">2025 - 2026 (Năm học hiện tại)</option>
-                  <option value="2024 - 2025">2024 - 2025 (Archive lưu trữ)</option>
-                  <option value="2023 - 2024">2023 - 2024 (Archive lưu trữ)</option>
+                  <option value="2026 - 2027">2026 - 2027 (Năm học hiện tại)</option>
                 </select>
               </div>
 

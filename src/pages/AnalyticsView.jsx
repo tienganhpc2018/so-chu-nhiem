@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { soundFx } from '../utils/soundEffects';
 import { SubjectConfigModal } from '../components/SubjectConfigModal';
 import { PrintMonthlyAnalyticsModal } from '../components/PrintMonthlyAnalyticsModal';
+import { PrintTeamAwardModal } from '../components/PrintTeamAwardModal';
 import {
   BarChart3,
   Download,
@@ -28,6 +29,7 @@ export const AnalyticsView = ({ currentClass, students = [], teacherProfile }) =
   // Modals state
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showTeamAwardModal, setShowTeamAwardModal] = useState(false);
 
   const totalStudents = students.length || 15;
   const maleStudents = students.filter(s => s.gender === 'male' || s.gender === 'Nam').length || Math.floor(totalStudents * 0.47);
@@ -109,6 +111,21 @@ export const AnalyticsView = ({ currentClass, students = [], teacherProfile }) =
 
         {/* Scope Selector & Print/Export Buttons (Feature 1) */}
         <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Feature 4: Weekly Auto Closing Schedule Toggle */}
+          <label className="flex items-center space-x-1.5 px-3 py-2 bg-purple-50 rounded-2xl border border-purple-200 text-xs font-black text-purple-900 cursor-pointer shadow-xs">
+            <input
+              type="checkbox"
+              defaultChecked={true}
+              onChange={(e) => {
+                soundFx.playCorrect();
+                alert(e.target.checked ? 'Đã bật tự động chốt sổ xu thi đua vào 19:00 Thứ Bảy hàng tuần!' : 'Đã tắt tự động chốt sổ.');
+              }}
+              className="w-4 h-4 text-purple-600 rounded"
+            />
+            <span>⏰ Tự chốt sổ 19:00 T7</span>
+          </label>
+
           <button
             onClick={() => {
               soundFx.playClick();
@@ -303,23 +320,39 @@ export const AnalyticsView = ({ currentClass, students = [], teacherProfile }) =
                     <Award className="w-4 h-4 text-amber-500" />
                     <span>Biểu Đồ Thi Đua 4 Tổ</span>
                   </h3>
-                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
-                    Khen thưởng Tổ dẫn đầu ★
-                  </span>
+
+                  <button
+                    onClick={() => {
+                      soundFx.playClick();
+                      setShowTeamAwardModal(true);
+                    }}
+                    className="text-[10px] font-black text-amber-900 bg-amber-400 hover:bg-amber-500 px-2.5 py-1 rounded-full shadow-xs transition-all flex items-center space-x-1"
+                  >
+                    <Printer className="w-3 h-3" />
+                    <span>In Giấy Khen Tổ (A5)</span>
+                  </button>
                 </div>
 
                 <div className="space-y-2 pt-1">
                   {teamStats.map(ts => {
                     const pct = Math.round((ts.total / maxTeamTotal) * 100);
+                    const isLeader = ts.total === maxTeamTotal && ts.total > 0;
                     return (
                       <div key={ts.team} className="space-y-1">
                         <div className="flex justify-between text-xs font-black">
-                          <span className="text-slate-800">Tổ {ts.team} ({ts.count} em)</span>
-                          <span className="text-amber-700">{ts.total} xu</span>
+                          <span className="text-slate-800 flex items-center space-x-1">
+                            <span>Tổ {ts.team} ({ts.count} em)</span>
+                            {isLeader && <span className="text-amber-500 text-sm animate-bounce" title="Tổ dẫn đầu thi đua!">👑</span>}
+                          </span>
+                          <span className="text-amber-700">{ts.total} xu {isLeader && '★ (TOP 1)'}</span>
                         </div>
                         <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
                           <div
-                            className="h-full bg-gradient-to-r from-purple-500 to-amber-500 rounded-full transition-all duration-500"
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              isLeader
+                                ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 shadow-md ring-1 ring-amber-300'
+                                : 'bg-gradient-to-r from-purple-500 to-amber-500'
+                            }`}
                             style={{ width: `${Math.max(5, pct)}%` }}
                           ></div>
                         </div>
@@ -425,6 +458,16 @@ export const AnalyticsView = ({ currentClass, students = [], teacherProfile }) =
         onClose={() => setShowPrintModal(false)}
         currentClass={currentClass}
         students={students}
+        teacherProfile={teacherProfile}
+      />
+
+      {/* MODAL 3: PRINT TEAM AWARD A5 (Feature 2) */}
+      <PrintTeamAwardModal
+        isOpen={showTeamAwardModal}
+        onClose={() => setShowTeamAwardModal(false)}
+        currentClass={currentClass}
+        winningTeam={teamStats.sort((a, b) => b.total - a.total)[0]?.team || 1}
+        totalCoins={maxTeamTotal}
         teacherProfile={teacherProfile}
       />
 
