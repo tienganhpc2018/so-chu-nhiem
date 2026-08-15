@@ -349,17 +349,20 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
               {/* Outer Dashed Ring */}
               <div className="absolute inset-4 rounded-full border-2 border-indigo-200 border-dashed opacity-50"></div>
 
-              {/* PINWHEEL PROPELLER SPINNER IN CENTER (Chong chóng chính giữa - Screenshot 3) */}
+              {/* PINWHEEL PROPELLER SPINNER IN CENTER (Chong chóng chính giữa 4 cánh hình tam giác chuẩn Image 3) */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                <div className={`w-40 h-40 relative transition-transform duration-300 ${isSpinning ? 'animate-spin' : ''}`}>
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-0"></div>
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-90"></div>
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-180"></div>
-                  <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-18 bg-purple-400/50 rounded-t-full origin-bottom rotate-270"></div>
-                  <div className="absolute inset-0 m-auto w-8 h-8 bg-indigo-600 rounded-full border-4 border-white shadow-md z-30 flex items-center justify-center text-white text-xs font-black">
-                    ✦
-                  </div>
-                </div>
+                <svg
+                  className={`w-64 h-64 transition-transform duration-300 ${isSpinning ? 'animate-spin' : ''}`}
+                  viewBox="0 0 200 200"
+                >
+                  {/* 4 Pinwheel Triangular Fan Blades matching Image 3 */}
+                  <polygon points="100,100 100,15 165,55" fill="#a855f7" fillOpacity="0.45" stroke="#9333ea" strokeWidth="1.5" />
+                  <polygon points="100,100 185,100 145,165" fill="#a855f7" fillOpacity="0.45" stroke="#9333ea" strokeWidth="1.5" />
+                  <polygon points="100,100 100,185 35,145" fill="#a855f7" fillOpacity="0.45" stroke="#9333ea" strokeWidth="1.5" />
+                  <polygon points="100,100 15,100 55,35" fill="#a855f7" fillOpacity="0.45" stroke="#9333ea" strokeWidth="1.5" />
+                  {/* Center Circle Hub */}
+                  <circle cx="100" cy="100" r="16" fill="#6366f1" stroke="#ffffff" strokeWidth="4" />
+                </svg>
               </div>
 
               {/* STUDENT AVATARS FLOATING ON WHEEL RING */}
@@ -406,7 +409,7 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
           </div>
 
-          {/* INLINE RESULT DISPLAY BOX ON THE PAGE (Thầy yêu cầu hiển thị trực tiếp vào khung này, không dùng popup) */}
+          {/* INLINE RESULT DISPLAY BOX ON THE PAGE (Hiển thị kết quả quay trực tiếp vào khung vàng kim) */}
           <div className="w-full bg-gradient-to-r from-amber-50 via-white to-purple-50 rounded-3xl p-5 border-2 border-amber-300/80 shadow-md space-y-3">
             <div className="text-xs font-black text-amber-700 uppercase tracking-widest flex items-center justify-center space-x-1">
               <Trophy className="w-4 h-4 text-amber-500" />
@@ -421,14 +424,14 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
                   <img
                     src={winnerStudent.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${winnerStudent.id}`}
                     alt={winnerStudent.full_name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-amber-400 shadow-md bg-white"
+                    className="w-14 h-14 rounded-full object-cover border-4 border-amber-400 shadow-md bg-white"
                   />
                   <div className="text-left">
-                    <h3 className="text-xl font-black text-slate-900 leading-tight">
+                    <h3 className="text-2xl font-black text-slate-900 leading-tight">
                       {winnerStudent.full_name}
                     </h3>
-                    <span className="text-[11px] font-bold text-amber-700">
-                      Tổ {winnerStudent.team_group || 1} • {currentClass?.name || '8A5'}
+                    <span className="text-xs font-black text-amber-700">
+                      🎉 Học sinh may mắn được chọn! (Tổ {winnerStudent.team_group || 1})
                     </span>
                   </div>
                 </div>
@@ -440,30 +443,30 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
                       key={`inline-c-${cnt}`}
                       onClick={() => {
                         soundFx.playCorrect();
-                        confetti({ particleCount: 30, spread: 60 });
+                        confetti({ particleCount: 40, spread: 70 });
                         winnerStudent.total_stars = (winnerStudent.total_stars || 0) + cnt;
                         alert(`Đã cộng +${cnt} xu cho học sinh ${winnerStudent.full_name}!`);
                       }}
-                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-xl shadow-xs transition-all flex items-center space-x-1"
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-xl shadow-xs transition-all flex items-center space-x-1"
                     >
-                      <Coins className="w-3.5 h-3.5 fill-amber-400" />
+                      <Coins className="w-4 h-4 fill-amber-400" />
                       <span>+{cnt} xu</span>
                     </button>
                   ))}
 
                   <button
                     onClick={() => setShowPrintModal(true)}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-1"
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-1"
                   >
-                    <Printer className="w-3.5 h-3.5" />
+                    <Printer className="w-4 h-4" />
                     <span>In thẻ A5</span>
                   </button>
 
                   <button
                     onClick={() => setWinnerStudent(null)}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl flex items-center space-x-1"
+                    className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl flex items-center space-x-1"
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
+                    <RotateCcw className="w-4 h-4" />
                     <span>Reset</span>
                   </button>
                 </div>
