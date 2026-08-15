@@ -9,7 +9,8 @@ export const SeatingGrid = ({
   onAddPoints,
   onDeductPoints,
   onOpenRewardShop,
-  onSelectStudent
+  onSelectStudent,
+  onOpenAvatarModal
 }) => {
   const [dragOverCell, setDragOverCell] = useState(null);
 
@@ -86,6 +87,7 @@ export const SeatingGrid = ({
                         onDeductPoints={onDeductPoints}
                         onOpenRewardShop={onOpenRewardShop}
                         onSelectStudent={onSelectStudent}
+                        onOpenAvatarModal={onOpenAvatarModal}
                         isDragOver={isOver}
                       />
                     ) : (
@@ -124,6 +126,7 @@ export const SeatingGrid = ({
                 onDeductPoints={onDeductPoints}
                 onOpenRewardShop={onOpenRewardShop}
                 onSelectStudent={onSelectStudent}
+                onOpenAvatarModal={onOpenAvatarModal}
               />
             ))}
           </div>

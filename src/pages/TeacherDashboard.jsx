@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { soundFx } from '../utils/soundEffects';
 import { AddStudentModal } from '../components/AddStudentModal';
+import { StudentAvatarModal } from '../components/StudentAvatarModal';
 import { SeatingGrid } from '../components/SeatingGrid';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
@@ -53,6 +54,7 @@ export const TeacherDashboard = ({
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [selectedStudentForPoints, setSelectedStudentForPoints] = useState(null);
   const [selectedStudentForReward, setSelectedStudentForReward] = useState(null);
+  const [selectedStudentForAvatar, setSelectedStudentForAvatar] = useState(null);
 
   // Form states
   const [newClassName, setNewClassName] = useState('');
@@ -188,6 +190,21 @@ export const TeacherDashboard = ({
         .eq('id', studentId);
     } catch (err) {
       console.error('Lỗi di chuyển chỗ ngồi DB:', err);
+    }
+  };
+
+  const handleUpdateStudentAvatar = async (studentId, newAvatarUrl) => {
+    setStudents(prev =>
+      prev.map(st => st.id === studentId ? { ...st, avatar_url: newAvatarUrl } : st)
+    );
+
+    try {
+      await supabase
+        .from('students')
+        .update({ avatar_url: newAvatarUrl })
+        .eq('id', studentId);
+    } catch (err) {
+      console.error('Lỗi cập nhật avatar học sinh DB:', err);
     }
   };
 
@@ -428,6 +445,7 @@ export const TeacherDashboard = ({
               onDeductPoints={(st) => setSelectedStudentForPoints(st)}
               onOpenRewardShop={(st) => setSelectedStudentForReward(st)}
               onSelectStudent={(st) => setSelectedStudentForPoints(st)}
+              onOpenAvatarModal={(st) => setSelectedStudentForAvatar(st)}
             />
           )}
         </>
@@ -542,6 +560,13 @@ export const TeacherDashboard = ({
       <CountdownTimerModal
         isOpen={modalState.countdownTimer}
         onClose={() => onCloseModal('countdownTimer')}
+      />
+
+      <StudentAvatarModal
+        isOpen={!!selectedStudentForAvatar}
+        onClose={() => setSelectedStudentForAvatar(null)}
+        student={selectedStudentForAvatar}
+        onUpdateStudentAvatar={handleUpdateStudentAvatar}
       />
 
     </div>

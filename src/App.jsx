@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { HomeView } from './pages/HomeView';
 import { ClassesView } from './pages/ClassesView';
+import { AttendanceView } from './pages/AttendanceView';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { LeaderboardView } from './pages/LeaderboardView';
 import { Settings } from './pages/Settings';
@@ -160,7 +161,6 @@ const MainLayout = () => {
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'attendance') openModal('attendance');
     if (tabId === 'luckywheel') openModal('luckyWheel');
     if (tabId === 'noisemeter') openModal('noiseMeter');
     if (tabId === 'timer') openModal('countdownTimer');
@@ -216,6 +216,13 @@ const MainLayout = () => {
               }}
               onRefreshClasses={fetchClasses}
               onOpenAddStudent={() => openModal('addStudent')}
+            />
+          )}
+
+          {activeTab === 'attendance' && (
+            <AttendanceView
+              currentClass={currentClass}
+              students={students}
             />
           )}
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { soundFx } from '../utils/soundEffects';
-import { School, Plus, Check, Edit2, Trash2, ArrowRight, Users, Sparkles, X, Calendar, Upload } from 'lucide-react';
+import { School, Plus, Check, Edit2, Trash2, ArrowRight, Users, Sparkles, X, Calendar, Archive, FolderArchive } from 'lucide-react';
 
 export const ClassesView = ({
   classes = [],
@@ -15,14 +15,23 @@ export const ClassesView = ({
   const [className, setClassName] = useState('');
   const [gradeLevel, setGradeLevel] = useState(8);
   const [academicYear, setAcademicYear] = useState('2025 - 2026');
-  const [seedStudents, setSeedStudents] = useState(true);
+  const [selectedYearFilter, setSelectedYearFilter] = useState('all');
   const [saving, setSaving] = useState(false);
+
+  const academicYearsList = ['all', '2025 - 2026', '2024 - 2025', '2023 - 2024'];
+
+  const filteredClasses = classes.filter(cls => {
+    if (selectedYearFilter === 'all') return true;
+    const clsYear = cls.academic_year || '2025 - 2026';
+    return clsYear === selectedYearFilter;
+  });
 
   const handleOpenAddModal = () => {
     soundFx.playClick();
     setEditingClass(null);
     setClassName('');
     setGradeLevel(8);
+    setAcademicYear('2025 - 2026');
     setShowAddModal(true);
   };
 
@@ -31,11 +40,12 @@ export const ClassesView = ({
     setEditingClass(cls);
     setClassName(cls.name);
     setGradeLevel(cls.grade_level || 8);
+    setAcademicYear(cls.academic_year || '2025 - 2026');
     setShowAddModal(true);
   };
 
   const handleDeleteClass = async (cls) => {
-    if (!window.confirm(`Thầy/Cô có chắc chắn muốn xóa Lớp ${cls.name}?`)) return;
+    if (!window.confirm(`Thầy/Cô có chắc chắn muốn lưu trữ hoặc xóa Lớp ${cls.name}?`)) return;
     soundFx.playClick();
 
     try {
@@ -57,12 +67,12 @@ export const ClassesView = ({
 
     try {
       if (editingClass) {
-        // Update existing class
         await supabase
           .from('classes')
           .update({
             name: className.trim(),
-            grade_level: Number(gradeLevel)
+            grade_level: Number(gradeLevel),
+            academic_year: academicYear
           })
           .eq('id', editingClass.id);
 
@@ -70,13 +80,13 @@ export const ClassesView = ({
         setShowAddModal(false);
         if (onRefreshClasses) await onRefreshClasses();
       } else {
-        // Create new class
         const newClassId = `class-${Date.now()}`;
         const payload = {
           id: newClassId,
           name: className.trim(),
           grade_level: Number(gradeLevel),
-          code: classCode
+          code: classCode,
+          academic_year: academicYear
         };
 
         const { data } = await supabase
@@ -103,7 +113,7 @@ export const ClassesView = ({
   return (
     <div className="space-y-8 pb-16 animate-in fade-in">
       
-      {/* Top Banner Header Section (Matching Image 1 Style) */}
+      {/* Top Header Section (Matching Image 1 Style) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <div className="flex items-center space-x-2.5">
@@ -111,11 +121,11 @@ export const ClassesView = ({
               <School className="w-6 h-6" />
             </div>
             <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-              Quản Lý Danh Sách Lớp Học
+              Quản Lý Danh Sách Lớp Học & Lưu Trữ Archive
             </h2>
           </div>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Tạo thêm lớp mới hoặc chuyển đổi không gian quản lý giữa các lớp học.
+            Quản lý các lớp giảng dạy theo từng Năm học. Dữ liệu các năm trước được tự động Archive an toàn 100%.
           </p>
         </div>
 
@@ -129,10 +139,36 @@ export const ClassesView = ({
         </button>
       </div>
 
+      {/* Academic Year Filter Tabs (Archive Feature) */}
+      <div className="flex items-center space-x-2 overflow-x-auto pb-1">
+        <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider flex items-center space-x-1 shrink-0 mr-2">
+          <FolderArchive className="w-4 h-4 text-purple-600" />
+          <span>Lọc theo Năm Học:</span>
+        </span>
+
+        {academicYearsList.map(year => (
+          <button
+            key={year}
+            onClick={() => {
+              soundFx.playClick();
+              setSelectedYearFilter(year);
+            }}
+            className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition-all shrink-0 ${
+              selectedYearFilter === year
+                ? 'bg-purple-600 text-white shadow-purple-glow'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-purple-50'
+            }`}
+          >
+            {year === 'all' ? 'Tất cả các năm' : `Năm học ${year}`}
+          </button>
+        ))}
+      </div>
+
       {/* Grid List of Class Cards (Matching Image 1 Card Style) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {classes.map((cls) => {
+        {filteredClasses.map((cls) => {
           const isSelected = currentClass?.id === cls.id;
+          const year = cls.academic_year || '2025 - 2026';
           return (
             <div
               key={cls.id}
@@ -158,10 +194,11 @@ export const ClassesView = ({
               {/* Class Info */}
               <div>
                 <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-                  {cls.name}
+                  Lớp {cls.name}
                 </h3>
-                <p className="text-xs font-bold text-slate-400 mt-0.5">
-                  Khối {cls.grade_level || 8} • Năm học {academicYear}
+                <p className="text-xs font-bold text-slate-400 mt-0.5 flex items-center space-x-1">
+                  <Calendar className="w-3.5 h-3.5 text-purple-500" />
+                  <span>Khối {cls.grade_level || 8} • Năm học {year}</span>
                 </p>
 
                 <div className="mt-3 inline-flex items-center space-x-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-extrabold border border-blue-100">
@@ -187,7 +224,7 @@ export const ClassesView = ({
                   <button
                     onClick={() => handleOpenEditModal(cls)}
                     className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
-                    title="Chỉnh sửa lớp"
+                    title="Chỉnh sửa thông tin lớp"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
@@ -195,7 +232,7 @@ export const ClassesView = ({
                   <button
                     onClick={() => handleDeleteClass(cls)}
                     className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
-                    title="Xóa lớp"
+                    title="Lưu trữ / Xóa lớp"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -249,13 +286,16 @@ export const ClassesView = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Năm học:</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-bold text-slate-700 mb-1">Năm Học Quản Lý:</label>
+                <select
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-purple-500 outline-none"
-                />
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none"
+                >
+                  <option value="2025 - 2026">2025 - 2026 (Năm học hiện tại)</option>
+                  <option value="2024 - 2025">2024 - 2025 (Archive lưu trữ)</option>
+                  <option value="2023 - 2024">2023 - 2024 (Archive lưu trữ)</option>
+                </select>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3">

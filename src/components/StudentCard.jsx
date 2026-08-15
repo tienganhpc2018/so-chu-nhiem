@@ -66,17 +66,28 @@ export const StudentCard = ({
 
       {/* Student Avatar & Name */}
       <div className="flex flex-col items-center text-center my-1">
-        <div className="relative mb-2">
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            soundFx.playClick();
+            onOpenAvatarModal?.(student);
+          }}
+          className="relative mb-2 cursor-pointer group/av"
+          title="Bấm để đổi ảnh đại diện học sinh"
+        >
           <img
             src={student.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${student.id}`}
             alt={student.full_name}
-            className="w-14 h-14 rounded-full object-cover border-2 border-mint-200 p-0.5 bg-mint-50 group-hover:border-mint-400 transition-colors shadow-sm"
+            className="w-14 h-14 rounded-2xl object-cover border-2 border-purple-200 p-0.5 bg-purple-50 group-hover/av:border-purple-500 group-hover/av:scale-105 transition-all shadow-sm"
             onError={(e) => {
               e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${student.id}`;
             }}
           />
+          <div className="absolute -bottom-1 -right-1 bg-purple-600 text-white p-1 rounded-full text-[9px] shadow-md group-hover/av:scale-110 transition-transform">
+            ✏️
+          </div>
         </div>
-        <h4 className="text-xs font-extrabold text-slate-800 line-clamp-1 group-hover:text-mint-700 transition-colors">
+        <h4 className="text-xs font-extrabold text-slate-800 line-clamp-1 group-hover:text-purple-700 transition-colors">
           {student.full_name}
         </h4>
       </div>
