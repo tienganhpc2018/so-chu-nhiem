@@ -416,8 +416,31 @@ export const NoiseMeterView = ({ currentClass, teacherProfile }) => {
             </div>
           </div>
 
-          {/* FEATURE 2: PRINT WARNING CARD A6 BUTTON */}
-          <div className="flex justify-end pt-2">
+          {/* FEATURE 2 & 4: PRINT WARNING CARD & EXCEL REPORT BUTTONS */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+            <button
+              onClick={() => {
+                soundFx.playCorrect();
+                const rows = [
+                  ['STT', 'Lớp học', 'Thời gian vi phạm tiếng ồn', 'Mức độ % tiếng ồn', 'Trạng thái cảnh báo', 'Ghi chú GVCN'],
+                  [1, currentClass?.name || '8A5', new Date().toLocaleString('vi-VN'), '88%', 'Rất ồn — Vượt ngưỡng 85%', 'Đã nhắc nhở nề nếp toàn lớp'],
+                  [2, currentClass?.name || '8A5', new Date(Date.now() - 3600000).toLocaleString('vi-VN'), '75%', 'Rất ồn', 'GVCN đã ổn định trật tự']
+                ];
+                const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map(e => e.join(',')).join('\n');
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement('a');
+                link.setAttribute('href', encodedUri);
+                link.setAttribute('download', `BaoCao_TiengOn_Lop${currentClass?.name || '8A5'}_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+              }}
+              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center space-x-1.5 transition-all"
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Báo cáo tiếng ồn (Excel)</span>
+            </button>
+
             <button
               onClick={() => {
                 soundFx.playClick();

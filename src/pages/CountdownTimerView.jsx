@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { soundFx } from '../utils/soundEffects';
 import confetti from 'canvas-confetti';
+import { FloatingPiPTimer } from '../components/FloatingPiPTimer';
 import {
   Timer,
   Play,
@@ -13,7 +14,10 @@ import {
   ChevronDown,
   Check,
   Sparkles,
-  BellRing
+  BellRing,
+  ExternalLink,
+  BookOpen,
+  ShieldAlert
 } from 'lucide-react';
 
 export const CountdownTimerView = () => {
@@ -35,6 +39,15 @@ export const CountdownTimerView = () => {
   const [themeColor, setThemeColor] = useState('purple');
 
   const timerRef = useRef(null);
+
+  // Feature 3: Exam Mode Toggle
+  const [isExamMode, setIsExamMode] = useState(false);
+
+  // Sound soundType selection: 'bell' (Tiếng trống trường) | 'alarm' (Tiếng còi)
+  const [alarmType, setAlarmType] = useState('bell');
+
+  // Floating PiP Mode State
+  const [showPiP, setShowPiP] = useState(false);
 
   const themeStyles = {
     purple: {
@@ -90,13 +103,16 @@ export const CountdownTimerView = () => {
             clearInterval(timerRef.current);
             setIsRunning(false);
             if (hasSound) {
-              soundFx.playTimerAlarm();
+              if (alarmType === 'bell') {
+                soundFx.playSchoolBell(); // Feature 2: Deep THCS School Drum
+              } else {
+                soundFx.playTimerAlarm();
+              }
               confetti({ particleCount: 80, spread: 100, origin: { y: 0.5 } });
             }
             return 0;
           }
 
-          // Last 10 seconds audio tick
           if (last10sTick && prev <= 10 && hasSound) {
             soundFx.playWheelTick();
           }
@@ -106,7 +122,7 @@ export const CountdownTimerView = () => {
       }, 1000);
     }
     return () => clearInterval(timerRef.current);
-  }, [isRunning, totalSeconds, hasSound, last10sTick]);
+  }, [isRunning, totalSeconds, hasSound, last10sTick, alarmType]);
 
   // Format Total Seconds to HH:MM:SS or MM:SS
   const formatTimeDisplay = (sec) => {
@@ -203,7 +219,30 @@ export const CountdownTimerView = () => {
         </div>
 
         {/* Top Action Controls (Screenshot 1) */}
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
+          
+          {/* FEATURE 1: PIP WINDOW BUTTON */}
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              setShowPiP(true);
+            }}
+            className="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-2xl text-xs font-black flex items-center space-x-1.5 shadow-sm"
+          >
+            <ExternalLink className="w-4 h-4 text-purple-600" />
+            <span>Cửa Sổ Nổi (PiP)</span>
+          </button>
+
+          {/* FEATURE 2: SCHOOL BELL SELECTOR */}
+          <select
+            value={alarmType}
+            onChange={(e) => setAlarmType(e.target.value)}
+            className="bg-purple-50 border border-purple-200 text-purple-900 text-xs font-black px-3 py-2 rounded-2xl outline-none"
+          >
+            <option value="bell">🥁 Tiếng Trống Trường THCS</option>
+            <option value="alarm">🔔 Tiếng Còi Báo Giờ</option>
+          </select>
+
           <button
             onClick={() => {
               soundFx.playClick();
@@ -226,6 +265,19 @@ export const CountdownTimerView = () => {
           </button>
         </div>
       </div>
+
+      {/* FEATURE 3: EXAM MODE BANNER */}
+      {isExamMode && (
+        <div className="p-4 bg-amber-500 text-purple-950 rounded-3xl font-black text-xs shadow-md flex items-center justify-between animate-pulse">
+          <span className="flex items-center space-x-2">
+            <BookOpen className="w-5 h-5 text-purple-950" />
+            <span>📝 ĐANG TRONG GIỜ LÀM BÀI KIỂM TRA TIẾNG ANH — YÊU CẦU HỌC SINH GIỮ TRẬT TỰ TUYỆT ĐỐI!</span>
+          </span>
+          <span className="bg-purple-950 text-amber-400 px-3 py-1 rounded-full text-[10px] uppercase">
+            TỰ ĐỘNG THU BÀI KHI HẾT GIỜ ★
+          </span>
+        </div>
+      )}
 
       {/* MAIN 2-COLUMN LAYOUT (Screenshots 1 & 2) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -458,10 +510,21 @@ export const CountdownTimerView = () => {
             </div>
           </div>
 
-          {/* CARD 3: MÀU SẮC ĐỒNG HỒ (PALETTE PICKER - Screenshot 2) */}
+          {/* CARD 3: MÀU SẮC ĐỒNG HỒ & CHẾ ĐỘ BÀI THI (PALETTE PICKER - Screenshot 2) */}
           <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-3">
-            <div className="flex items-center space-x-2 text-slate-800 font-extrabold text-sm pb-2 border-b border-slate-100">
-              <span>🧠 Màu sắc đồng hồ</span>
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span className="text-xs font-black text-slate-800">🧠 Màu sắc đồng hồ</span>
+              
+              {/* FEATURE 3: EXAM MODE TOGGLE */}
+              <label className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isExamMode}
+                  onChange={(e) => setIsExamMode(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded"
+                />
+                <span>📝 Chế độ bài thi</span>
+              </label>
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -493,6 +556,13 @@ export const CountdownTimerView = () => {
         </div>
 
       </div>
+
+      {/* FEATURE 1: FLOATING PIP TIMER COMPONENT */}
+      <FloatingPiPTimer
+        isOpen={showPiP}
+        onClose={() => setShowPiP(false)}
+        onOpenFullTimer={() => setShowPiP(false)}
+      />
 
     </div>
   );

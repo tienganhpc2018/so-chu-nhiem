@@ -211,6 +211,36 @@ class SoundEffectsManager {
       console.warn("Audio Context error:", e);
     }
   }
+
+  playSchoolBell() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+
+      // Deep resonant THCS school drum sound: 3 booms (TÙNG! TÙNG! TÙNG!)
+      for (let i = 0; i < 3; i++) {
+        const timeOffset = i * 0.6;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150, now + timeOffset);
+        osc.frequency.exponentialRampToValueAtTime(45, now + timeOffset + 0.5);
+
+        gain.gain.setValueAtTime(0.4, now + timeOffset);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + timeOffset + 0.5);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + timeOffset);
+        osc.stop(now + timeOffset + 0.5);
+      }
+    } catch (e) {
+      console.warn("Audio Context error:", e);
+    }
+  }
 }
 
 export const soundFx = new SoundEffectsManager();
