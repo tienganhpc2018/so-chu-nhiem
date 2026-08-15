@@ -13,6 +13,7 @@ import { LeaderboardView } from './pages/LeaderboardView';
 import { Settings } from './pages/Settings';
 import { TimetableGrid } from './pages/TimetableGrid';
 import { RewardsView } from './pages/RewardsView';
+import { LuckyWheelView } from './pages/LuckyWheelView';
 import { Auth } from './pages/Auth';
 
 const defaultDemoClass = {
@@ -163,7 +164,6 @@ const MainLayout = () => {
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'luckywheel') openModal('luckyWheel');
     if (tabId === 'noisemeter') openModal('noiseMeter');
     if (tabId === 'timer') openModal('countdownTimer');
   };
@@ -259,6 +259,13 @@ const MainLayout = () => {
             />
           )}
 
+          {activeTab === 'luckywheel' && (
+            <LuckyWheelView
+              currentClass={currentClass}
+              students={students}
+            />
+          )}
+
           {activeTab === 'settings' && (
             <Settings
               currentClass={currentClass}
@@ -266,7 +273,7 @@ const MainLayout = () => {
             />
           )}
 
-          {activeTab !== 'home' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'settings' && (
+          {activeTab !== 'home' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'luckywheel' && activeTab !== 'settings' && (
             <TeacherDashboard
               classes={classes}
               currentClass={currentClass}
