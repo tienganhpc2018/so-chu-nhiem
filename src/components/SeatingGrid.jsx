@@ -31,7 +31,9 @@ import {
   RefreshCw,
   Crown,
   Shield,
-  Heart
+  Heart,
+  Search,
+  Sparkles
 } from 'lucide-react';
 
 export const SeatingGrid = ({
@@ -54,6 +56,9 @@ export const SeatingGrid = ({
   const [selectedUnseatedId, setSelectedUnseatedId] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
 
+  // Feature 4: Search & Highlight State
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Preset Layout State
   const [selectedPreset, setSelectedPreset] = useState('hk1');
   const [savedPresets, setSavedPresets] = useState({
@@ -62,7 +67,7 @@ export const SeatingGrid = ({
     group: null
   });
 
-  // VR 360 State
+  // VR 360 & Print Modal State
   const [vrAngle, setVrAngle] = useState(0);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
@@ -87,19 +92,28 @@ export const SeatingGrid = ({
     return students.find(s => Number(s.seat_row) === r && Number(s.seat_col) === (c - 1) * 2 + seatPos);
   };
 
+  // Feature 1: Initials Badge Generator (2 letters e.g. MB for Minh Bảy)
+  const getStudentInitials = (fullName = '') => {
+    if (!fullName) return 'HS';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[parts.length - 2].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
+
   // Zoom handlers
   const handleZoom = (delta) => {
     soundFx.playClick();
     setZoomLevel(prev => Math.max(50, Math.min(150, prev + delta)));
   };
 
-  // Feature 2: Boy-Girl Seating Rule (Nam Nữ Ngồi Cùng Bàn)
-  const handleBoyGirlSeatingRule = () => {
+  // Feature 3: Boy-Girl Cross-Team Seating Rule (Nam Nữ Chéo Tổ)
+  const handleBoyGirlCrossTeamRule = () => {
     soundFx.playCorrect();
     confetti({ particleCount: 35, spread: 85, origin: { y: 0.5 } });
 
-    const males = students.filter(s => s.gender === 'male');
-    const females = students.filter(s => s.gender === 'female');
+    // Group males and females by team_group
+    const males = students.filter(s => s.gender === 'male').sort((a, b) => (a.team_group || 1) - (b.team_group || 1));
+    const females = students.filter(s => s.gender === 'female').sort((a, b) => (b.team_group || 1) - (a.team_group || 1));
     const rest = students.filter(s => !males.includes(s) && !females.includes(s));
 
     const pairedList = [];
@@ -123,7 +137,7 @@ export const SeatingGrid = ({
     });
   };
 
-  // Feature 4: Rotate Columns after Semester 1 (Xoay Dãy Đổi Chỗ HK2)
+  // Rotate Columns after Semester 1
   const handleRotateColumns = () => {
     soundFx.playCorrect();
     confetti({ particleCount: 40, spread: 90, origin: { y: 0.5 } });
@@ -131,7 +145,6 @@ export const SeatingGrid = ({
     students.forEach(st => {
       if (st.seat_row && st.seat_col) {
         let currentCol = Number(st.seat_col);
-        // Shift column position by +2 seats (1 full Double Desk column right)
         let newCol = currentCol + 2;
         if (newCol > dayCount * 2) {
           newCol = newCol % (dayCount * 2);
@@ -154,36 +167,6 @@ export const SeatingGrid = ({
     });
 
     priorityStudents.forEach((st, idx) => {
-      const deskIndex = Math.floor(idx / 2);
-      const seatPos = (idx % 2) + 1;
-
-      const col = (deskIndex % dayCount) * 2 + seatPos;
-      const row = Math.floor(deskIndex / dayCount) + 1;
-      onMoveStudentSeat(st.id, row, col);
-    });
-  };
-
-  // Pair Study Rule (1 Giỏi + 1 Yếu/Cần Hỗ Trợ trên cùng Bàn Đôi)
-  const handlePairStudyRule = () => {
-    soundFx.playCorrect();
-    confetti({ particleCount: 40, spread: 90, origin: { y: 0.5 } });
-
-    const topStudents = students.filter(s => s.academic_level === 'top' || (s.total_stars || 0) >= 20);
-    const weakStudents = students.filter(s => s.academic_level === 'weak' || (s.total_stars || 0) < 20);
-    const otherStudents = students.filter(s => !topStudents.includes(s) && !weakStudents.includes(s));
-
-    const pairedList = [];
-    const maxPairs = Math.max(topStudents.length, weakStudents.length);
-
-    for (let i = 0; i < maxPairs; i++) {
-      if (topStudents[i]) pairedList.push(topStudents[i]);
-      if (weakStudents[i]) pairedList.push(weakStudents[i]);
-    }
-    otherStudents.forEach(st => {
-      if (!pairedList.includes(st)) pairedList.push(st);
-    });
-
-    pairedList.forEach((st, idx) => {
       const deskIndex = Math.floor(idx / 2);
       const seatPos = (idx % 2) + 1;
 
@@ -245,7 +228,12 @@ export const SeatingGrid = ({
     }
   };
 
-  // Feature 3: Class Health & Academic Stats
+  // Feature 4: Check if student matches search query for highlight
+  const isMatchSearch = (student) => {
+    if (!searchQuery.trim() || !student) return false;
+    return student.full_name.toLowerCase().includes(searchQuery.trim().toLowerCase());
+  };
+
   const glassesCount = students.filter(s => s.has_glasses).length;
   const weakCount = students.filter(s => s.academic_level === 'weak').length;
   const officersCount = students.filter(s => s.class_role && s.class_role !== 'member').length;
@@ -256,7 +244,6 @@ export const SeatingGrid = ({
   const rows = [1, 2, 3, 4];
   const cols = Array.from({ length: dayCount }, (_, i) => i + 1);
 
-  // Class Officer Role Badge Helper (Feature 1)
   const renderRoleBadge = (role) => {
     switch (role) {
       case 'leader':
@@ -277,52 +264,48 @@ export const SeatingGrid = ({
   return (
     <div className="space-y-6 select-none">
       
-      {/* FEATURE 3: CLASSROOM MEDICAL & ACADEMIC STATS BAR */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="bg-blue-50/80 rounded-2xl p-3.5 border border-blue-200 shadow-sm flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-blue-500 text-white rounded-xl">
-              <GlassesIcon className="w-4 h-4" />
+      {/* FEATURE 4: SEARCH BAR & MEDICAL STATS BAR */}
+      <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-soft space-y-4">
+        
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          
+          {/* Feature 4 Search Bar */}
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-purple-600 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔍 Tìm vị trí học sinh... (vd: Minh Bảy)"
+              className="w-full bg-purple-50/70 border border-purple-200 rounded-2xl pl-10 pr-4 py-2 text-xs font-bold text-slate-800 placeholder-purple-400 focus:ring-2 focus:ring-purple-500 outline-none"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3 top-2.5 text-xs text-slate-400 font-bold hover:text-slate-600">
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Stats Badges */}
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className="bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 text-xs font-black text-blue-900 flex items-center space-x-1.5">
+              <GlassesIcon className="w-3.5 h-3.5 text-blue-600" />
+              <span>Cận thị: {glassesCount} HS ({glassesPct}%)</span>
             </div>
-            <div>
-              <span className="text-xs font-black text-blue-950 block">Tỷ Lệ Cận Thị</span>
-              <span className="text-[11px] font-bold text-blue-700">{glassesCount} học sinh ({glassesPct}%)</span>
+
+            <div className="bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs font-black text-amber-900 flex items-center space-x-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+              <span>Cần hỗ trợ: {weakCount} HS ({weakPct}%)</span>
+            </div>
+
+            <div className="bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200 text-xs font-black text-purple-900 flex items-center space-x-1.5">
+              <Crown className="w-3.5 h-3.5 text-purple-600" />
+              <span>Cán sự: {officersCount} em</span>
             </div>
           </div>
-          <span className="text-xs font-black text-blue-600 bg-white px-2.5 py-1 rounded-full border border-blue-200">
-            Y tế & BGH
-          </span>
+
         </div>
 
-        <div className="bg-amber-50/80 rounded-2xl p-3.5 border border-amber-200 shadow-sm flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-amber-500 text-white rounded-xl">
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-xs font-black text-amber-950 block">Học Lực Cần Hỗ Trợ</span>
-              <span className="text-[11px] font-bold text-amber-700">{weakCount} học sinh ({weakPct}%)</span>
-            </div>
-          </div>
-          <span className="text-xs font-black text-amber-600 bg-white px-2.5 py-1 rounded-full border border-amber-200">
-            Chuyên môn
-          </span>
-        </div>
-
-        <div className="bg-purple-50/80 rounded-2xl p-3.5 border border-purple-200 shadow-sm flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-purple-600 text-white rounded-xl">
-              <Crown className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-xs font-black text-purple-950 block">Ban Cán Sự Lớp</span>
-              <span className="text-[11px] font-bold text-purple-700">{officersCount} cán sự</span>
-            </div>
-          </div>
-          <span className="text-xs font-black text-purple-600 bg-white px-2.5 py-1 rounded-full border border-purple-200">
-            Nề nếp
-          </span>
-        </div>
       </div>
 
       {/* TOOLBAR 1: Layout Presets & Smart Auto-Seating Rules */}
@@ -357,21 +340,19 @@ export const SeatingGrid = ({
         {/* Smart Rules & Print Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           
-          {/* Feature 2: Boy-Girl Seating Rule */}
+          {/* Feature 3: Boy-Girl Cross Team Rule */}
           <button
-            onClick={handleBoyGirlSeatingRule}
+            onClick={handleBoyGirlCrossTeamRule}
             className="px-3.5 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-800 border border-pink-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
-            title="Tự động xếp 1 học sinh Nam ngồi cùng Bàn Đôi với 1 học sinh Nữ"
+            title="Xếp 1 Nam Tổ X ngồi cùng Bàn Đôi với 1 Nữ Tổ Y"
           >
             <Heart className="w-3.5 h-3.5 text-pink-600" />
-            <span>Nam Nữ Ngồi Cùng Bàn</span>
+            <span>Nam Nữ Chéo Tổ</span>
           </button>
 
-          {/* Feature 4: Rotate Columns after Semester 1 */}
           <button
             onClick={handleRotateColumns}
             className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
-            title="Xoay chuyển vị trí giữa các dãy bàn sau khi kết thúc HK1"
           >
             <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
             <span>Xoay Dãy Đổi Chỗ HK2</span>
@@ -383,14 +364,6 @@ export const SeatingGrid = ({
           >
             <GlassesIcon className="w-3.5 h-3.5 text-blue-600" />
             <span>Xếp Cận Thị / Thấp</span>
-          </button>
-
-          <button
-            onClick={handlePairStudyRule}
-            className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
-          >
-            <Handshake className="w-3.5 h-3.5 text-amber-600" />
-            <span>Đôi Bạn Cùng Tiến</span>
           </button>
 
           <button
@@ -577,10 +550,19 @@ export const SeatingGrid = ({
                     const studentRight = getStudentAtSeatPos(r, c, 2);
                     const deskNumber = (r - 1) * dayCount + c;
 
+                    // Feature 4 Search Highlight check
+                    const isLeftMatch = isMatchSearch(studentLeft);
+                    const isRightMatch = isMatchSearch(studentRight);
+                    const isDeskHighlighted = isLeftMatch || isRightMatch;
+
                     return (
                       <div
                         key={`desk-${r}-${c}`}
-                        className="bg-white rounded-3xl p-3 border-2 border-purple-200 shadow-soft hover:shadow-xl space-y-2 relative"
+                        className={`bg-white rounded-3xl p-3 border-2 transition-all space-y-2 relative ${
+                          isDeskHighlighted
+                            ? 'border-emerald-500 ring-4 ring-emerald-400 bg-emerald-50 scale-105 shadow-2xl animate-pulse z-10'
+                            : 'border-purple-200 shadow-soft hover:shadow-xl'
+                        }`}
                       >
                         <div className="text-[10px] font-black text-purple-800 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100 flex items-center justify-between">
                           <span>🪑 Bàn Đôi {deskNumber} • Hàng {r}</span>
@@ -595,7 +577,9 @@ export const SeatingGrid = ({
                             onClick={() => handleCellClick(r, c, 1)}
                             className={`p-2 rounded-2xl border transition-all text-center relative flex flex-col justify-between min-h-[105px] ${
                               studentLeft
-                                ? 'bg-slate-50 border-purple-200 hover:border-purple-400'
+                                ? isLeftMatch
+                                  ? 'bg-emerald-100 border-emerald-400'
+                                  : 'bg-slate-50 border-purple-200 hover:border-purple-400'
                                 : selectedUnseatedId
                                 ? 'bg-purple-50 border-dashed border-purple-500 animate-pulse cursor-pointer'
                                 : 'bg-slate-50/50 border-dashed border-slate-200 hover:border-purple-300'
@@ -612,17 +596,22 @@ export const SeatingGrid = ({
                                   className="relative group cursor-pointer"
                                   title="Bấm để cập nhật Chức vụ Ban Cán Sự / Cận thị / Học lực"
                                 >
+                                  {/* Feature 1 Initials Badge if image missing */}
                                   <img
                                     src={studentLeft.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${studentLeft.id}`}
                                     alt={studentLeft.full_name}
                                     className="w-9 h-9 rounded-xl mx-auto object-cover border border-purple-200 bg-white"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.style.display = 'none';
+                                    }}
                                   />
                                 </div>
                                 <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">
                                   {getSmartDisplayName(studentLeft.full_name, students)}
                                 </h5>
                                 
-                                {/* Badges & Officer Role (Feature 1) */}
+                                {/* Badges */}
                                 <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
                                   {renderRoleBadge(studentLeft.class_role)}
                                   {studentLeft.has_glasses && (
@@ -650,7 +639,9 @@ export const SeatingGrid = ({
                             onClick={() => handleCellClick(r, c, 2)}
                             className={`p-2 rounded-2xl border transition-all text-center relative flex flex-col justify-between min-h-[105px] ${
                               studentRight
-                                ? 'bg-slate-50 border-purple-200 hover:border-purple-400'
+                                ? isRightMatch
+                                  ? 'bg-emerald-100 border-emerald-400'
+                                  : 'bg-slate-50 border-purple-200 hover:border-purple-400'
                                 : selectedUnseatedId
                                 ? 'bg-purple-50 border-dashed border-purple-500 animate-pulse cursor-pointer'
                                 : 'bg-slate-50/50 border-dashed border-slate-200 hover:border-purple-300'
@@ -671,13 +662,17 @@ export const SeatingGrid = ({
                                     src={studentRight.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${studentRight.id}`}
                                     alt={studentRight.full_name}
                                     className="w-9 h-9 rounded-xl mx-auto object-cover border border-purple-200 bg-white"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.style.display = 'none';
+                                    }}
                                   />
                                 </div>
                                 <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">
                                   {getSmartDisplayName(studentRight.full_name, students)}
                                 </h5>
                                 
-                                {/* Badges & Officer Role (Feature 1) */}
+                                {/* Badges */}
                                 <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
                                   {renderRoleBadge(studentRight.class_role)}
                                   {studentRight.has_glasses && (
@@ -752,7 +747,7 @@ export const SeatingGrid = ({
                       <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black ${
                         isSelected ? 'bg-white text-purple-700' : 'bg-purple-100 text-purple-700'
                       }`}>
-                        {st.full_name.charAt(0)}
+                        {getStudentInitials(st.full_name)}
                       </div>
                       <div className="min-w-0">
                         <span className="text-xs font-extrabold truncate block flex items-center space-x-1">

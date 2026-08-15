@@ -4,13 +4,15 @@ import { soundFx } from '../utils/soundEffects';
 import { MascotRobot } from '../components/MascotRobot';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
-import { Trophy, Award, TrendingUp, Star, Medal, Sparkles, Flame } from 'lucide-react';
+import { PrintLeaderboardModal } from '../components/PrintLeaderboardModal';
+import { Trophy, Award, TrendingUp, Star, Medal, Sparkles, Flame, Printer } from 'lucide-react';
 
 export const LeaderboardView = ({ currentClass }) => {
   const [topStudents, setTopStudents] = useState([]);
   const [improvedStudents, setImprovedStudents] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => {
     if (currentClass) {
@@ -108,9 +110,17 @@ export const LeaderboardView = ({ currentClass }) => {
           </div>
         </div>
 
-        <div className="hidden md:flex items-center space-x-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/30">
-          <Sparkles className="w-5 h-5 text-amber-300 animate-spin" />
-          <span className="text-xs font-bold uppercase tracking-wider">Cập Nhật Realtime</span>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              setShowPrintModal(true);
+            }}
+            className="px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-purple-950 font-black text-xs rounded-2xl shadow-md flex items-center space-x-1.5 transition-all transform hover:scale-105"
+          >
+            <Printer className="w-4 h-4" />
+            <span>In Bảng Thi Đua A4 (PDF)</span>
+          </button>
         </div>
       </div>
 
@@ -301,6 +311,14 @@ export const LeaderboardView = ({ currentClass }) => {
           </div>
         </>
       )}
+
+      {/* Print Leaderboard Modal */}
+      <PrintLeaderboardModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        currentClass={currentClass}
+        students={topStudents}
+      />
 
     </div>
   );
