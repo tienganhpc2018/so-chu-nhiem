@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { soundFx } from '../utils/soundEffects';
+import { AddStudentModal } from '../components/AddStudentModal';
 import { SeatingGrid } from '../components/SeatingGrid';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 import { EmptyState } from '../components/EmptyState';
@@ -155,59 +156,23 @@ export const TeacherDashboard = ({
     }
   };
 
-  const handleCreateStudent = async (e) => {
-    e.preventDefault();
-    if (!newStudentName.trim() || !currentClass) return;
-    setCreating(true);
-    soundFx.playClick();
+  const handleAddStudentsBatch = async (newStudentsList) => {
+    if (!currentClass || !newStudentsList || newStudentsList.length === 0) return;
+    soundFx.playCorrect();
 
+    const formattedList = newStudentsList.map(st => ({
+      ...st,
+      class_id: currentClass.id
+    }));
+
+    // Update state immediately
+    setStudents(prev => [...prev, ...formattedList]);
+
+    // Persist in DB
     try {
-      let targetRow = 1;
-      let targetCol = 1;
-
-      for (let r = 1; r <= 4; r++) {
-        for (let c = 1; c <= 6; c++) {
-          const occupied = students.some(st => Number(st.seat_row) === r && Number(st.seat_col) === c);
-          if (!occupied) {
-            targetRow = r;
-            targetCol = c;
-            break;
-          }
-        }
-        if (targetRow !== 1 || targetCol !== 1) break;
-      }
-
-      const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(newStudentName.trim() + Math.random())}`;
-
-      const newStObj = {
-        id: `st-${Date.now()}`,
-        class_id: currentClass.id,
-        full_name: newStudentName.trim(),
-        avatar_url: avatar,
-        seat_row: targetRow,
-        seat_col: targetCol,
-        total_stars: 0
-      };
-
-      const { data, error } = await supabase
-        .from('students')
-        .insert([newStObj])
-        .select()
-        .single();
-
-      soundFx.playCorrect();
-      setShowAddStudentModal(false);
-      setNewStudentName('');
-
-      if (data) {
-        setStudents(prev => [...prev, data]);
-      } else {
-        setStudents(prev => [...prev, newStObj]);
-      }
+      await supabase.from('students').insert(formattedList);
     } catch (err) {
-      console.error('Lỗi thêm học sinh mới:', err);
-    } finally {
-      setCreating(false);
+      console.error('Lỗi lưu danh sách học sinh vào DB:', err);
     }
   };
 
@@ -527,50 +492,13 @@ export const TeacherDashboard = ({
         </div>
       )}
 
-      {/* Modal 2: Add Student */}
-      {showAddStudentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-mint-100">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-lg font-extrabold text-slate-800">Thêm Học Sinh Vào Lớp</h3>
-              <button onClick={() => setShowAddStudentModal(false)} className="p-2 text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateStudent} className="space-y-4 my-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Họ và tên Học sinh:</label>
-                <input
-                  type="text"
-                  value={newStudentName}
-                  onChange={(e) => setNewStudentName(e.target.value)}
-                  placeholder="Ví dụ: Trần Thị Mai Anh"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-800 focus:ring-2 focus:ring-mint-500 outline-none"
-                  required
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowAddStudentModal(false)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 rounded-xl"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="bg-mint-500 hover:bg-mint-600 text-white font-extrabold px-5 py-2 rounded-xl text-xs shadow-mint-glow disabled:opacity-50"
-                >
-                  {creating ? 'Đang thêm...' : 'THÊM HỌC SINH'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Multi-feature Add Student Modal */}
+      <AddStudentModal
+        isOpen={showAddStudentModal}
+        onClose={() => setShowAddStudentModal(false)}
+        currentClass={currentClass}
+        onAddStudents={handleAddStudentsBatch}
+      />
 
       {/* Feature Modals */}
       <AttendanceModal

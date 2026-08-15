@@ -6,6 +6,7 @@ import { supabase } from './lib/supabase';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { HomeView } from './pages/HomeView';
+import { ClassesView } from './pages/ClassesView';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { LeaderboardView } from './pages/LeaderboardView';
 import { Settings } from './pages/Settings';
@@ -205,7 +206,20 @@ const MainLayout = () => {
             />
           )}
 
-          {(activeTab === 'seating' || activeTab === 'classes' || activeTab === 'students') && (
+          {activeTab === 'classes' && (
+            <ClassesView
+              classes={classes}
+              currentClass={currentClass}
+              onSelectClass={(cls) => {
+                setCurrentClass(cls);
+                setActiveTab('seating');
+              }}
+              onRefreshClasses={fetchClasses}
+              onOpenAddStudent={() => openModal('addStudent')}
+            />
+          )}
+
+          {(activeTab === 'seating' || activeTab === 'students') && (
             <TeacherDashboard
               classes={classes}
               currentClass={currentClass}
