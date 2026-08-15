@@ -440,6 +440,8 @@ export const TeacherDashboard = ({
           ) : (
             <SeatingGrid
               students={filteredStudents}
+              currentClass={currentClass}
+              teacherProfile={profile}
               onMoveStudentSeat={handleMoveStudentSeat}
               onAddPoints={(st) => setSelectedStudentForPoints(st)}
               onDeductPoints={(st) => setSelectedStudentForPoints(st)}
