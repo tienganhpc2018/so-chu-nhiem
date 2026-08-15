@@ -98,12 +98,37 @@ export const FilmStripView = ({ currentClass, students = [] }) => {
     setAvailableStudents(prev => [...prev, student]);
   };
 
-  // Re-include ALL excluded students
-  const handleReIncludeAll = () => {
-    soundFx.playCorrect();
-    setAvailableStudents(students);
-    setExcludedStudents([]);
+  // Feature 3: Film Projector Festival Themes ('cinema' | 'noel' | 'tet' | 'summer')
+  const [projectorTheme, setProjectorTheme] = useState('cinema');
+
+  const themeConfig = {
+    cinema: {
+      name: 'Điện Ảnh Mặc Định 🎬',
+      border: 'border-purple-900 bg-slate-950',
+      spotlight: 'border-amber-400 bg-amber-400/10',
+      badge: 'bg-amber-400 text-purple-950'
+    },
+    noel: {
+      name: 'Giáng Sinh Noel ❄️',
+      border: 'border-red-700 bg-slate-900',
+      spotlight: 'border-red-500 bg-red-500/10',
+      badge: 'bg-red-500 text-white'
+    },
+    tet: {
+      name: 'Tết Nguyên Đán 🧧',
+      border: 'border-amber-600 bg-red-950',
+      spotlight: 'border-amber-400 bg-amber-400/20',
+      badge: 'bg-amber-400 text-red-950'
+    },
+    summer: {
+      name: 'Mùa Hè Sôi Động ☀️',
+      border: 'border-emerald-600 bg-cyan-950',
+      spotlight: 'border-emerald-400 bg-emerald-400/10',
+      badge: 'bg-emerald-400 text-cyan-950'
+    }
   };
+
+  const currentProjectorTheme = themeConfig[projectorTheme] || themeConfig.cinema;
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in select-none">
@@ -136,13 +161,29 @@ export const FilmStripView = ({ currentClass, students = [] }) => {
         {/* LEFT COLUMN (7 Cols): MÁY CHIẾU PHIM MAY MẮN */}
         <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-purple-100 shadow-soft space-y-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
           
-          <div className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center space-x-1.5">
-            <Film className="w-4 h-4 text-purple-600" />
-            <span>🎞️ 🎬 MÁY CHIẾU PHIM MAY MẮN 🎬 🎞️</span>
+          <div className="w-full flex items-center justify-between">
+            <div className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center space-x-1.5">
+              <Film className="w-4 h-4 text-purple-600" />
+              <span>🎞️ 🎬 MÁY CHIẾU PHIM MAY MẮN 🎬 🎞️</span>
+            </div>
+
+            {/* FEATURE 3: FESTIVAL THEME PICKER */}
+            <select
+              value={projectorTheme}
+              onChange={(e) => {
+                soundFx.playClick();
+                setProjectorTheme(e.target.value);
+              }}
+              className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-black px-3 py-1 rounded-xl outline-none"
+            >
+              {Object.keys(themeConfig).map(k => (
+                <option key={k} value={k}>{themeConfig[k].name}</option>
+              ))}
+            </select>
           </div>
 
           {/* CINEMA FILM STRIP PROJECTOR VIEWPORT (Screenshot 2) */}
-          <div className="relative w-full bg-slate-950 rounded-3xl p-6 border-4 border-purple-900 shadow-2xl overflow-hidden min-h-[220px] flex items-center justify-center">
+          <div className={`relative w-full rounded-3xl p-6 border-4 shadow-2xl overflow-hidden min-h-[220px] flex items-center justify-center ${currentProjectorTheme.border}`}>
             
             {/* Top & Bottom Sprocket Holes */}
             <div className="absolute top-2 left-0 right-0 flex justify-between px-4 opacity-40">
@@ -156,9 +197,9 @@ export const FilmStripView = ({ currentClass, students = [] }) => {
               ))}
             </div>
 
-            {/* Center Yellow Spotlight Target Rectangle */}
-            <div className="absolute z-20 w-32 h-36 border-4 border-amber-400 bg-amber-400/10 rounded-2xl shadow-coral-glow pointer-events-none flex items-center justify-center">
-              <span className="absolute -top-3 bg-amber-400 text-purple-950 text-[9px] font-black px-2 py-0.5 rounded-full shadow-md uppercase">
+            {/* Center Spotlight Target Rectangle */}
+            <div className={`absolute z-20 w-32 h-36 border-4 rounded-2xl shadow-coral-glow pointer-events-none flex items-center justify-center ${currentProjectorTheme.spotlight}`}>
+              <span className={`absolute -top-3 text-[9px] font-black px-2 py-0.5 rounded-full shadow-md uppercase ${currentProjectorTheme.badge}`}>
                 SPOTLIGHT ✦
               </span>
             </div>
