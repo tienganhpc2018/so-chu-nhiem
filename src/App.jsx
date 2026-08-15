@@ -11,6 +11,8 @@ import { AttendanceView } from './pages/AttendanceView';
 import { TeacherDashboard } from './pages/TeacherDashboard';
 import { LeaderboardView } from './pages/LeaderboardView';
 import { Settings } from './pages/Settings';
+import { TimetableGrid } from './pages/TimetableGrid';
+import { RewardsView } from './pages/RewardsView';
 import { Auth } from './pages/Auth';
 
 const defaultDemoClass = {
@@ -242,6 +244,21 @@ const MainLayout = () => {
             <LeaderboardView currentClass={currentClass} />
           )}
 
+          {activeTab === 'timetable' && (
+            <TimetableGrid
+              currentClass={currentClass}
+              teacherProfile={profile}
+            />
+          )}
+
+          {activeTab === 'rewards' && (
+            <RewardsView
+              currentClass={currentClass}
+              students={students}
+              onRefreshStudents={() => fetchStudents(currentClass.id)}
+            />
+          )}
+
           {activeTab === 'settings' && (
             <Settings
               currentClass={currentClass}
@@ -249,7 +266,7 @@ const MainLayout = () => {
             />
           )}
 
-          {activeTab !== 'home' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'settings' && (
+          {activeTab !== 'home' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'settings' && (
             <TeacherDashboard
               classes={classes}
               currentClass={currentClass}
