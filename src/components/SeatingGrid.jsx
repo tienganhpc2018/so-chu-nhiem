@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { soundFx } from '../utils/soundEffects';
 import confetti from 'canvas-confetti';
 import { PrintSeatingChartModal } from './PrintSeatingChartModal';
@@ -26,7 +26,11 @@ import {
   Eye,
   Camera,
   AlertTriangle,
-  Edit3
+  Users2,
+  RefreshCw,
+  Crown,
+  Shield,
+  Heart
 } from 'lucide-react';
 
 export const SeatingGrid = ({
@@ -42,10 +46,10 @@ export const SeatingGrid = ({
   onSaveStudentInfo
 }) => {
   // Toolbar States: Default 4 Dãy Bàn
-  const [dayCount, setDayCount] = useState(4); // Default 4 Dãy Bàn theo chuẩn Thầy yêu cầu
-  const [viewMode, setViewMode] = useState('3D'); // '3D' | '2D' | 'VR'
+  const [dayCount, setDayCount] = useState(4);
+  const [viewMode, setViewMode] = useState('3D');
   const [zoomLevel, setZoomLevel] = useState(85);
-  const [perspective, setPerspective] = useState('normal'); // 'near' | 'normal' | 'deep'
+  const [perspective, setPerspective] = useState('normal');
   const [selectedUnseatedId, setSelectedUnseatedId] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
 
@@ -88,18 +92,52 @@ export const SeatingGrid = ({
     setZoomLevel(prev => Math.max(50, Math.min(150, prev + delta)));
   };
 
-  // Shuffle & Auto Seat All (2 em / bàn đôi)
-  const handleAutoSeatAll = () => {
+  // Feature 2: Boy-Girl Seating Rule (Nam Nữ Ngồi Cùng Bàn)
+  const handleBoyGirlSeatingRule = () => {
     soundFx.playCorrect();
-    confetti({ particleCount: 30, spread: 70, origin: { y: 0.6 } });
+    confetti({ particleCount: 35, spread: 85, origin: { y: 0.5 } });
 
-    students.forEach((st, idx) => {
+    const males = students.filter(s => s.gender === 'male');
+    const females = students.filter(s => s.gender === 'female');
+    const rest = students.filter(s => !males.includes(s) && !females.includes(s));
+
+    const pairedList = [];
+    const maxLength = Math.max(males.length, females.length);
+
+    for (let i = 0; i < maxLength; i++) {
+      if (males[i]) pairedList.push(males[i]);
+      if (females[i]) pairedList.push(females[i]);
+    }
+    rest.forEach(st => {
+      if (!pairedList.includes(st)) pairedList.push(st);
+    });
+
+    pairedList.forEach((st, idx) => {
       const deskIndex = Math.floor(idx / 2);
-      const seatPos = (idx % 2) + 1; // 1=Trái, 2=Phải
+      const seatPos = (idx % 2) + 1;
 
       const col = (deskIndex % dayCount) * 2 + seatPos;
       const row = Math.floor(deskIndex / dayCount) + 1;
       onMoveStudentSeat(st.id, row, col);
+    });
+  };
+
+  // Feature 4: Rotate Columns after Semester 1 (Xoay Dãy Đổi Chỗ HK2)
+  const handleRotateColumns = () => {
+    soundFx.playCorrect();
+    confetti({ particleCount: 40, spread: 90, origin: { y: 0.5 } });
+
+    students.forEach(st => {
+      if (st.seat_row && st.seat_col) {
+        let currentCol = Number(st.seat_col);
+        // Shift column position by +2 seats (1 full Double Desk column right)
+        let newCol = currentCol + 2;
+        if (newCol > dayCount * 2) {
+          newCol = newCol % (dayCount * 2);
+          if (newCol === 0) newCol = dayCount * 2;
+        }
+        onMoveStudentSeat(st.id, st.seat_row, newCol);
+      }
     });
   };
 
@@ -124,7 +162,7 @@ export const SeatingGrid = ({
     });
   };
 
-  // Pair Study Rule (Đôi Bạn Cùng Tiến: 1 Giỏi + 1 Yếu/Cần Hỗ Trợ trên cùng 1 Bàn Đôi)
+  // Pair Study Rule (1 Giỏi + 1 Yếu/Cần Hỗ Trợ trên cùng Bàn Đôi)
   const handlePairStudyRule = () => {
     soundFx.playCorrect();
     confetti({ particleCount: 40, spread: 90, origin: { y: 0.5 } });
@@ -189,16 +227,6 @@ export const SeatingGrid = ({
     }
   };
 
-  // Clear all seats
-  const handleClearAllSeats = () => {
-    if (!window.confirm('Thầy/Cô có chắc chắn muốn xóa vị trí tất cả bàn học để xếp lại từ đầu?')) return;
-    soundFx.playClick();
-    students.forEach(st => {
-      onMoveStudentSeat(st.id, 0, 0);
-    });
-    setSelectedUnseatedId(null);
-  };
-
   // Touch/Click to place unseated student into empty desk seat
   const handleCellClick = (r, c, seatPos) => {
     const targetCol = (c - 1) * 2 + seatPos;
@@ -216,12 +244,86 @@ export const SeatingGrid = ({
     }
   };
 
+  // Feature 3: Class Health & Academic Stats
+  const glassesCount = students.filter(s => s.has_glasses).length;
+  const weakCount = students.filter(s => s.academic_level === 'weak').length;
+  const officersCount = students.filter(s => s.class_role && s.class_role !== 'member').length;
+
+  const glassesPct = students.length > 0 ? Math.round((glassesCount / students.length) * 100) : 0;
+  const weakPct = students.length > 0 ? Math.round((weakCount / students.length) * 100) : 0;
+
   const rows = [1, 2, 3, 4];
   const cols = Array.from({ length: dayCount }, (_, i) => i + 1);
+
+  // Class Officer Role Badge Helper (Feature 1)
+  const renderRoleBadge = (role) => {
+    switch (role) {
+      case 'leader':
+        return <span className="bg-amber-100 text-amber-900 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-amber-300">⭐ Lớp trưởng</span>;
+      case 'vice_study':
+        return <span className="bg-purple-100 text-purple-900 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-purple-300">📝 LP Học tập</span>;
+      case 'vice_art':
+        return <span className="bg-pink-100 text-pink-900 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-pink-300">🎨 LP Văn thể</span>;
+      case 'vice_labor':
+        return <span className="bg-emerald-100 text-emerald-900 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-emerald-300">🏃 LP Lao động</span>;
+      case 'team_leader':
+        return <span className="bg-blue-100 text-blue-900 text-[9px] font-black px-1.5 py-0.5 rounded-md border border-blue-300">👑 Tổ trưởng</span>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-6 select-none">
       
+      {/* FEATURE 3: CLASSROOM MEDICAL & ACADEMIC STATS BAR */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-blue-50/80 rounded-2xl p-3.5 border border-blue-200 shadow-sm flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-blue-500 text-white rounded-xl">
+              <GlassesIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-blue-950 block">Tỷ Lệ Cận Thị</span>
+              <span className="text-[11px] font-bold text-blue-700">{glassesCount} học sinh ({glassesPct}%)</span>
+            </div>
+          </div>
+          <span className="text-xs font-black text-blue-600 bg-white px-2.5 py-1 rounded-full border border-blue-200">
+            Y tế & BGH
+          </span>
+        </div>
+
+        <div className="bg-amber-50/80 rounded-2xl p-3.5 border border-amber-200 shadow-sm flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-amber-500 text-white rounded-xl">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-amber-950 block">Học Lực Cần Hỗ Trợ</span>
+              <span className="text-[11px] font-bold text-amber-700">{weakCount} học sinh ({weakPct}%)</span>
+            </div>
+          </div>
+          <span className="text-xs font-black text-amber-600 bg-white px-2.5 py-1 rounded-full border border-amber-200">
+            Chuyên môn
+          </span>
+        </div>
+
+        <div className="bg-purple-50/80 rounded-2xl p-3.5 border border-purple-200 shadow-sm flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 bg-purple-600 text-white rounded-xl">
+              <Crown className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-xs font-black text-purple-950 block">Ban Cán Sự Lớp</span>
+              <span className="text-[11px] font-bold text-purple-700">{officersCount} cán sự</span>
+            </div>
+          </div>
+          <span className="text-xs font-black text-purple-600 bg-white px-2.5 py-1 rounded-full border border-purple-200">
+            Nề nếp
+          </span>
+        </div>
+      </div>
+
       {/* TOOLBAR 1: Layout Presets & Smart Auto-Seating Rules */}
       <div className="bg-white rounded-3xl p-4 border border-purple-100 shadow-soft flex flex-wrap items-center justify-between gap-4">
         
@@ -253,10 +355,30 @@ export const SeatingGrid = ({
 
         {/* Smart Rules & Print Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          
+          {/* Feature 2: Boy-Girl Seating Rule */}
+          <button
+            onClick={handleBoyGirlSeatingRule}
+            className="px-3.5 py-1.5 bg-pink-50 hover:bg-pink-100 text-pink-800 border border-pink-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
+            title="Tự động xếp 1 học sinh Nam ngồi cùng Bàn Đôi với 1 học sinh Nữ"
+          >
+            <Heart className="w-3.5 h-3.5 text-pink-600" />
+            <span>Nam Nữ Ngồi Cùng Bàn</span>
+          </button>
+
+          {/* Feature 4: Rotate Columns after Semester 1 */}
+          <button
+            onClick={handleRotateColumns}
+            className="px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
+            title="Xoay chuyển vị trí giữa các dãy bàn sau khi kết thúc HK1"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Xoay Dãy Đổi Chỗ HK2</span>
+          </button>
+
           <button
             onClick={handleSeatGlassesAndHeight}
             className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
-            title="Ưu tiên xếp học sinh cận thị & chiều cao thấp vào Bàn Đôi 1-2"
           >
             <GlassesIcon className="w-3.5 h-3.5 text-blue-600" />
             <span>Xếp Cận Thị / Thấp</span>
@@ -265,7 +387,6 @@ export const SeatingGrid = ({
           <button
             onClick={handlePairStudyRule}
             className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5"
-            title="Ghép 1 em Giỏi ngồi cạnh 1 em Cần Hỗ Trợ trên cùng Bàn Đôi"
           >
             <Handshake className="w-3.5 h-3.5 text-amber-600" />
             <span>Đôi Bạn Cùng Tiến</span>
@@ -465,13 +586,13 @@ export const SeatingGrid = ({
                           <span className="text-[9px] text-slate-400">(2 Ghế)</span>
                         </div>
 
-                        {/* 2 Seats per Desk Container (Left & Right) */}
+                        {/* 2 Seats per Desk Container */}
                         <div className="grid grid-cols-2 gap-2">
                           
-                          {/* Seat Left (Ghế Trái) */}
+                          {/* Seat Left */}
                           <div
                             onClick={() => handleCellClick(r, c, 1)}
-                            className={`p-2 rounded-2xl border transition-all text-center relative flex flex-col justify-between min-h-[95px] ${
+                            className={`p-2 rounded-2xl border transition-all text-center relative flex flex-col justify-between min-h-[105px] ${
                               studentLeft
                                 ? 'bg-slate-50 border-purple-200 hover:border-purple-400'
                                 : selectedUnseatedId
@@ -488,7 +609,7 @@ export const SeatingGrid = ({
                                     setEditingStudent(studentLeft);
                                   }}
                                   className="relative group cursor-pointer"
-                                  title="Bấm để cập nhật Cận thị / Học lực"
+                                  title="Bấm để cập nhật Chức vụ Ban Cán Sự / Cận thị / Học lực"
                                 >
                                   <img
                                     src={studentLeft.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${studentLeft.id}`}
@@ -498,8 +619,9 @@ export const SeatingGrid = ({
                                 </div>
                                 <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">{studentLeft.full_name}</h5>
                                 
-                                {/* Badges */}
+                                {/* Badges & Officer Role (Feature 1) */}
                                 <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
+                                  {renderRoleBadge(studentLeft.class_role)}
                                   {studentLeft.has_glasses && (
                                     <span className="bg-blue-100 text-blue-800 text-[9px] font-black px-1.5 py-0.5 rounded-md" title="Học sinh bị cận thị">
                                       👓 Cận
@@ -520,10 +642,10 @@ export const SeatingGrid = ({
                             )}
                           </div>
 
-                          {/* Seat Right (Ghế Phải) */}
+                          {/* Seat Right */}
                           <div
                             onClick={() => handleCellClick(r, c, 2)}
-                            className={`p-2 rounded-2xl border transition-all text-center relative flex flex-col justify-between min-h-[95px] ${
+                            className={`p-2 rounded-2xl border transition-all text-center relative flex flex-col justify-between min-h-[105px] ${
                               studentRight
                                 ? 'bg-slate-50 border-purple-200 hover:border-purple-400'
                                 : selectedUnseatedId
@@ -540,7 +662,7 @@ export const SeatingGrid = ({
                                     setEditingStudent(studentRight);
                                   }}
                                   className="relative group cursor-pointer"
-                                  title="Bấm để cập nhật Cận thị / Học lực"
+                                  title="Bấm để cập nhật Chức vụ Ban Cán Sự / Cận thị / Học lực"
                                 >
                                   <img
                                     src={studentRight.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${studentRight.id}`}
@@ -550,8 +672,9 @@ export const SeatingGrid = ({
                                 </div>
                                 <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">{studentRight.full_name}</h5>
                                 
-                                {/* Badges */}
+                                {/* Badges & Officer Role (Feature 1) */}
                                 <div className="flex flex-wrap items-center justify-center gap-1 mt-1">
+                                  {renderRoleBadge(studentRight.class_role)}
                                   {studentRight.has_glasses && (
                                     <span className="bg-blue-100 text-blue-800 text-[9px] font-black px-1.5 py-0.5 rounded-md" title="Học sinh bị cận thị">
                                       👓 Cận
@@ -660,7 +783,7 @@ export const SeatingGrid = ({
         teacherProfile={teacherProfile}
       />
 
-      {/* Edit Student Modal (Cận thị / Học lực yếu / Chiều cao) */}
+      {/* Edit Student Modal */}
       <EditStudentModal
         isOpen={!!editingStudent}
         onClose={() => setEditingStudent(null)}

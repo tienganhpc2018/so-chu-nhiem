@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { soundFx } from '../utils/soundEffects';
-import { X, Edit3, Glasses, Award, AlertTriangle, Save, Check } from 'lucide-react';
+import { X, Edit3, Glasses, Award, AlertTriangle, Save, Check, Crown, Shield } from 'lucide-react';
 
 export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }) => {
   const [fullName, setFullName] = useState('');
@@ -9,6 +9,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
   const [hasGlasses, setHasGlasses] = useState(false);
   const [academicLevel, setAcademicLevel] = useState('good'); // 'top' | 'good' | 'weak'
   const [heightLevel, setHeightLevel] = useState('normal'); // 'short' | 'normal' | 'tall'
+  const [classRole, setClassRole] = useState('member'); // 'member' | 'leader' | 'vice_study' | 'vice_art' | 'team_leader'
 
   useEffect(() => {
     if (student) {
@@ -18,6 +19,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
       setHasGlasses(!!student.has_glasses);
       setAcademicLevel(student.academic_level || 'good');
       setHeightLevel(student.height_level || 'normal');
+      setClassRole(student.class_role || 'member');
     }
   }, [student]);
 
@@ -34,7 +36,8 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
       team_group: Number(teamGroup),
       has_glasses: hasGlasses,
       academic_level: academicLevel,
-      height_level: heightLevel
+      height_level: heightLevel,
+      class_role: classRole
     };
 
     onSaveStudentInfo(updatedInfo);
@@ -69,6 +72,23 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
             />
           </div>
 
+          {/* Feature 1: Class Officer Role Selector */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Chức Vụ Ban Cán Sự Lớp:</label>
+            <select
+              value={classRole}
+              onChange={(e) => setClassRole(e.target.value)}
+              className="w-full bg-purple-50 border border-purple-200 text-purple-900 rounded-xl px-3 py-2 text-xs font-extrabold outline-none"
+            >
+              <option value="member">Thành viên lớp</option>
+              <option value="leader">⭐ Lớp trưởng</option>
+              <option value="vice_study">📝 Lớp phó học tập</option>
+              <option value="vice_art">🎨 Lớp phó văn thể mỹ</option>
+              <option value="vice_labor">🏃 Lớp phó lao động</option>
+              <option value="team_leader">👑 Tổ trưởng</option>
+            </select>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Giới tính:</label>
@@ -97,7 +117,7 @@ export const EditStudentModal = ({ isOpen, onClose, student, onSaveStudentInfo }
             </div>
           </div>
 
-          {/* Academic Level (Năng lực / Sức học) */}
+          {/* Academic Level */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">Năng Lực / Sức Học:</label>
             <select
