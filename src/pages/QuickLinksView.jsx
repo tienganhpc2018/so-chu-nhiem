@@ -219,6 +219,17 @@ export const QuickLinksView = ({ currentClass }) => {
         })}
       </div>
 
+      {/* FEATURE 2: TODAY'S SUBJECT TIMETABLE AUTO LINK CLASSIFIER BANNER */}
+      <div className="p-4 bg-gradient-to-r from-amber-500 to-purple-600 text-white rounded-3xl font-black text-xs shadow-md flex items-center justify-between">
+        <span className="flex items-center space-x-2">
+          <BookOpen className="w-5 h-5 text-amber-300" />
+          <span>🌟 GỢI Ý TÀI LIỆU TIẾNG ANH CHO TIẾT HỌC HÔM NAY — SÁCH GIÁO KHOA & PHÒNG HỌC MẸO TRUY CẬP 1-CLICK!</span>
+        </span>
+        <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] uppercase">
+          TỰ ĐỘNG PHÂN LOẠI ★
+        </span>
+      </div>
+
       {/* EMPTY STATE SCREENSHOT 1 */}
       {linksList.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-purple-100 shadow-soft space-y-4 my-8 max-w-lg mx-auto">

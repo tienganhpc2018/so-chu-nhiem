@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { soundFx } from '../utils/soundEffects';
+import { SubjectConfigModal } from '../components/SubjectConfigModal';
+import { PrintMonthlyAnalyticsModal } from '../components/PrintMonthlyAnalyticsModal';
 import {
   BarChart3,
   Download,
@@ -11,15 +13,21 @@ import {
   BookOpen,
   History,
   TrendingUp,
-  Filter
+  Filter,
+  Printer,
+  Settings
 } from 'lucide-react';
 
-export const AnalyticsView = ({ currentClass, students = [] }) => {
+export const AnalyticsView = ({ currentClass, students = [], teacherProfile }) => {
   // Main Sub-Tab Switcher: 'overview' | 'subjects' | 'history'
   const [activeSubTab, setActiveSubTab] = useState('overview');
   
   // Gender Filter for Leaderboard: 'all' | 'male' | 'female'
   const [genderFilter, setGenderFilter] = useState('all');
+
+  // Modals state
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   const totalStudents = students.length || 15;
   const maleStudents = students.filter(s => s.gender === 'male' || s.gender === 'Nam').length || Math.floor(totalStudents * 0.47);
@@ -27,6 +35,15 @@ export const AnalyticsView = ({ currentClass, students = [] }) => {
 
   const totalStars = students.reduce((acc, curr) => acc + (curr.total_stars || 0), 0);
   const avgStars = totalStudents > 0 ? (totalStars / totalStudents).toFixed(1) : 0;
+
+  // Compute 4 Teams totals for Feature 3
+  const teamStats = [1, 2, 3, 4].map(tNum => {
+    const teamSt = students.filter(s => Number(s.team_group) === tNum);
+    const sumCoins = teamSt.reduce((acc, curr) => acc + (curr.total_stars || 0), 0);
+    return { team: tNum, total: sumCoins, count: teamSt.length };
+  });
+
+  const maxTeamTotal = Math.max(...teamStats.map(t => t.total), 1);
 
   // Subjects List
   const subjectsList = [
@@ -90,11 +107,18 @@ export const AnalyticsView = ({ currentClass, students = [] }) => {
           </p>
         </div>
 
-        {/* Scope Selector & Export Button (Screenshot 5) */}
+        {/* Scope Selector & Print/Export Buttons (Feature 1) */}
         <div className="flex flex-wrap items-center gap-3">
-          <span className="px-4 py-2 bg-slate-100 text-slate-700 font-extrabold text-xs rounded-2xl border border-slate-200">
-            🏫 Phạm vi: {currentClass?.name || '8A5'} ({totalStudents} HS)
-          </span>
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              setShowPrintModal(true);
+            }}
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-2xl shadow-md transition-all flex items-center space-x-1.5 shrink-0"
+          >
+            <Printer className="w-4 h-4" />
+            <span>In Báo Cáo (A4/PDF)</span>
+          </button>
 
           <button
             onClick={handleExportExcel}
@@ -269,32 +293,68 @@ export const AnalyticsView = ({ currentClass, students = [] }) => {
               </div>
             </div>
 
-            {/* RIGHT CARD (5 Cols): CƠ CẤU HỌC SINH & TỶ LỆ THI ĐUA (Screenshot 5) */}
-            <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-4">
-              <div className="pb-3 border-b border-slate-100">
-                <h3 className="text-base font-black text-slate-800 flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5 text-purple-600" />
+            {/* RIGHT CARD (5 Cols): CƠ CẤU HỌC SINH & BIỂU ĐỒ 4 TỔ THI ĐUA (Screenshot 5 & Feature 3) */}
+            <div className="lg:col-span-5 bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-6">
+              
+              {/* Feature 3: 4 Teams Bar Chart */}
+              <div className="space-y-3 pb-4 border-b border-slate-100">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black text-purple-950 flex items-center space-x-2">
+                    <Award className="w-4 h-4 text-amber-500" />
+                    <span>Biểu Đồ Thi Đua 4 Tổ</span>
+                  </h3>
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2.5 py-0.5 rounded-full">
+                    Khen thưởng Tổ dẫn đầu ★
+                  </span>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  {teamStats.map(ts => {
+                    const pct = Math.round((ts.total / maxTeamTotal) * 100);
+                    return (
+                      <div key={ts.team} className="space-y-1">
+                        <div className="flex justify-between text-xs font-black">
+                          <span className="text-slate-800">Tổ {ts.team} ({ts.count} em)</span>
+                          <span className="text-amber-700">{ts.total} xu</span>
+                        </div>
+                        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200">
+                          <div
+                            className="h-full bg-gradient-to-r from-purple-500 to-amber-500 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.max(5, pct)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Gender ratio stats */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-black text-slate-800 flex items-center space-x-2">
+                  <TrendingUp className="w-4 h-4 text-purple-600" />
                   <span>Cơ Cấu Học Sinh & Tỷ Lệ Thi Đua</span>
                 </h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200 text-center space-y-1">
+                    <span className="text-xs font-black text-blue-900 block">Học sinh Nam ♂</span>
+                    <span className="text-3xl font-black text-blue-600 block">{maleStudents}</span>
+                    <span className="text-[10px] font-bold text-blue-500 block">
+                      {Math.round((maleStudents / totalStudents) * 100)}% tổng số
+                    </span>
+                  </div>
+
+                  <div className="p-4 bg-pink-50 rounded-2xl border border-pink-200 text-center space-y-1">
+                    <span className="text-xs font-black text-pink-900 block">Học sinh Nữ ♀</span>
+                    <span className="text-3xl font-black text-pink-600 block">{femaleStudents}</span>
+                    <span className="text-[10px] font-bold text-pink-500 block">
+                      {Math.round((femaleStudents / totalStudents) * 100)}% tổng số
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200 text-center space-y-1">
-                  <span className="text-xs font-black text-blue-900 block">Học sinh Nam ♂</span>
-                  <span className="text-3xl font-black text-blue-600 block">{maleStudents}</span>
-                  <span className="text-[10px] font-bold text-blue-500 block">
-                    {Math.round((maleStudents / totalStudents) * 100)}% tổng số
-                  </span>
-                </div>
-
-                <div className="p-4 bg-pink-50 rounded-2xl border border-pink-200 text-center space-y-1">
-                  <span className="text-xs font-black text-pink-900 block">Học sinh Nữ ♀</span>
-                  <span className="text-3xl font-black text-pink-600 block">{femaleStudents}</span>
-                  <span className="text-[10px] font-bold text-pink-500 block">
-                    {Math.round((femaleStudents / totalStudents) * 100)}% tổng số
-                  </span>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -305,8 +365,23 @@ export const AnalyticsView = ({ currentClass, students = [] }) => {
       {/* SUBJECTS SUBTAB CONTENT */}
       {activeSubTab === 'subjects' && (
         <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-4">
-          <h3 className="text-base font-black text-slate-800">Thống Kê Điểm Thi Đua Theo Môn Học</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 className="text-base font-black text-slate-800">Thống Kê Điểm Thi Đua Theo Môn Học</h3>
+            
+            {/* Subject Configurator Button (Screenshots 2 & 3) */}
+            <button
+              onClick={() => {
+                soundFx.playClick();
+                setShowSubjectModal(true);
+              }}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-2xl shadow-purple-glow flex items-center space-x-1.5"
+            >
+              <Settings className="w-4 h-4" />
+              <span>Cấu hình môn học</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
             {subjectsList.map(subj => (
               <div key={subj} className="p-4 bg-purple-50/60 rounded-2xl border border-purple-100 flex items-center justify-between">
                 <span className="text-xs font-black text-purple-950">📚 Môn {subj}</span>
@@ -337,6 +412,21 @@ export const AnalyticsView = ({ currentClass, students = [] }) => {
           </div>
         </div>
       )}
+
+      {/* MODAL 1: SUBJECT CONFIGURATOR (Screenshots 2 & 3) */}
+      <SubjectConfigModal
+        isOpen={showSubjectModal}
+        onClose={() => setShowSubjectModal(false)}
+      />
+
+      {/* MODAL 2: PRINT MONTHLY ANALYTICS PDF A4 (Feature 1) */}
+      <PrintMonthlyAnalyticsModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        currentClass={currentClass}
+        students={students}
+        teacherProfile={teacherProfile}
+      />
 
     </div>
   );
