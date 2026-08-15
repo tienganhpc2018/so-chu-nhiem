@@ -131,6 +131,24 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   };
 
+  const updateProfile = async (updatedData) => {
+    setProfile(prev => ({
+      ...prev,
+      ...updatedData
+    }));
+
+    try {
+      if (user?.id && user.id !== '00000000-0000-0000-0000-000000000000') {
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          ...updatedData
+        });
+      }
+    } catch (err) {
+      console.error('Update profile error:', err);
+    }
+  };
+
   const signOut = async () => {
     setLoading(true);
     try {
@@ -154,6 +172,7 @@ export const AuthProvider = ({ children }) => {
         signUp,
         signOut,
         enterAppDirectly,
+        updateProfile,
         refreshProfile: () => user && fetchProfile(user),
       }}
     >

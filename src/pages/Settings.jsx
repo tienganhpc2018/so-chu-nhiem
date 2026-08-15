@@ -2,19 +2,17 @@ import React, { useState, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { soundFx } from '../utils/soundEffects';
-import { DangerZone } from '../components/DangerZone';
 import { AvatarCropModal } from '../components/AvatarCropModal';
-import { MascotRobot } from '../components/MascotRobot';
-import { User, Upload, Trash2, Save, Check, Sparkles, HelpCircle, PhoneCall, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { User, Upload, Trash2, Save, Check, Sparkles, CheckCircle2 } from 'lucide-react';
 
 export const Settings = ({ currentClass, onRefreshClasses }) => {
-  const { profile, user, refreshProfile } = useAuth();
+  const { profile, user, updateProfile } = useAuth();
 
   // Form states matching Image 1, 3, 5
   const [fullName, setFullName] = useState(profile?.full_name || 'Nguyễn Văn Hải');
   const [jobTitle, setJobTitle] = useState(profile?.job_title || 'GV Tiếng Anh');
   const [subject, setSubject] = useState(profile?.subject || 'Tiếng Anh');
-  const [schoolName, setSchoolName] = useState(profile?.school_name || 'Trường THCS Trưng Vương');
+  const [schoolName, setSchoolName] = useState(profile?.school_name || 'Trường THCS Cát Minh');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=teacher`);
   
   // Avatar Crop Modal state
@@ -40,11 +38,19 @@ export const Settings = ({ currentClass, onRefreshClasses }) => {
 
   const handleSaveCroppedAvatar = (croppedDataUrl) => {
     setAvatarUrl(croppedDataUrl);
+    // Instant update
+    if (updateProfile) {
+      updateProfile({ avatar_url: croppedDataUrl });
+    }
   };
 
   const handleDeleteAvatar = () => {
     soundFx.playClick();
-    setAvatarUrl(`https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fullName)}`);
+    const defaultAvt = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fullName)}`;
+    setAvatarUrl(defaultAvt);
+    if (updateProfile) {
+      updateProfile({ avatar_url: defaultAvt });
+    }
   };
 
   const handleSaveProfile = async (e) => {
@@ -52,48 +58,37 @@ export const Settings = ({ currentClass, onRefreshClasses }) => {
     setSaving(true);
     soundFx.playClick();
 
+    const updatedData = {
+      full_name: fullName.trim(),
+      job_title: jobTitle.trim(),
+      subject: subject.trim(),
+      school_name: schoolName.trim(),
+      avatar_url: avatarUrl
+    };
+
     try {
+      // 1. Instant update React state across entire App (Header, Sidebar, HomeView)
+      if (updateProfile) {
+        updateProfile(updatedData);
+      }
+
+      // 2. Persist in Supabase
       if (user?.id && user.id !== '00000000-0000-0000-0000-000000000000') {
         await supabase.from('profiles').upsert({
           id: user.id,
           email: user.email,
-          full_name: fullName.trim(),
-          job_title: jobTitle.trim(),
-          subject: subject.trim(),
-          school_name: schoolName.trim(),
-          avatar_url: avatarUrl
+          ...updatedData
         });
       }
 
       soundFx.playCorrect();
       setShowToast(true);
       setTimeout(() => setShowToast(false), 4000);
-      if (refreshProfile) refreshProfile();
     } catch (err) {
       console.error('Lỗi lưu hồ sơ giáo viên:', err);
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleResetPointsHistory = async (classId) => {
-    await supabase.from('point_history').delete().eq('class_id', classId);
-    await supabase.from('students').update({ total_stars: 0 }).eq('class_id', classId);
-    soundFx.playCorrect();
-    alert('Đã xóa toàn bộ lịch sử tích điểm và đặt lại điểm Sao của lớp về 0!');
-  };
-
-  const handleResetSeatingChart = async (classId) => {
-    await supabase.from('students').update({ seat_row: 1, seat_col: 1 }).eq('class_id', classId);
-    soundFx.playCorrect();
-    alert('Đã đặt lại sơ đồ chỗ ngồi về vị trí mặc định!');
-  };
-
-  const handleDeleteClassRoster = async (classId) => {
-    await supabase.from('students').delete().eq('class_id', classId);
-    soundFx.playCorrect();
-    alert('Đã xóa toàn bộ danh sách học sinh khỏi lớp!');
-    if (onRefreshClasses) onRefreshClasses();
   };
 
   return (
@@ -276,16 +271,6 @@ export const Settings = ({ currentClass, onRefreshClasses }) => {
         </div>
 
       </div>
-
-      {/* Danger Zone Section */}
-      {currentClass && (
-        <DangerZone
-          currentClass={currentClass}
-          onResetPointsHistory={handleResetPointsHistory}
-          onResetSeatingChart={handleResetSeatingChart}
-          onDeleteClassRoster={handleDeleteClassRoster}
-        />
-      )}
 
       {/* Avatar Crop Modal (Image 4) */}
       <AvatarCropModal
