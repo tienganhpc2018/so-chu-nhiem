@@ -219,7 +219,7 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
       setWinnerStudent(winner);
       setIsSpinning(false);
-      setShowWinnerModal(true); // Pop up celebration modal in center of screen (Screenshot 2)
+      setShowWinnerModal(false); // Display inline inside yellow box on page (No popup modal)
 
       if (!isMuted) soundFx.playWinner();
       confetti({ particleCount: 75, spread: 100, origin: { y: 0.5 } });
@@ -406,51 +406,73 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
           </div>
 
-          {/* INLINE RESULT DISPLAY BOX ON THE PAGE (Screenshot 2 & 3) */}
+          {/* INLINE RESULT DISPLAY BOX ON THE PAGE (Thầy yêu cầu hiển thị trực tiếp vào khung này, không dùng popup) */}
           <div className="w-full bg-gradient-to-r from-amber-50 via-white to-purple-50 rounded-3xl p-5 border-2 border-amber-300/80 shadow-md space-y-3">
             <div className="text-xs font-black text-amber-700 uppercase tracking-widest flex items-center justify-center space-x-1">
               <Trophy className="w-4 h-4 text-amber-500" />
               <span>🏆 KẾT QUẢ VÒNG QUAY 🏆</span>
             </div>
 
-            <h3 className="text-2xl font-black text-slate-900">
-              {winnerStudent ? winnerStudent.full_name : '???'}
-            </h3>
+            {winnerStudent ? (
+              <div className="space-y-3 animate-in zoom-in">
+                
+                {/* Student Avatar & Name */}
+                <div className="flex items-center justify-center space-x-3">
+                  <img
+                    src={winnerStudent.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${winnerStudent.id}`}
+                    alt={winnerStudent.full_name}
+                    className="w-12 h-12 rounded-full object-cover border-2 border-amber-400 shadow-md bg-white"
+                  />
+                  <div className="text-left">
+                    <h3 className="text-xl font-black text-slate-900 leading-tight">
+                      {winnerStudent.full_name}
+                    </h3>
+                    <span className="text-[11px] font-bold text-amber-700">
+                      Tổ {winnerStudent.team_group || 1} • {currentClass?.name || '8A5'}
+                    </span>
+                  </div>
+                </div>
 
-            {/* Quick Reward Action Pill (Screenshot 2 & 3) */}
-            {winnerStudent && (
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                <select
-                  value={attachedReward}
-                  onChange={(e) => setAttachedReward(e.target.value)}
-                  className="bg-white border border-amber-300 text-amber-950 font-black text-xs px-3 py-1.5 rounded-xl outline-none"
-                >
-                  {rewardOptions.map(r => (
-                    <option key={r.id} value={r.id}>{r.title}</option>
+                {/* Quick Reward Xu Pills */}
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  {[1, 2, 5, 10].map(cnt => (
+                    <button
+                      key={`inline-c-${cnt}`}
+                      onClick={() => {
+                        soundFx.playCorrect();
+                        confetti({ particleCount: 30, spread: 60 });
+                        winnerStudent.total_stars = (winnerStudent.total_stars || 0) + cnt;
+                        alert(`Đã cộng +${cnt} xu cho học sinh ${winnerStudent.full_name}!`);
+                      }}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-xl shadow-xs transition-all flex items-center space-x-1"
+                    >
+                      <Coins className="w-3.5 h-3.5 fill-amber-400" />
+                      <span>+{cnt} xu</span>
+                    </button>
                   ))}
-                </select>
 
-                <button
-                  onClick={() => {
-                    soundFx.playCorrect();
-                    confetti({ particleCount: 50, spread: 80 });
-                    winnerStudent.total_stars = (winnerStudent.total_stars || 0) + (attachedReward === 'plus_10_stars' ? 10 : 5);
-                    alert(`Đã thưởng xu cho ${winnerStudent.full_name}!`);
-                  }}
-                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-xl shadow-md flex items-center space-x-1"
-                >
-                  <Coins className="w-3.5 h-3.5 fill-amber-400" />
-                  <span>Thưởng xu</span>
-                </button>
+                  <button
+                    onClick={() => setShowPrintModal(true)}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-xl shadow-xs flex items-center space-x-1"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>In thẻ A5</span>
+                  </button>
 
-                <button
-                  onClick={() => setWinnerStudent(null)}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl flex items-center space-x-1"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset</span>
-                </button>
+                  <button
+                    onClick={() => setWinnerStudent(null)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl flex items-center space-x-1"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                </div>
+
               </div>
+            ) : (
+              <h3 className="text-2xl font-black text-slate-900 py-1">
+                ???
+              </h3>
             )}
           </div>
 
@@ -644,136 +666,12 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
       </div>
 
-      {/* WINNER REVEAL CENTER MODAL (Screenshot 2) */}
-      {showWinnerModal && winnerStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in select-none">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border-4 border-purple-200 text-center space-y-5 animate-in zoom-in relative">
-            
-            {/* Top Header Row (Screenshot 2) */}
-            <div className="flex items-start justify-between pb-2 border-b border-slate-100 text-left">
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-purple-950 flex items-center space-x-1">
-                  <span>🎉 CHÚC MỪNG HỌC SINH MAY MẮN!</span>
-                </h3>
-                <p className="text-xs font-bold text-slate-400 mt-0.5">Lồng cầu đã chọn ra người chiến thắng</p>
-              </div>
-
-              <button
-                onClick={() => {
-                  soundFx.playClick();
-                  setShowWinnerModal(false);
-                }}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Floating Avatar & Golden Trophy Badge (Screenshot 2) */}
-            <div className="relative w-28 h-28 mx-auto">
-              <div className="w-full h-full rounded-full p-1 bg-gradient-to-tr from-amber-400 via-purple-500 to-indigo-500 shadow-xl overflow-hidden">
-                <img
-                  src={winnerStudent.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${winnerStudent.id}`}
-                  alt={winnerStudent.full_name}
-                  className="w-full h-full object-cover rounded-full bg-white"
-                />
-              </div>
-              <div className="absolute bottom-0 right-0 bg-amber-400 text-purple-950 p-2 rounded-full shadow-lg border-2 border-white flex items-center justify-center">
-                <Trophy className="w-4 h-4 fill-amber-900 text-amber-950" />
-              </div>
-            </div>
-
-            {/* Effect Pill Badge (Screenshot 2) */}
-            <div className="inline-flex items-center space-x-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200 px-3.5 py-1 rounded-full text-xs font-black shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Hiệu ứng lượt này: {effectPresets.find(e => e.id === currentActiveEffect)?.name || 'Hút vào tâm'}</span>
-            </div>
-
-            {/* Winner Name & Subtext (Screenshot 2) */}
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{winnerStudent.full_name}</h2>
-              <p className="text-xs font-bold text-slate-500 mt-1">Thành viên may mắn nhất trong lồng cầu!</p>
-            </div>
-
-            {/* Coin Reward Pills Section (Screenshot 2) */}
-            <div className="p-4 bg-amber-50/90 rounded-2xl border border-amber-200 space-y-3">
-              <span className="text-xs font-black text-amber-950 block text-center">
-                🪙 Thưởng xu ngay cho {winnerStudent.full_name}:
-              </span>
-              <div className="grid grid-cols-4 gap-2">
-                {[1, 2, 5, 10].map(cnt => (
-                  <button
-                    key={`win-reward-${cnt}`}
-                    onClick={() => {
-                      soundFx.playCorrect();
-                      confetti({ particleCount: 40, spread: 70 });
-                      winnerStudent.total_stars = (winnerStudent.total_stars || 0) + cnt;
-                      alert(`Đã cộng +${cnt} xu cho ${winnerStudent.full_name}!`);
-                    }}
-                    className="py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-xs shadow-md transition-all flex flex-col items-center justify-center"
-                  >
-                    <span className="text-sm">+{cnt}</span>
-                    <span className="text-[10px] text-purple-200">xu</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Next Spin Exclude Row (Screenshot 2) */}
-            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs font-bold text-slate-700">
-              <span>Trạng thái lồng cầu lượt sau:</span>
-              <button
-                onClick={() => {
-                  soundFx.playClick();
-                  setAvailableStudents(prev => prev.filter(s => s.id !== winnerStudent.id));
-                  alert(`Đã loại học sinh ${winnerStudent.full_name} khỏi lượt quay tiếp theo.`);
-                }}
-                className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-xl text-xs font-black flex items-center space-x-1 transition-all"
-              >
-                <span>👤 Loại khỏi lượt sau</span>
-              </button>
-            </div>
-
-            {/* Action Buttons Row (Screenshot 2) */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pt-1">
-              <button
-                onClick={() => {
-                  soundFx.playClick();
-                  setShowWinnerModal(false);
-                  handleStartSpin();
-                }}
-                className="w-full sm:flex-1 py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-2xl shadow-purple-glow flex items-center justify-center space-x-1.5 transition-all uppercase tracking-wider"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                <span>Quay Tiếp Lượt Sau</span>
-              </button>
-
-              <button
-                onClick={() => setShowPrintModal(true)}
-                className="w-full sm:w-auto px-4 py-3.5 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-2xl shadow-md flex items-center justify-center space-x-1 transition-all"
-              >
-                <Printer className="w-4 h-4" />
-                <span>In thẻ A5</span>
-              </button>
-
-              <button
-                onClick={() => setShowWinnerModal(false)}
-                className="w-full sm:w-auto px-4 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs rounded-2xl transition-all"
-              >
-                ✕ Đóng
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
       {/* FEATURE 2: PRINT WINNER CERTIFICATE MODAL */}
       <PrintWinnerCardModal
         isOpen={showPrintModal}
         onClose={() => setShowPrintModal(false)}
         winnerStudent={winnerStudent}
-        rewardTitle={selectedRewardObj.title}
+        rewardTitle={selectedRewardObj?.title || 'Phần thưởng thi đua'}
         currentClass={currentClass}
         teacherProfile={teacherProfile}
       />
