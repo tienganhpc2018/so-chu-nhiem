@@ -221,12 +221,14 @@ export const HomeView = ({
       {/* 2-Column Bottom Layout (Matching Image 2 Style) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Column 1 & 2: Thời Khóa Biểu Hôm Nay */}
+        {/* Column 1 & 2: Thời Khóa Biểu Hôm Nay (Feature 2) */}
         <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center space-x-2">
               <Calendar className="w-5 h-5 text-purple-600" />
-              <h3 className="text-base font-extrabold text-slate-800">Thời Khóa Biểu Hôm Nay</h3>
+              <h3 className="text-base font-extrabold text-slate-800">
+                Lịch Học Hôm Nay ({new Date().getDay() === 0 ? 'Chủ Nhật' : `Thứ ${new Date().getDay() + 1}`})
+              </h3>
             </div>
             <button
               onClick={() => onTabChange('timetable')}
@@ -237,9 +239,69 @@ export const HomeView = ({
             </button>
           </div>
 
-          <div className="bg-slate-50 rounded-2xl p-8 text-center text-xs font-semibold text-slate-400 border border-slate-100">
-            Hôm nay không có tiết học nào trong thời khóa biểu.
-          </div>
+          {(() => {
+            const todayDay = new Date().getDay() === 0 ? 7 : new Date().getDay() + 1; // 2..7
+            const timetableData = (() => {
+              try {
+                const stored = localStorage.getItem(`timetable_${currentClass?.id || 'demo'}`);
+                return stored ? JSON.parse(stored) : {};
+              } catch {
+                return {};
+              }
+            })();
+
+            const todayMorning = [];
+            const todayAfternoon = [];
+
+            for (let p = 1; p <= 6; p++) {
+              if (timetableData[`morning_${p}_${todayDay}`]) {
+                todayMorning.push({ period: p, ...timetableData[`morning_${p}_${todayDay}`] });
+              }
+              if (timetableData[`afternoon_${p}_${todayDay}`]) {
+                todayAfternoon.push({ period: p, ...timetableData[`afternoon_${p}_${todayDay}`] });
+              }
+            }
+
+            if (todayMorning.length === 0 && todayAfternoon.length === 0) {
+              return (
+                <div className="bg-slate-50 rounded-2xl p-6 text-center text-xs font-semibold text-slate-400 border border-slate-100">
+                  Hôm nay không có tiết học nào trong thời khóa biểu hoặc là ngày nghỉ.
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {todayMorning.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-black text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full">☀️ Buổi Sáng:</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {todayMorning.map(m => (
+                        <div key={`m-${m.period}`} className="p-2.5 rounded-2xl bg-amber-50/60 border border-amber-200 flex items-center justify-between text-xs font-bold">
+                          <span className="text-amber-950">{m.icon || '📚'} Tiết {m.period}: {m.subject}</span>
+                          <span className="text-[10px] text-amber-800 font-extrabold">{m.teacher}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {todayAfternoon.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-black text-purple-900 bg-purple-100 px-2.5 py-0.5 rounded-full">🌆 Buổi Chiều:</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                      {todayAfternoon.map(a => (
+                        <div key={`a-${a.period}`} className="p-2.5 rounded-2xl bg-purple-50/60 border border-purple-200 flex items-center justify-between text-xs font-bold">
+                          <span className="text-purple-950">{a.icon || '📚'} Tiết {a.period}: {a.subject}</span>
+                          <span className="text-[10px] text-purple-800 font-extrabold">{a.teacher}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Column 3: Top Thi Đua Nhận Xu */}

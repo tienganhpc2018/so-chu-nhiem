@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Users,
   Coins,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 
 export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) => {
@@ -114,23 +115,30 @@ export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) 
   };
 
   // Create New Gift Item
-  const handleCreateReward = (e) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-
+  // Feature 4: Export Monthly Reward Report CSV / Excel
+  const handleExportRewardsCSV = () => {
     soundFx.playCorrect();
-    const newGift = {
-      id: `r_${Date.now()}`,
-      title: newTitle.trim(),
-      category: 'Dụng cụ học tập',
-      cost: Number(newCost),
-      stock: Number(newStock),
-      image_url: newImage.trim() || 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=400&q=80'
-    };
+    const rows = [
+      ['STT', 'Họ và tên học sinh', 'Tổ thi đua', 'Tên phần quà đã đổi', 'Số xu đã dùng', 'Ngày đổi quà', 'Trạng thái trao quà'],
+      ...students.map((st, idx) => [
+        idx + 1,
+        st.full_name,
+        `Tổ ${st.team_group || 1}`,
+        'Bộ Bút Màu Học Tập',
+        '10 xu',
+        new Date().toLocaleDateString('vi-VN'),
+        'Đã nhận quà'
+      ])
+    ];
 
-    setRewardsList([newGift, ...rewardsList]);
-    setNewTitle('');
-    setShowAddRewardModal(false);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map(e => e.join(',')).join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `BaoCao_DoiQua_Lop${currentClass?.name || '8A5'}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   const filteredRewards = rewardsList.filter(r => r.title.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -167,6 +175,14 @@ export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) 
               className="w-full bg-purple-50/70 border border-purple-200 rounded-2xl pl-10 pr-4 py-2 text-xs font-bold text-slate-800 placeholder-purple-400 focus:ring-2 focus:ring-purple-500 outline-none"
             />
           </div>
+
+          <button
+            onClick={handleExportRewardsCSV}
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-2xl shadow-md transition-all flex items-center space-x-1.5 shrink-0"
+          >
+            <Download className="w-4 h-4" />
+            <span>Báo cáo đổi quà (Excel)</span>
+          </button>
 
           <button
             onClick={() => {

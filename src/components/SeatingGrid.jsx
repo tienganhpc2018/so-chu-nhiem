@@ -606,6 +606,18 @@ export const SeatingGrid = ({
                                       e.target.style.display = 'none';
                                     }}
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      soundFx.playClick();
+                                      onOpenRewardShop?.(studentLeft);
+                                    }}
+                                    className="absolute -top-1 -right-1 bg-coral-500 text-white p-0.5 rounded-full text-[8px] shadow-sm hover:scale-125 transition-transform"
+                                    title="Đổi quà trực tiếp"
+                                  >
+                                    🎁
+                                  </button>
                                 </div>
                                 <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">
                                   {getSmartDisplayName(studentLeft.full_name, students)}
@@ -667,6 +679,18 @@ export const SeatingGrid = ({
                                       e.target.style.display = 'none';
                                     }}
                                   />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      soundFx.playClick();
+                                      onOpenRewardShop?.(studentRight);
+                                    }}
+                                    className="absolute -top-1 -right-1 bg-coral-500 text-white p-0.5 rounded-full text-[8px] shadow-sm hover:scale-125 transition-transform"
+                                    title="Đổi quà trực tiếp"
+                                  >
+                                    🎁
+                                  </button>
                                 </div>
                                 <h5 className="text-[11px] font-black text-slate-800 truncate mt-1">
                                   {getSmartDisplayName(studentRight.full_name, students)}

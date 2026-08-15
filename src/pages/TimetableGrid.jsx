@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { soundFx } from '../utils/soundEffects';
+import { PrintTimetableModal } from '../components/PrintTimetableModal';
 import {
   Calendar,
   Sun,
@@ -13,7 +14,8 @@ import {
   Edit,
   Save,
   Check,
-  Sparkles
+  Sparkles,
+  Printer
 } from 'lucide-react';
 
 export const TimetableGrid = ({ currentClass, teacherProfile }) => {
@@ -53,6 +55,7 @@ export const TimetableGrid = ({ currentClass, teacherProfile }) => {
   // Modals state
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedCell, setSelectedCell] = useState(null); // { session: 'morning'|'afternoon', period: 1, day: 2..6, time: '07:30-08:05' }
 
   // Add Subject Form state
@@ -197,6 +200,17 @@ export const TimetableGrid = ({ currentClass, teacherProfile }) => {
           <span className="px-3.5 py-1.5 bg-slate-100 text-slate-700 rounded-xl text-xs font-black">
             📅 Thứ 2 - {includeSaturday ? 'Thứ 7' : 'Thứ 6'}
           </span>
+
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              setShowPrintModal(true);
+            }}
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-purple-950 rounded-xl text-xs font-black shadow-md transition-all flex items-center space-x-1.5"
+          >
+            <Printer className="w-4 h-4" />
+            <span>In TKB A4 (PDF)</span>
+          </button>
 
           <button
             onClick={() => {
@@ -575,6 +589,14 @@ export const TimetableGrid = ({ currentClass, teacherProfile }) => {
           </div>
         </div>
       )}
+
+      {/* Print Timetable Modal */}
+      <PrintTimetableModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        currentClass={currentClass}
+        teacherProfile={teacherProfile}
+      />
 
     </div>
   );
