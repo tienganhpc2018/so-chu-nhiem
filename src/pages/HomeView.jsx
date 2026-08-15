@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { soundFx } from '../utils/soundEffects';
+import { ClassJournalModal } from '../components/ClassJournalModal';
 import {
   UserCheck,
   UserPlus,
@@ -12,7 +13,8 @@ import {
   Calendar,
   ChevronRight,
   Plus,
-  ExternalLink
+  ExternalLink,
+  Camera
 } from 'lucide-react';
 
 export const HomeView = ({
@@ -25,6 +27,8 @@ export const HomeView = ({
   onOpenLuckyWheel,
   onOpenRewards
 }) => {
+  const [showJournalModal, setShowJournalModal] = useState(false);
+
   const teacherName = teacherProfile?.full_name || 'Nguyễn Văn Hải';
   const teacherAvatar = teacherProfile?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${teacherName}`;
 
@@ -57,7 +61,13 @@ export const HomeView = ({
           <div>
             <div className="inline-flex items-center space-x-1.5 bg-white/80 backdrop-blur-md px-3.5 py-1 rounded-full border border-purple-200 text-[11px] font-extrabold text-purple-700 shadow-sm mb-2">
               <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-              <span>Năm học 2025 - 2026 • Khối {currentClass?.grade_level || 8}</span>
+              <span>Năm học 2026 - 2027 • Khối {currentClass?.grade_level || 8}</span>
+            </div>
+            
+            {/* FEATURE 1: NEXT PERIOD COUNTDOWN WIDGET */}
+            <div className="mt-1 p-3 bg-purple-900 text-white rounded-2xl shadow-md border border-purple-700 flex items-center space-x-2 text-xs font-black">
+              <Calendar className="w-4 h-4 text-amber-400 animate-bounce" />
+              <span>⏰ TIẾT HỌC TIẾP THEO: TIẾT 2 SÁNG — TIẾNG ANH (07:50 - 08:35)</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
               {greeting}, <span className="bg-gradient-to-r from-purple-600 to-coral-500 bg-clip-text text-transparent">{teacherName}! 👋</span>
@@ -107,12 +117,23 @@ export const HomeView = ({
           <button
             onClick={() => {
               soundFx.playClick();
+              setShowJournalModal(true);
+            }}
+            className="flex items-center justify-center space-x-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-3 rounded-2xl text-xs font-extrabold shadow-sm transition-all transform hover:scale-[1.02]"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Nhật ký sinh hoạt</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundFx.playClick();
               onOpenRewards?.();
             }}
-            className="flex items-center justify-center space-x-2 bg-coral-500 hover:bg-coral-600 text-white px-4 py-3 rounded-2xl text-xs font-extrabold shadow-sm transition-all transform hover:scale-[1.02]"
+            className="flex items-center justify-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-4 py-3 rounded-2xl text-xs font-extrabold shadow-sm transition-all transform hover:scale-[1.02]"
           >
             <Gift className="w-4 h-4" />
-            <span>Đổi xu phần thưởng</span>
+            <span>Cửa hàng đổi quà</span>
           </button>
 
         </div>
@@ -355,6 +376,13 @@ export const HomeView = ({
         </div>
 
       </div>
+
+      {/* FEATURE 4: CLASS JOURNAL PHOTO DIARY MODAL */}
+      <ClassJournalModal
+        isOpen={showJournalModal}
+        onClose={() => setShowJournalModal(false)}
+        currentClass={currentClass}
+      />
 
     </div>
   );

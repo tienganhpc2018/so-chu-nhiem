@@ -475,8 +475,27 @@ export const CountdownTimerView = () => {
             </button>
           </div>
 
-          {/* CARD 2: MẪU NHANH (10 PRESETS GRID - Screenshot 1 & 2) */}
-          <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-3">
+          {/* CARD 1: PRESET FAST BUTTONS (Feature 3) */}
+          <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">⚡ Chọn nhanh phút đếm ngược:</span>
+              
+              {/* Feature 3: 15m Morning Review Preset */}
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  const totalSec = 15 * 60;
+                  setInitialSeconds(totalSec);
+                  setTimeLeft(totalSec);
+                  setIsRunning(false);
+                }}
+                className="px-3 py-1 bg-amber-400 text-purple-950 rounded-xl text-xs font-black shadow-xs hover:scale-105 transition-all flex items-center space-x-1"
+              >
+                <span>🌅 Truy bài đầu giờ (15p: 06:45 - 07:00)</span>
+              </button>
+            </div>
+            
+            {/* CARD 2: MẪU NHANH (10 PRESETS GRID - Screenshot 1 & 2) */}
             <div className="flex items-center space-x-2 text-slate-800 font-extrabold text-sm pb-2 border-b border-slate-100">
               <Sparkles className="w-4 h-4 text-amber-500" />
               <span>Mẫu Nhanh</span>

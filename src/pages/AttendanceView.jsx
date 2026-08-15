@@ -18,7 +18,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 
-export const AttendanceView = ({ currentClass, students = [] }) => {
+export const AttendanceView = ({ currentClass, students = [], teacherProfile }) => {
   const [activeTab, setActiveTab] = useState('daily'); // 'daily' | 'monthly' | 'semester'
   const [dateStr, setDateStr] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -27,6 +27,10 @@ export const AttendanceView = ({ currentClass, students = [] }) => {
   const [monthlyStats, setMonthlyStats] = useState({});
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Absence Notice Modal State
+  const [showAbsenceModal, setShowAbsenceModal] = useState(false);
+  const [selectedAbsentStudent, setSelectedAbsentStudent] = useState(null);
 
   useEffect(() => {
     // Default all students to 'present' for selected date
@@ -594,6 +598,17 @@ export const AttendanceView = ({ currentClass, students = [] }) => {
             <p className="text-[11px] font-bold text-slate-500">Đã lưu kết quả điểm danh ngày {dateStr}</p>
           </div>
         </div>
+      )}
+
+      {/* FEATURE 2: PRINT ABSENCE NOTICE SLIP A6 MODAL */}
+      {showAbsenceModal && selectedAbsentStudent && (
+        <PrintAbsenceNoticeModal
+          isOpen={showAbsenceModal}
+          onClose={() => setShowAbsenceModal(false)}
+          student={selectedAbsentStudent}
+          currentClass={currentClass}
+          teacherProfile={teacherProfile}
+        />
       )}
 
     </div>

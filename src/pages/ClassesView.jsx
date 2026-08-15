@@ -97,6 +97,15 @@ export const ClassesView = ({
 
         const createdCls = data || payload;
 
+        // SAVE CREATED CLASS TO LOCALSTORAGE
+        try {
+          const stored = JSON.parse(localStorage.getItem('user_created_classes') || '[]');
+          stored.push(createdCls);
+          localStorage.setItem('user_created_classes', JSON.stringify(stored));
+        } catch (e) {
+          console.error(e);
+        }
+
         soundFx.playCorrect();
         setShowAddModal(false);
         setClassName('');

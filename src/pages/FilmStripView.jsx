@@ -14,8 +14,19 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+const defaultSampleStudents = [
+  { id: 'fs1', full_name: 'Nguyễn Minh Anh', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=minhanh' },
+  { id: 'fs2', full_name: 'Trần Bảo Nam', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=baonam' },
+  { id: 'fs3', full_name: 'Lê Hoàng Khánh', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hoangkhanh' },
+  { id: 'fs4', full_name: 'Phạm Thu Trang', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thutrang' },
+  { id: 'fs5', full_name: 'Vũ Đức Anh', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=ducanh' },
+  { id: 'fs6', full_name: 'Đặng Thảo Nguyên', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thaonguyen' }
+];
+
 export const FilmStripView = ({ currentClass, students = [] }) => {
-  const [availableStudents, setAvailableStudents] = useState([]);
+  const displayStudents = students && students.length > 0 ? students : defaultSampleStudents;
+
+  const [availableStudents, setAvailableStudents] = useState(displayStudents);
   const [excludedStudents, setExcludedStudents] = useState([]);
   const [historyLogs, setHistoryLogs] = useState([]);
   const [autoExclude, setAutoExclude] = useState(true);
@@ -32,15 +43,14 @@ export const FilmStripView = ({ currentClass, students = [] }) => {
   useEffect(() => {
     if (students && students.length > 0) {
       setAvailableStudents(students);
+    } else {
+      setAvailableStudents(defaultSampleStudents);
     }
   }, [students]);
 
   // Handle Spin Film Strip Animation
   const handleStartSpin = () => {
-    if (availableStudents.length === 0) {
-      alert('Tất cả học sinh đã trúng cuộn phim! Thầy bấm "Cho tất cả vào lại" để nạp lại nhé.');
-      return;
-    }
+    const pool = availableStudents && availableStudents.length > 0 ? availableStudents : displayStudents;
 
     soundFx.playClick();
     soundFx.playSuspenseSpin();
@@ -50,15 +60,16 @@ export const FilmStripView = ({ currentClass, students = [] }) => {
     // Animate horizontal film reel sliding
     let count = 0;
     const interval = setInterval(() => {
-      setReelOffset(prev => (prev + 120) % (availableStudents.length * 140));
+      const len = pool.length || 1;
+      setReelOffset(prev => (prev + 120) % (len * 140));
       count += 1;
     }, 80);
 
     // Pick winner after 3 seconds
     setTimeout(() => {
       clearInterval(interval);
-      const randomIndex = Math.floor(Math.random() * availableStudents.length);
-      const winner = availableStudents[randomIndex];
+      const randomIndex = Math.floor(Math.random() * pool.length);
+      const winner = pool[randomIndex] || pool[0];
 
       setWinnerStudent(winner);
       setIsSpinning(false);

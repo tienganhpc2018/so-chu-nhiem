@@ -55,37 +55,54 @@ const MainLayout = () => {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchClasses();
-    } else {
-      setClasses([defaultDemoClass]);
-      setCurrentClass(defaultDemoClass);
-    }
+    fetchClasses();
   }, [user]);
 
   useEffect(() => {
     if (currentClass) {
+      localStorage.setItem('selected_class_id', currentClass.id);
       fetchStudents(currentClass.id);
     }
   }, [currentClass]);
 
   const fetchClasses = async () => {
+    let localClasses = [];
+    try {
+      const stored = localStorage.getItem('user_created_classes');
+      if (stored) localClasses = JSON.parse(stored);
+    } catch (e) {
+      console.error(e);
+    }
+
     try {
       const { data } = await supabase
         .from('classes')
         .select('*')
         .order('grade_level', { ascending: true });
 
-      if (data && data.length > 0) {
-        setClasses(data);
-        setCurrentClass(prev => (prev && data.some(c => c.id === prev.id) ? prev : data[0]));
-      } else {
-        setClasses([defaultDemoClass]);
-        setCurrentClass(defaultDemoClass);
-      }
+      const combined = [defaultDemoClass, ...(data || []), ...localClasses];
+      // Deduplicate by ID
+      const unique = combined.reduce((acc, curr) => {
+        if (!acc.some(c => c.id === curr.id)) acc.push(curr);
+        return acc;
+      }, []);
+
+      setClasses(unique);
+
+      // Restore active selected class from LocalStorage
+      const savedId = localStorage.getItem('selected_class_id');
+      const found = unique.find(c => c.id === savedId);
+      setCurrentClass(found || unique[0]);
     } catch (err) {
-      setClasses([defaultDemoClass]);
-      setCurrentClass(defaultDemoClass);
+      const combined = [defaultDemoClass, ...localClasses];
+      const unique = combined.reduce((acc, curr) => {
+        if (!acc.some(c => c.id === curr.id)) acc.push(curr);
+        return acc;
+      }, []);
+      setClasses(unique);
+      const savedId = localStorage.getItem('selected_class_id');
+      const found = unique.find(c => c.id === savedId);
+      setCurrentClass(found || unique[0]);
     }
   };
 
