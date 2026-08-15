@@ -14,6 +14,8 @@ import { Settings } from './pages/Settings';
 import { TimetableGrid } from './pages/TimetableGrid';
 import { RewardsView } from './pages/RewardsView';
 import { LuckyWheelView } from './pages/LuckyWheelView';
+import { FilmStripView } from './pages/FilmStripView';
+import { NoiseMeterView } from './pages/NoiseMeterView';
 import { Auth } from './pages/Auth';
 
 const defaultDemoClass = {
@@ -164,7 +166,6 @@ const MainLayout = () => {
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
-    if (tabId === 'noisemeter') openModal('noiseMeter');
     if (tabId === 'timer') openModal('countdownTimer');
   };
 
@@ -240,7 +241,14 @@ const MainLayout = () => {
             />
           )}
 
-          {(activeTab === 'leaderboard' || activeTab === 'stats') && (
+          {(activeTab === 'leaderboard' || activeTab === 'filmstrip') && (
+            <FilmStripView
+              currentClass={currentClass}
+              students={students}
+            />
+          )}
+
+          {activeTab === 'stats' && (
             <LeaderboardView currentClass={currentClass} />
           )}
 
@@ -266,6 +274,19 @@ const MainLayout = () => {
             />
           )}
 
+          {activeTab === 'filmstrip' && (
+            <FilmStripView
+              currentClass={currentClass}
+              students={students}
+            />
+          )}
+
+          {activeTab === 'noisemeter' && (
+            <NoiseMeterView
+              currentClass={currentClass}
+            />
+          )}
+
           {activeTab === 'settings' && (
             <Settings
               currentClass={currentClass}
@@ -273,7 +294,7 @@ const MainLayout = () => {
             />
           )}
 
-          {activeTab !== 'home' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'luckywheel' && activeTab !== 'settings' && (
+          {activeTab !== 'home' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'luckywheel' && activeTab !== 'filmstrip' && activeTab !== 'noisemeter' && activeTab !== 'settings' && (
             <TeacherDashboard
               classes={classes}
               currentClass={currentClass}
