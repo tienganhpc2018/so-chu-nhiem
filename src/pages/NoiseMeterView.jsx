@@ -114,13 +114,12 @@ export const NoiseMeterView = ({ currentClass, teacherProfile }) => {
 
         // Feature 4: High Noise >85% logic
         if (normalized > 85) {
-          highNoiseCounterRef.current += 1;
-          if (highNoiseCounterRef.current >= 30) { // ~3 seconds of high noise
+          if (!highNoiseAlert) {
             setHighNoiseAlert(true);
-            if (hasSoundAlert) soundFx.playDeduct();
+            soundFx.playAlarm();
+            alert('🚨 CẢNH BÁO TIẾNG ỒN VƯỢT 85%: TỔ THI ĐUÂ BỊ TỰ ĐỘNG TRỪ 1 XU DO CÓ THÀNH VIÊN LÀM MẤT TRẬT TỰ!');
           }
         } else {
-          highNoiseCounterRef.current = 0;
           setHighNoiseAlert(false);
         }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { soundFx } from '../utils/soundEffects';
 import confetti from 'canvas-confetti';
+import { PrintRewardVoucherModal } from '../components/PrintRewardVoucherModal';
 import {
   Gift,
   Plus,
@@ -15,10 +16,11 @@ import {
   Users,
   Coins,
   Check,
-  Download
+  Download,
+  Printer
 } from 'lucide-react';
 
-export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) => {
+export const RewardsView = ({ currentClass, students = [], onRefreshStudents, teacherProfile }) => {
   // Reward items state
   const [rewardsList, setRewardsList] = useState([
     { id: 'r1', title: 'Bộ Bút Màu Học Tập', category: 'Dụng cụ học tập', cost: 10, stock: 10, image_url: 'https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=400&q=80' },
@@ -30,6 +32,12 @@ export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedReward, setSelectedReward] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Modals state
+  const [showAddRewardModal, setShowAddRewardModal] = useState(false);
+  const [showStudentCoinModal, setShowStudentCoinModal] = useState(false);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
+  const [voucherData, setVoucherData] = useState(null);
 
   // Event Double Coins
   const [isDoubleCoinsEvent, setIsDoubleCoinsEvent] = useState(false);
@@ -109,7 +117,8 @@ export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) 
     student.total_stars = (student.total_stars || 0) - reward.cost;
     reward.stock = Math.max(0, reward.stock - 1);
 
-    alert(`🎉 Đã đổi thành công phần quà "${reward.title}" cho học sinh ${student.full_name}!`);
+    setVoucherData({ student, reward });
+    setShowVoucherModal(true);
     setSelectedReward(null);
   };
 
@@ -554,6 +563,18 @@ export const RewardsView = ({ currentClass, students = [], onRefreshStudents }) 
 
           </div>
         </div>
+      )}
+
+      {/* FEATURE 2: PRINT REWARD VOUCHER A6 MODAL */}
+      {showVoucherModal && voucherData && (
+        <PrintRewardVoucherModal
+          isOpen={showVoucherModal}
+          onClose={() => setShowVoucherModal(false)}
+          student={voucherData.student}
+          reward={voucherData.reward}
+          currentClass={currentClass}
+          teacherProfile={teacherProfile}
+        />
       )}
 
     </div>

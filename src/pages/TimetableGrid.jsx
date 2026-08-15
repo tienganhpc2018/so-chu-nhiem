@@ -22,27 +22,27 @@ export const TimetableGrid = ({ currentClass, teacherProfile }) => {
   // Timetable State Config
   const [morningCount, setMorningCount] = useState(5);
   const [afternoonCount, setAfternoonCount] = useState(4);
-  const [includeSaturday, setIncludeSaturday] = useState(false);
+  const [includeSaturday, setIncludeSaturday] = useState(true);
 
-  // Time Slots
+  // Time Slots (Tiết 1 từ 7:00-7:45, giải lao 5 phút)
   const [morningTimes, setMorningTimes] = useState([
-    '07:30 - 08:05',
-    '08:15 - 08:50',
-    '09:05 - 09:40',
-    '09:50 - 10:25',
-    '10:35 - 11:10',
-    '11:15 - 11:50'
+    '07:00 - 07:45',
+    '07:50 - 08:35',
+    '08:40 - 09:25',
+    '09:30 - 10:15',
+    '10:20 - 11:05',
+    '11:10 - 11:55'
   ]);
 
   const [afternoonTimes, setAfternoonTimes] = useState([
-    '13:30 - 14:05',
-    '14:15 - 14:50',
-    '15:05 - 15:40',
-    '15:50 - 16:25',
-    '16:30 - 17:05'
+    '13:00 - 13:45',
+    '13:50 - 14:35',
+    '14:40 - 15:25',
+    '15:30 - 16:15',
+    '16:20 - 17:05'
   ]);
 
-  // Timetable Schedule Data: { [key = `${session}_${period}_${day}`]: { subject, teacher, room, color, icon } }
+  // Timetable Schedule Data
   const [schedule, setSchedule] = useState(() => {
     try {
       const stored = localStorage.getItem(`timetable_${currentClass?.id || 'demo'}`);
@@ -56,7 +56,7 @@ export const TimetableGrid = ({ currentClass, teacherProfile }) => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [selectedCell, setSelectedCell] = useState(null); // { session: 'morning'|'afternoon', period: 1, day: 2..6, time: '07:30-08:05' }
+  const [selectedCell, setSelectedCell] = useState(null);
 
   // Add Subject Form state
   const [subjectName, setSubjectName] = useState('');
@@ -64,20 +64,19 @@ export const TimetableGrid = ({ currentClass, teacherProfile }) => {
   const [subjectColor, setSubjectColor] = useState('purple');
   const [periodTime, setPeriodTime] = useState('');
 
-  // Preset Popular Subjects (Screenshot 2)
+  // Preset Popular Subjects for THCS Secondary School (Screenshot 2)
   const popularSubjects = [
     { id: 'math', name: 'Toán học', icon: '📘', color: 'blue' },
-    { id: 'viet', name: 'Tiếng Việt', icon: '📖', color: 'purple' },
+    { id: 'liter', name: 'Ngữ Văn', icon: '📖', color: 'purple' },
     { id: 'eng', name: 'Tiếng Anh', icon: '🔤', color: 'pink' },
-    { id: 'soc', name: 'Tự nhiên & Xã hội', icon: '🌱', color: 'emerald' },
-    { id: 'sci', name: 'Khoa học', icon: '🔬', color: 'teal' },
-    { id: 'his', name: 'Lịch sử & Địa lý', icon: '📜', color: 'amber' },
+    { id: 'khtn', name: 'Khoa học tự nhiên', icon: '🔬', color: 'teal' },
+    { id: 'lsdl', name: 'Lịch sử & Địa lí', icon: '📜', color: 'amber' },
     { id: 'it', name: 'Tin học', icon: '💻', color: 'sky' },
     { id: 'tech', name: 'Công nghệ', icon: '⚙️', color: 'slate' },
     { id: 'art', name: 'Mĩ thuật', icon: '🎨', color: 'orange' },
     { id: 'mus', name: 'Âm nhạc', icon: '🎵', color: 'indigo' },
     { id: 'pe', name: 'Giáo dục thể chất', icon: '⚽', color: 'emerald' },
-    { id: 'eth', name: 'Đạo đức / GDCD', icon: '⚖️', color: 'amber' },
+    { id: 'gdcd', name: 'GDCD', icon: '⚖️', color: 'amber' },
     { id: 'exp', name: 'Hoạt động trải nghiệm', icon: '☀️', color: 'purple' },
     { id: 'cls', name: 'Sinh hoạt lớp', icon: '🏫', color: 'blue' },
     { id: 'flag', name: 'Chào cờ', icon: '🚩', color: 'red' }
@@ -86,13 +85,13 @@ export const TimetableGrid = ({ currentClass, teacherProfile }) => {
   function getSampleTimetable() {
     return {
       'morning_1_2': { subject: 'Chào cờ', icon: '🚩', color: 'red', teacher: 'BGH' },
-      'morning_2_2': { subject: 'Tiếng Anh', icon: '🔤', color: 'pink', teacher: 'Nguyễn Văn Hải' },
-      'morning_3_2': { subject: 'Toán học', icon: '📘', color: 'blue', teacher: 'Trần Văn Nam' },
-      'morning_1_3': { subject: 'Toán học', icon: '📘', color: 'blue', teacher: 'Trần Văn Nam' },
-      'morning_2_3': { subject: 'Tiếng Việt', icon: '📖', color: 'purple', teacher: 'Lê Thu Hà' },
-      'morning_1_4': { subject: 'Tiếng Anh', icon: '🔤', color: 'pink', teacher: 'Nguyễn Văn Hải' },
-      'morning_2_4': { subject: 'Khoa học', icon: '🔬', color: 'teal', teacher: 'Phạm Đức Anh' },
-      'morning_5_6': { subject: 'Sinh hoạt lớp', icon: '🏫', color: 'blue', teacher: 'Nguyễn Văn Hải' }
+      'morning_2_2': { subject: 'Toán học', icon: '📘', color: 'blue', teacher: 'Trần Văn Nam' },
+      'morning_3_2': { subject: 'Khoa học tự nhiên', icon: '🔬', color: 'teal', teacher: 'Phạm Đức Anh' },
+      'morning_1_3': { subject: 'Ngữ Văn', icon: '📖', color: 'purple', teacher: 'Lê Thu Hà' },
+      'morning_2_3': { subject: 'Tiếng Anh', icon: '🔤', color: 'pink', teacher: 'Nguyễn Văn Hải' },
+      'morning_1_4': { subject: 'Lịch sử & Địa lí', icon: '📜', color: 'amber', teacher: 'Trần Thị Mai' },
+      'morning_2_4': { subject: 'Tin học', icon: '💻', color: 'sky', teacher: 'Nguyễn Văn Hải' },
+      'morning_5_7': { subject: 'Sinh hoạt lớp', icon: '🏫', color: 'blue', teacher: 'Nguyễn Văn Hải' }
     };
   }
 

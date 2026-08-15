@@ -85,6 +85,20 @@ export const PrintTeamAwardModal = ({ isOpen, onClose, currentClass, winningTeam
             🏆 Thành tích tích lũy: {totalCoins} Xu Sao Nề Nếp Tiếng Anh
           </div>
 
+          {/* FEATURE 1: LIST OF WINNING TEAM MEMBERS */}
+          <div className="p-3 bg-white/80 rounded-2xl border border-amber-200 text-left space-y-1">
+            <span className="text-[11px] font-black text-slate-800 uppercase block text-center">
+              DANH SÁCH THÀNH VIÊN TỔ {winningTeam} TUYÊN DƯƠNG:
+            </span>
+            <div className="flex flex-wrap justify-center gap-1.5 pt-1 text-[11px] font-bold text-slate-700">
+              {students.filter(s => Number(s.team_group) === Number(winningTeam)).map((st, i) => (
+                <span key={st.id || i} className="bg-amber-100/60 px-2 py-0.5 rounded-lg border border-amber-200">
+                  {i + 1}. {st.full_name}
+                </span>
+              ))}
+            </div>
+          </div>
+
           {/* Footer Date & Sign */}
           <div className="pt-4 border-t border-slate-300 flex justify-between items-end text-xs text-left">
             <div className="text-[10px] text-slate-400">

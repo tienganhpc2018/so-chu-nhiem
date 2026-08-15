@@ -38,7 +38,10 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
   // Feature 3: Quiet Students Priority Toggle
   const [quietPriority, setQuietPriority] = useState(false);
 
-  // Feature 4: Attached Reward Selection
+  // Feature 4: Vote Friendly / Hardworking Student Mode
+  const [isVoteMode, setIsVoteMode] = useState(false);
+
+  // Feature 5: Attached Reward Selection
   const [attachedReward, setAttachedReward] = useState('plus_5_stars');
 
   // Exclude winner toggle
@@ -272,6 +275,23 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
         {/* Top Controls */}
         <div className="flex flex-wrap items-center gap-3">
+          
+          {/* Feature 4: Vote Friendly / Hardworking Student Mode Button */}
+          <button
+            onClick={() => {
+              soundFx.playCorrect();
+              setIsVoteMode(!isVoteMode);
+            }}
+            className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center space-x-1.5 border shadow-sm ${
+              isVoteMode
+                ? 'bg-amber-400 text-purple-950 border-amber-500 shadow-amber-glow animate-bounce'
+                : 'bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100'
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5 text-pink-600 fill-pink-500" />
+            <span>⭐ Bầu Chọn Học Sinh Chăm Chỉ / Thân Thiện</span>
+          </button>
+
           <span className="px-3.5 py-1.5 bg-purple-50 text-purple-900 border border-purple-200 rounded-xl text-xs font-black flex items-center space-x-1.5">
             <Sparkles className="w-3.5 h-3.5 text-purple-600" />
             <span>Hiệu ứng: {activeEffectObj.name}</span>

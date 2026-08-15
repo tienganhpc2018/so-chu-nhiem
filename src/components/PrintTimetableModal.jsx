@@ -24,11 +24,12 @@ export const PrintTimetableModal = ({ isOpen, onClose, currentClass, teacherProf
     { id: 3, name: 'THỨ BA' },
     { id: 4, name: 'THỨ TƯ' },
     { id: 5, name: 'THỨ NĂM' },
-    { id: 6, name: 'THỨ SÁU' }
+    { id: 6, name: 'THỨ SÁU' },
+    { id: 7, name: 'THỨ BẢY' }
   ];
 
-  const morningTimes = ['07:30 - 08:05', '08:15 - 08:50', '09:05 - 09:40', '09:50 - 10:25', '10:35 - 11:10'];
-  const afternoonTimes = ['13:30 - 14:05', '14:15 - 14:50', '15:05 - 15:40', '15:50 - 16:25'];
+  const morningTimes = ['07:00 - 07:45', '07:50 - 08:35', '08:40 - 09:25', '09:30 - 10:15', '10:20 - 11:05'];
+  const afternoonTimes = ['13:00 - 13:45', '13:50 - 14:35', '14:40 - 15:25', '15:30 - 16:15'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in overflow-y-auto">

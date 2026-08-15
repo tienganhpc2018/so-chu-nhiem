@@ -468,6 +468,7 @@ export const AnalyticsView = ({ currentClass, students = [], teacherProfile }) =
         currentClass={currentClass}
         winningTeam={teamStats.sort((a, b) => b.total - a.total)[0]?.team || 1}
         totalCoins={maxTeamTotal}
+        students={students}
         teacherProfile={teacherProfile}
       />
 
