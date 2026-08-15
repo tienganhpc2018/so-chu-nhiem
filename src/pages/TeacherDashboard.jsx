@@ -448,6 +448,14 @@ export const TeacherDashboard = ({
               onOpenRewardShop={(st) => setSelectedStudentForReward(st)}
               onSelectStudent={(st) => setSelectedStudentForPoints(st)}
               onOpenAvatarModal={(st) => setSelectedStudentForAvatar(st)}
+              onSaveStudentInfo={async (updatedSt) => {
+                setStudents(prev => prev.map(s => s.id === updatedSt.id ? updatedSt : s));
+                try {
+                  await supabase.from('students').upsert(updatedSt);
+                } catch (err) {
+                  console.error('Lỗi cập nhật học sinh:', err);
+                }
+              }}
             />
           )}
         </>
