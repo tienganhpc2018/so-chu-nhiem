@@ -120,6 +120,34 @@ class SoundEffectsManager {
     }
   }
 
+  playSuspenseSpin() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      // Generate 25 rapid ticks accelerating up to winner reveal
+      for (let i = 0; i < 25; i++) {
+        const timeOffset = i * (0.12 - i * 0.0035);
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400 + i * 25, now + timeOffset);
+
+        gain.gain.setValueAtTime(0.12, now + timeOffset);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + timeOffset + 0.04);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + timeOffset);
+        osc.stop(now + timeOffset + 0.04);
+      }
+    } catch (e) {
+      console.warn("Audio Context error:", e);
+    }
+  }
+
   playWinner() {
     try {
       this.initContext();

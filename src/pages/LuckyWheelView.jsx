@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { soundFx } from '../utils/soundEffects';
 import confetti from 'canvas-confetti';
 import { MascotRobot } from '../components/MascotRobot';
+import { PrintWinnerCardModal } from '../components/PrintWinnerCardModal';
 import {
   Sparkles,
   Volume2,
@@ -15,10 +16,13 @@ import {
   Users,
   Shuffle,
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  Gift,
+  Printer,
+  ShieldAlert
 } from 'lucide-react';
 
-export const LuckyWheelView = ({ currentClass, students = [] }) => {
+export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) => {
   // Sound mute state
   const [isMuted, setIsMuted] = useState(false);
 
@@ -30,6 +34,12 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
 
   // Favorite effects selection for favorite mode
   const [favoriteEffects, setFavoriteEffects] = useState(['xoay_tron', 'tung_nay', 'bay_quy_dao', 'san_khau']);
+
+  // Feature 3: Quiet Students Priority Toggle
+  const [quietPriority, setQuietPriority] = useState(false);
+
+  // Feature 4: Attached Reward Selection
+  const [attachedReward, setAttachedReward] = useState('plus_5_stars');
 
   // Exclude winner toggle
   const [excludeWinner, setExcludeWinner] = useState(false);
@@ -43,12 +53,11 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
   const [currentActiveEffect, setCurrentActiveEffect] = useState('xoay_tron');
   const [winnerStudent, setWinnerStudent] = useState(null);
   const [showWinnerModal, setShowWinnerModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Animation Frame State
   const [ballPositions, setBallPositions] = useState([]);
-  const animationRef = useRef(null);
 
-  // 7 Preset Effects (Matching Screenshots 1, 2, 3)
   const effectPresets = [
     { id: 'xoay_tron', name: 'Xoáy tròn 💫', desc: 'Các quả cầu xoáy quanh tâm lồng' },
     { id: 'tung_nay', name: 'Tung nảy 🤹', desc: 'Bóng nảy va đập tự do tưng bừng' },
@@ -59,6 +68,13 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
     { id: 'song_bong_benh', name: 'Sóng bồng bềnh 🌊', desc: 'Bóng dao động nhấp nhô bồng bềnh' }
   ];
 
+  const rewardOptions = [
+    { id: 'plus_5_stars', title: '+5 Xu Sao Thi Đua Nề Nếp', coins: 5 },
+    { id: 'plus_10_stars', title: '+10 Xu Sao Thi Đua Xuất Sắc', coins: 10 },
+    { id: 'free_homework', title: 'Thẻ Miễn Bài Tập 1 Lần', coins: 0 },
+    { id: 'change_seat', title: 'Thẻ Đổi Vị Trí Chỗ Ngồi', coins: 0 }
+  ];
+
   useEffect(() => {
     if (students && students.length > 0) {
       setAvailableStudents(students);
@@ -66,12 +82,11 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
     }
   }, [students]);
 
-  // Initialize sphere coordinates inside the circular lottery cage
   const initBallPositions = (stList) => {
     const total = stList.length;
     const initial = stList.map((st, idx) => {
       const angle = (idx / total) * 2 * Math.PI;
-      const radius = 65 + Math.random() * 25; // Inside cage circle radius
+      const radius = 65 + Math.random() * 25;
       return {
         id: st.id,
         student: st,
@@ -85,7 +100,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
     setBallPositions(initial);
   };
 
-  // Continuous animation loop for balls based on current active effect
   useEffect(() => {
     let frameId;
     const updatePhysics = () => {
@@ -140,7 +154,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
                 break;
             }
           } else {
-            // Gentle floating when idle
             angle += 0.015;
             x += Math.cos(angle) * 0.5;
             y += Math.sin(angle) * 0.5;
@@ -157,16 +170,18 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
     return () => cancelAnimationFrame(frameId);
   }, [isSpinning, currentActiveEffect]);
 
-  // Handle Start Spin Button
+  // Feature 1: Play Suspense Lottery Audio Spin
   const handleStartSpin = () => {
     if (availableStudents.length === 0) {
       alert('Không còn học sinh nào trong lồng cầu! Thầy bấm "Làm mới lượt quay" để nạp lại nhé.');
       return;
     }
 
-    if (!isMuted) soundFx.playClick();
+    if (!isMuted) {
+      soundFx.playClick();
+      soundFx.playSuspenseSpin(); // Feature 1: Accelerating suspense sound
+    }
 
-    // Determine effect to run for this turn based on effectMode
     let activeEff = selectedEffect;
     if (effectMode === 'auto') {
       const randomIndex = Math.floor(Math.random() * effectPresets.length);
@@ -179,32 +194,44 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
     setCurrentActiveEffect(activeEff);
     setIsSpinning(true);
 
-    // Pick winner after 3 seconds of animation
+    // Pick winner after 3.2 seconds
     setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * availableStudents.length);
-      const winner = availableStudents[randomIndex];
+      let winner;
+
+      // Feature 3: Quiet Students Priority (Pick from lowest stars)
+      if (quietPriority) {
+        const sortedByQuiet = [...availableStudents].sort((a, b) => (a.total_stars || 0) - (b.total_stars || 0));
+        const quietCandidates = sortedByQuiet.slice(0, Math.max(3, Math.floor(availableStudents.length / 2)));
+        winner = quietCandidates[Math.floor(Math.random() * quietCandidates.length)];
+      } else {
+        const randomIndex = Math.floor(Math.random() * availableStudents.length);
+        winner = availableStudents[randomIndex];
+      }
+
+      // Feature 4: Apply Attached Reward
+      const rewardObj = rewardOptions.find(r => r.id === attachedReward) || rewardOptions[0];
+      if (rewardObj.coins > 0) {
+        winner.total_stars = (winner.total_stars || 0) + rewardObj.coins;
+      }
 
       setWinnerStudent(winner);
       setIsSpinning(false);
       setShowWinnerModal(true);
 
       if (!isMuted) soundFx.playWinner();
-      confetti({ particleCount: 70, spread: 100, origin: { y: 0.5 } });
+      confetti({ particleCount: 75, spread: 100, origin: { y: 0.5 } });
 
-      // Record to history
       setHistoryLogs(prev => [
-        { id: Date.now(), student: winner, time: new Date().toLocaleTimeString('vi-VN') },
+        { id: Date.now(), student: winner, reward: rewardObj.title, time: new Date().toLocaleTimeString('vi-VN') },
         ...prev
       ]);
 
-      // Handle exclude winner toggle
       if (excludeWinner) {
         setAvailableStudents(prev => prev.filter(s => s.id !== winner.id));
       }
     }, 3200);
   };
 
-  // Toggle favorite effect item
   const handleToggleFavorite = (effId) => {
     soundFx.playClick();
     if (favoriteEffects.includes(effId)) {
@@ -214,7 +241,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
     }
   };
 
-  // Reset cage list
   const handleResetCage = () => {
     soundFx.playCorrect();
     setAvailableStudents(students);
@@ -223,11 +249,12 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
   };
 
   const activeEffectObj = effectPresets.find(e => e.id === currentActiveEffect) || effectPresets[0];
+  const selectedRewardObj = rewardOptions.find(r => r.id === attachedReward) || rewardOptions[0];
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in select-none">
       
-      {/* HEADER BANNER (Screenshot 3) */}
+      {/* HEADER BANNER */}
       <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2.5">
@@ -247,7 +274,7 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
         <div className="flex flex-wrap items-center gap-3">
           <span className="px-3.5 py-1.5 bg-purple-50 text-purple-900 border border-purple-200 rounded-xl text-xs font-black flex items-center space-x-1.5">
             <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-            <span>Đang dùng: {activeEffectObj.name}</span>
+            <span>Hiệu ứng: {activeEffectObj.name}</span>
           </span>
 
           <button
@@ -258,7 +285,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
             className={`p-2.5 rounded-xl border transition-all ${
               isMuted ? 'bg-coral-50 text-coral-600 border-coral-200' : 'bg-purple-50 text-purple-700 border-purple-200'
             }`}
-            title={isMuted ? 'Tắt âm thanh' : 'Bật âm thanh'}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
@@ -274,13 +300,12 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
 
       </div>
 
-      {/* MAIN 2-COLUMN LAYOUT (Matching Screenshots 1, 2, 3) */}
+      {/* MAIN 2-COLUMN LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* LEFT COLUMN (7 Cols): 3D LOTTERY CAGE GLOBE & SPIN BUTTON */}
+        {/* LEFT COLUMN: 3D CAGE GLOBE & SPIN BUTTON */}
         <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-purple-100 shadow-soft space-y-6 flex flex-col items-center justify-between text-center relative overflow-hidden min-h-[560px]">
           
-          {/* Top Status Pill Bar (Screenshot 3) */}
           <div className="w-full flex items-center justify-between">
             <span className="text-xs font-black text-purple-900 bg-purple-50 border border-purple-200 px-3.5 py-1 rounded-full flex items-center space-x-1">
               <Users className="w-3.5 h-3.5 text-purple-600" />
@@ -293,21 +318,18 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
             </span>
           </div>
 
-          {/* 3D LOTTERY CAGE CANVAS / GLOBE DISPLAY (Screenshots 1, 2, 3) */}
+          {/* 3D LOTTERY CAGE CANVAS GLOBE */}
           <div className="relative w-72 h-72 sm:w-80 sm:h-80 mx-auto flex items-center justify-center">
             
-            {/* Outer Globe Glass Ring */}
             <div className={`absolute inset-0 rounded-full border-8 border-purple-400/80 bg-gradient-to-b from-purple-100/50 via-white/80 to-purple-50/50 shadow-2xl backdrop-blur-sm flex items-center justify-center ${
               isSpinning ? 'animate-spin border-purple-600 ring-8 ring-purple-300/60' : ''
             }`}>
               
-              {/* Internal Spoke Pins */}
               <div className="absolute inset-4 rounded-full border-2 border-purple-200 border-dashed opacity-40"></div>
               <div className="w-12 h-12 bg-purple-600 rounded-full border-4 border-white shadow-md z-20 flex items-center justify-center text-white text-xs font-black">
                 ★
               </div>
 
-              {/* Floating Spheres inside Cage */}
               {ballPositions.slice(0, 16).map((ball) => {
                 const isSelectedWinner = winnerStudent?.id === ball.id && !isSpinning;
                 return (
@@ -333,11 +355,10 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
 
             </div>
 
-            {/* Stand Pedestal (Screenshot 1 & 2 Base) */}
             <div className="absolute -bottom-8 w-44 h-8 bg-slate-300 rounded-b-3xl border-2 border-slate-400 shadow-md"></div>
           </div>
 
-          {/* MAIN START SPIN ACTION BUTTON (Screenshots 1, 2, 3) */}
+          {/* SPIN ACTION BUTTON */}
           <div className="w-full space-y-3 pt-4">
             <button
               onClick={handleStartSpin}
@@ -352,30 +373,59 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
               <span>{isSpinning ? '✨ ĐANG QUAY LỒNG CẦU...' : '✨ QUAY NGAY'}</span>
             </button>
 
-            {/* Bottom Exclude Toggle Switch (Screenshot 3) */}
-            <div className="p-3 bg-purple-50/70 rounded-2xl border border-purple-200 flex items-center justify-between text-xs">
-              <span className="font-extrabold text-purple-950 flex items-center space-x-1.5">
-                <Users className="w-4 h-4 text-purple-600" />
-                <span>Loại trừ sau khi trúng (Không lặp lại học sinh)</span>
+            {/* FEATURE 4: ATTACHED REWARD SELECTOR */}
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between text-xs">
+              <span className="font-extrabold text-amber-950 flex items-center space-x-1.5">
+                <Gift className="w-4 h-4 text-amber-600" />
+                <span>Phần thưởng đính kèm:</span>
               </span>
 
-              <input
-                type="checkbox"
-                checked={excludeWinner}
-                onChange={(e) => setExcludeWinner(e.target.checked)}
-                className="w-5 h-5 text-purple-600 rounded cursor-pointer"
-              />
+              <select
+                value={attachedReward}
+                onChange={(e) => setAttachedReward(e.target.value)}
+                className="bg-white border border-amber-300 text-amber-950 rounded-xl px-3 py-1 text-xs font-black outline-none"
+              >
+                {rewardOptions.map(r => (
+                  <option key={r.id} value={r.id}>{r.title}</option>
+                ))}
+              </select>
             </div>
+
+            {/* FEATURE 3: QUIET STUDENTS PRIORITY & EXCLUDE TOGGLE */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="p-2.5 bg-purple-50/70 rounded-2xl border border-purple-200 flex items-center justify-between">
+                <span className="font-extrabold text-purple-950 text-[11px]">
+                  🤫 Ưu tiên học sinh trầm lặng
+                </span>
+                <input
+                  type="checkbox"
+                  checked={quietPriority}
+                  onChange={(e) => setQuietPriority(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                />
+              </div>
+
+              <div className="p-2.5 bg-purple-50/70 rounded-2xl border border-purple-200 flex items-center justify-between">
+                <span className="font-extrabold text-purple-950 text-[11px]">
+                  👤 Loại trừ sau khi trúng
+                </span>
+                <input
+                  type="checkbox"
+                  checked={excludeWinner}
+                  onChange={(e) => setExcludeWinner(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 rounded cursor-pointer"
+                />
+              </div>
+            </div>
+
           </div>
 
         </div>
 
-        {/* RIGHT COLUMN (5 Cols): EFFECT CONFIGURATOR & HISTORY LOGS */}
+        {/* RIGHT COLUMN: EFFECT CONFIGURATOR & HISTORY LOGS */}
         <div className="lg:col-span-5 space-y-6">
           
-          {/* CARD 1: THIẾT LẬP HIỆU ỨNG LỒNG CẦU (Screenshots 1, 2, 3) */}
           <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-4">
-            
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-2">
                 <Settings className="w-5 h-5 text-purple-600" />
@@ -386,7 +436,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
               </span>
             </div>
 
-            {/* Mode Switcher Tabs (Screenshot 1, 2, 3: Tự động đổi | Chọn thủ công | Nhóm yêu thích) */}
             <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl">
               <button
                 onClick={() => setEffectMode('auto')}
@@ -416,7 +465,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
               </button>
             </div>
 
-            {/* Manual Selection Mode (Screenshot 1) */}
             {effectMode === 'manual' && (
               <div className="space-y-3 pt-2">
                 <label className="block text-xs font-bold text-slate-700">Chọn hiệu ứng cố định cho lượt quay:</label>
@@ -442,7 +490,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
               </div>
             )}
 
-            {/* Favorite Selection Mode (Screenshot 2) */}
             {effectMode === 'favorite' && (
               <div className="space-y-3 pt-2">
                 <label className="block text-xs font-bold text-slate-700">Chọn các hiệu ứng bạn yêu thích (Hệ thống sẽ random trong nhóm này):</label>
@@ -466,7 +513,6 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
               </div>
             )}
 
-            {/* Auto Change Mode Info (Screenshot 3) */}
             {effectMode === 'auto' && (
               <div className="p-4 bg-purple-50 rounded-2xl border border-purple-200 text-xs font-semibold text-purple-900 space-y-1">
                 <p>Mỗi lượt quay sẽ tự chọn một hiệu ứng khác nhau ngẫu nhiên.</p>
@@ -476,9 +522,7 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
 
           </div>
 
-          {/* CARD 2: LỊCH SỬ QUAY (Screenshots 1, 2, 3) */}
           <div className="bg-white rounded-3xl p-6 border border-purple-100 shadow-soft space-y-4">
-            
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center space-x-2">
                 <Trophy className="w-5 h-5 text-amber-500" />
@@ -517,7 +561,10 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
                         alt={log.student.full_name}
                         className="w-8 h-8 rounded-xl object-cover border border-purple-200"
                       />
-                      <span className="text-slate-800 font-extrabold">{log.student.full_name}</span>
+                      <div>
+                        <span className="text-slate-800 font-extrabold block">{log.student.full_name}</span>
+                        <span className="text-[9px] text-amber-700 font-extrabold">{log.reward}</span>
+                      </div>
                     </div>
 
                     <span className="text-[10px] text-slate-400 font-mono">{log.time}</span>
@@ -532,7 +579,7 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
 
       </div>
 
-      {/* WINNER REVEAL CELEBRATION MODAL */}
+      {/* WINNER REVEAL MODAL */}
       {showWinnerModal && winnerStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border-4 border-amber-400 text-center space-y-6 animate-in zoom-in">
@@ -554,21 +601,46 @@ export const LuckyWheelView = ({ currentClass, students = [] }) => {
               <div className="text-xs font-black text-amber-600 uppercase tracking-widest">HỌC SINH MAY MẮN TRÚNG LƯỢT QUAY</div>
               <h2 className="text-2xl font-black text-slate-900 mt-1">{winnerStudent.full_name}</h2>
               <p className="text-xs text-slate-500 font-bold mt-1">Tổ {winnerStudent.team_group || 1} • {currentClass?.name || '8A5'}</p>
+              
+              <div className="mt-3 p-2.5 bg-amber-100/70 border border-amber-300 rounded-2xl text-xs font-black text-amber-950">
+                🎁 Phần thưởng: {selectedRewardObj.title}
+              </div>
             </div>
 
-            <button
-              onClick={() => {
-                soundFx.playClick();
-                setShowWinnerModal(false);
-              }}
-              className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-2xl shadow-purple-glow uppercase tracking-wider"
-            >
-              TIẾP TỤC QUAY LƯỢT MỚI
-            </button>
+            {/* FEATURE 2: PRINT CERTIFICATE CARD BUTTON */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setShowPrintModal(true)}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-purple-950 font-black text-xs rounded-2xl shadow-md flex items-center justify-center space-x-1.5"
+              >
+                <Printer className="w-4 h-4" />
+                <span>In Thẻ Tuyên Dương (PDF)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  setShowWinnerModal(false);
+                }}
+                className="w-full py-3.5 bg-purple-600 hover:bg-purple-700 text-white font-black text-xs rounded-2xl shadow-purple-glow uppercase tracking-wider"
+              >
+                TIẾP TỤC QUAY LƯỢT MỚI
+              </button>
+            </div>
 
           </div>
         </div>
       )}
+
+      {/* FEATURE 2: PRINT WINNER CERTIFICATE MODAL */}
+      <PrintWinnerCardModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        winnerStudent={winnerStudent}
+        rewardTitle={selectedRewardObj.title}
+        currentClass={currentClass}
+        teacherProfile={teacherProfile}
+      />
 
     </div>
   );
