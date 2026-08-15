@@ -7,9 +7,9 @@ import { Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Shield, Zap } 
 export const Auth = () => {
   const { signIn, signUp, enterAppDirectly, configError } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('giaovien.thcs@gmail.com');
+  const [email, setEmail] = useState('nguyenvanhai.thcs@gmail.com');
   const [password, setPassword] = useState('123456');
-  const [fullName, setFullName] = useState('Giáo viên Chủ Nhiệm THCS');
+  const [fullName, setFullName] = useState('Nguyễn Văn Hải');
   const [role, setRole] = useState('teacher');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -29,9 +29,9 @@ export const Auth = () => {
     setSuccessMsg('Đang kích hoạt phiên làm việc Giáo viên và vào ứng dụng...');
     soundFx.playClick();
 
-    const demoEmail = email.trim() || 'giaovien.thcs@gmail.com';
+    const demoEmail = email.trim() || 'nguyenvanhai.thcs@gmail.com';
     const demoPass = password || '123456';
-    const demoName = fullName.trim() || 'Giáo viên Chủ Nhiệm THCS';
+    const demoName = fullName.trim() || 'Nguyễn Văn Hải';
 
     try {
       // 1. Thử Đăng nhập Supabase Auth

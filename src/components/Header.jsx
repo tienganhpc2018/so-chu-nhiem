@@ -13,8 +13,8 @@ export const Header = ({
 }) => {
   const [showClassDropdown, setShowClassDropdown] = useState(false);
 
-  const teacherName = teacherProfile?.full_name || 'Võ Châu Thanh';
-  const teacherRole = teacherProfile?.role === 'admin' ? 'Quản trị' : (teacherProfile?.job_title || 'GV Tin học');
+  const teacherName = teacherProfile?.full_name || 'Nguyễn Văn Hải';
+  const teacherRole = teacherProfile?.role === 'admin' ? 'Quản trị' : (teacherProfile?.job_title || 'GV Tiếng Anh');
   const teacherAvatar = teacherProfile?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${teacherName}`;
 
   return (

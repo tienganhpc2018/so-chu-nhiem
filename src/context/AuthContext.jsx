@@ -110,7 +110,7 @@ export const AuthProvider = ({ children }) => {
     return { data, error };
   };
 
-  const enterAppDirectly = (customName = 'Giáo viên Chủ Nhiệm THCS', customEmail = 'giaovien.thcs@gmail.com') => {
+  const enterAppDirectly = (customName = 'Nguyễn Văn Hải', customEmail = 'nguyenvanhai.thcs@gmail.com') => {
     const fallbackId = '00000000-0000-0000-0000-000000000000';
     const fallbackUser = {
       id: fallbackId,
@@ -122,6 +122,8 @@ export const AuthProvider = ({ children }) => {
       email: customEmail,
       full_name: customName,
       role: 'teacher',
+      job_title: 'GV Tiếng Anh',
+      subject: 'Tiếng Anh',
       avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=teacher'
     };
     setUser(fallbackUser);

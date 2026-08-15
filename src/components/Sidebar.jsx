@@ -141,12 +141,12 @@ export const Sidebar = ({ activeTab, onTabChange, studentCount = 18, teacherProf
               <span>TÁC GIẢ ỨNG DỤNG</span>
             </div>
             <div className="font-extrabold text-slate-800 text-xs">
-              {teacherProfile?.full_name ? `Thầy. ${teacherProfile.full_name}` : 'Thầy. Nguyễn Văn Hải'}
+              Thầy. Nguyễn Văn Hải
             </div>
             <div className="flex items-center justify-between text-[11px] pt-0.5">
               <span className="text-slate-500">Zalo hỗ trợ:</span>
               <span className="bg-emerald-500 text-white font-mono font-bold px-2 py-0.5 rounded-full text-[10px]">
-                0974754446
+                0384635199
               </span>
             </div>
           </div>

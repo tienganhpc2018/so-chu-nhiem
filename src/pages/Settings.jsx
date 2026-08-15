@@ -11,9 +11,9 @@ export const Settings = ({ currentClass, onRefreshClasses }) => {
   const { profile, user, refreshProfile } = useAuth();
 
   // Form states matching Image 1, 3, 5
-  const [fullName, setFullName] = useState(profile?.full_name || 'Võ Châu Thanh');
-  const [jobTitle, setJobTitle] = useState(profile?.job_title || 'GV Tin học');
-  const [subject, setSubject] = useState(profile?.subject || 'Tin học');
+  const [fullName, setFullName] = useState(profile?.full_name || 'Nguyễn Văn Hải');
+  const [jobTitle, setJobTitle] = useState(profile?.job_title || 'GV Tiếng Anh');
+  const [subject, setSubject] = useState(profile?.subject || 'Tiếng Anh');
   const [schoolName, setSchoolName] = useState(profile?.school_name || 'Trường THCS Trưng Vương');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=teacher`);
   
@@ -262,12 +262,12 @@ export const Settings = ({ currentClass, onRefreshClasses }) => {
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-semibold">Tác giả ứng dụng:</span>
-                <span className="font-extrabold text-purple-800">Thầy. Võ Châu Thanh</span>
+                <span className="font-extrabold text-purple-800">Thầy. Nguyễn Văn Hải</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-500 font-semibold">Zalo hỗ trợ:</span>
                 <span className="bg-emerald-500 text-white font-mono font-extrabold px-3 py-1 rounded-full text-xs shadow-sm">
-                  0974754446
+                  0384635199
                 </span>
               </div>
             </div>

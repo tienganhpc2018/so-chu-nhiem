@@ -25,7 +25,7 @@ export const HomeView = ({
   onOpenLuckyWheel,
   onOpenRewards
 }) => {
-  const teacherName = teacherProfile?.full_name || 'Võ Châu Thanh';
+  const teacherName = teacherProfile?.full_name || 'Nguyễn Văn Hải';
   const teacherAvatar = teacherProfile?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${teacherName}`;
 
   // Time of day greeting
