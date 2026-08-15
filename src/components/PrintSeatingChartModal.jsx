@@ -10,7 +10,6 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
     window.print();
   };
 
-  const dayCount = 4;
   const rows = [1, 2, 3, 4];
   const cols = [1, 2, 3, 4];
 
@@ -19,41 +18,69 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-purple-100 my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in overflow-y-auto">
+      
+      {/* Modal Card Container */}
+      <div className="bg-white rounded-3xl max-w-4xl w-full p-6 shadow-2xl border border-purple-100 my-auto relative flex flex-col max-h-[92vh]">
         
-        {/* Modal Controls Header (Hidden during print) */}
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 print:hidden">
+        {/* STICKY TOP HEADER BAR - Always Visible (Hidden only during actual printing) */}
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-md pb-4 border-b border-slate-200 flex items-center justify-between gap-4 print:hidden">
           <div className="flex items-center space-x-2">
-            <Printer className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-black text-slate-800">Xem Trước & In Sơ Đồ Khổ Giấy A4</h3>
+            <div className="p-2 bg-purple-100 text-purple-700 rounded-xl">
+              <Printer className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-800">In Sơ Đồ Chỗ Ngồi Khổ Giấy A4</h3>
+              <p className="text-xs text-slate-400 font-semibold">Bấm "In Ngay" để xuất PDF/Máy in hoặc bấm "Đóng" để trở lại.</p>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 shrink-0">
             <button
               onClick={handlePrint}
-              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-purple-glow flex items-center space-x-1.5"
+              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-xl shadow-purple-glow flex items-center space-x-1.5 transform hover:scale-105 transition-all"
             >
               <Printer className="w-4 h-4" />
               <span>In Ngay (Khổ A4)</span>
             </button>
 
-            <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-full">
-              <X className="w-5 h-5" />
+            {/* Prominent Red/Purple Close Button */}
+            <button
+              onClick={() => {
+                soundFx.playClick();
+                onClose();
+              }}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border border-slate-200 hover:border-red-300 font-extrabold text-xs rounded-xl flex items-center space-x-1 transition-all"
+              title="Đóng trang này"
+            >
+              <X className="w-4 h-4" />
+              <span>Đóng trang (X)</span>
             </button>
           </div>
         </div>
 
-        {/* Printable A4 Container Area */}
-        <div className="print-area bg-white p-8 border-4 border-double border-purple-900 rounded-2xl text-slate-900 font-serif relative">
+        {/* Floating Quick Close Button in top right corner */}
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            onClose();
+          }}
+          className="absolute -top-3 -right-3 z-30 w-9 h-9 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white print:hidden transition-transform hover:scale-110"
+          title="Đóng cửa sổ"
+        >
+          <X className="w-5 h-5 stroke-[3]" />
+        </button>
+
+        {/* Printable A4 Document Content */}
+        <div className="overflow-y-auto flex-1 p-6 print-area bg-white font-serif text-slate-900 border-4 border-double border-purple-900 rounded-2xl relative my-2">
           
-          {/* Decorative Corner Ornaments */}
+          {/* Decorative Ornaments */}
           <div className="absolute top-2 left-2 text-purple-800 text-xs">❖</div>
           <div className="absolute top-2 right-2 text-purple-800 text-xs">❖</div>
           <div className="absolute bottom-2 left-2 text-purple-800 text-xs">❖</div>
           <div className="absolute bottom-2 right-2 text-purple-800 text-xs">❖</div>
 
-          {/* School & Header Info */}
+          {/* Header Info */}
           <div className="text-center space-y-1 pb-4 border-b-2 border-purple-900 mb-6">
             <div className="text-xs font-bold uppercase tracking-widest text-slate-600">
               TRƯỜNG THCS CÁT MINH • KHỐI {currentClass?.grade_level || 8}
@@ -77,7 +104,7 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
             </span>
           </div>
 
-          {/* 4 Rows Seating Grid */}
+          {/* 4 Columns Seating Grid */}
           <div className="grid grid-cols-4 gap-4 mb-8 font-sans">
             {cols.map(c => (
               <div key={`p-col-${c}`} className="space-y-3">
@@ -136,6 +163,20 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
             </div>
           </div>
 
+        </div>
+
+        {/* Bottom Footer Close Button (Hidden during print) */}
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-3 print:hidden">
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              onClose();
+            }}
+            className="px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-extrabold shadow-md flex items-center space-x-1.5"
+          >
+            <X className="w-4 h-4" />
+            <span>Đóng Cửa Sổ (Close)</span>
+          </button>
         </div>
 
       </div>
