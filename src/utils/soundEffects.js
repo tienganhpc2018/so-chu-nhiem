@@ -389,41 +389,119 @@ class SoundEffectsManager {
     }
   }
 
-  // Nhạc nền cuộc đua vịt (tiếng nước, nhịp điệu đua vui nhộn và tiếng quác)
-  startRaceAudio() {
+  // Phát tiếng bong bóng bọt nước cho sinh vật biển (cá, tôm, mực, cua)
+  playBubblePop() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      const freq = 600 + Math.random() * 400;
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.8, now + 0.06);
+
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+    } catch (e) {}
+  }
+
+  // Tiếng còi xuất phát / về đích kịch tính
+  playWhistle() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(2400, now);
+      osc.frequency.setValueAtTime(2600, now + 0.08);
+      osc.frequency.setValueAtTime(2400, now + 0.16);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.28);
+    } catch (e) {}
+  }
+
+  // Nhạc nền cuộc đua hồi hộp, dồn dập (Suspense Racing Beat)
+  startRaceAudio(animalType = 'duck') {
     try {
       this.initContext();
       this.stopRaceAudio();
       if (!this.ctx) return;
 
       this.raceAudioActive = true;
+      this.raceProgress = 0; // 0.0 -> 1.0
       let beatStep = 0;
 
-      // Loop nhịp điệu đua xe/đua vịt
+      // Loop nhịp điệu đua dồn dập, hồi hộp tăng dần
       const raceLoop = () => {
         if (!this.raceAudioActive || !this.ctx) return;
 
         const now = this.ctx.currentTime;
-        const bassFreq = [130.81, 146.83, 164.81, 174.61, 196.00][beatStep % 5];
+        const p = this.raceProgress || 0; // Tiến trình chặng đua
 
-        // 1. Nhịp Bass nảy tưng bừng
+        // 1. Nhịp Bass Trống đập dồn dập (Heartbeat Racing Kick)
         try {
           const osc = this.ctx.createOscillator();
           const gain = this.ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(bassFreq, now);
-          osc.frequency.exponentialRampToValueAtTime(bassFreq * 0.7, now + 0.12);
+          osc.type = 'sawtooth';
 
-          gain.gain.setValueAtTime(0.14, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          const baseKick = p > 0.7 ? 140 : 100;
+          osc.frequency.setValueAtTime(baseKick, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.11);
 
-          osc.connect(gain);
+          // Âm lượng to, rõ ràng (0.28 - 0.40)
+          const kickVol = 0.26 + p * 0.14;
+          gain.gain.setValueAtTime(kickVol, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(p > 0.7 ? 450 : 260, now);
+
+          osc.connect(filter);
+          filter.connect(gain);
           gain.connect(this.ctx.destination);
+
           osc.start(now);
-          osc.stop(now + 0.12);
+          osc.stop(now + 0.11);
         } catch (e) {}
 
-        // 2. Tiếng nước té bọt splash (noise ngắn)
+        // 2. Tiếng tích tắc đếm ngược hồi hộp (Suspense Tick)
+        if (beatStep % 2 === 1 || p > 0.7) {
+          try {
+            const tickOsc = this.ctx.createOscillator();
+            const tickGain = this.ctx.createGain();
+            tickOsc.type = 'sine';
+            const tickPitch = p > 0.7 ? 1800 : 1200;
+            tickOsc.frequency.setValueAtTime(tickPitch, now + 0.05);
+
+            tickGain.gain.setValueAtTime(0.18 + p * 0.1, now + 0.05);
+            tickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+            tickOsc.connect(tickGain);
+            tickGain.connect(this.ctx.destination);
+            tickOsc.start(now + 0.05);
+            tickOsc.stop(now + 0.09);
+          } catch (e) {}
+        }
+
+        // 3. Tiếng nước té bọt splash sống động
         try {
           const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
           const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -436,10 +514,10 @@ class SoundEffectsManager {
 
           const filter = this.ctx.createBiquadFilter();
           filter.type = 'bandpass';
-          filter.frequency.setValueAtTime(1200 + (beatStep % 4) * 300, now);
+          filter.frequency.setValueAtTime(1400 + (beatStep % 4) * 280, now);
 
           const splashGain = this.ctx.createGain();
-          splashGain.gain.setValueAtTime(0.08, now);
+          splashGain.gain.setValueAtTime(0.12 + p * 0.08, now);
           splashGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
 
           noise.connect(filter);
@@ -448,13 +526,20 @@ class SoundEffectsManager {
           noise.start(now);
         } catch (e) {}
 
-        // 3. Thỉnh thoảng phát tiếng vịt quác vui nhộn
-        if (beatStep % 6 === 3) {
-          this.playQuack();
+        // 4. Âm thanh đặc trưng theo loài động vật
+        if (beatStep % 5 === 2) {
+          if (animalType === 'duck') {
+            this.playQuack();
+          } else {
+            this.playBubblePop();
+          }
         }
 
         beatStep++;
-        this.raceAudioTimer = setTimeout(raceLoop, 170); // ~176 BPM sôi động
+
+        // Nhịp độ tăng dần khi gần về đích: 180ms -> 85ms ở 3s cuối!
+        const delay = Math.max(85, Math.floor(180 - p * 95));
+        this.raceAudioTimer = setTimeout(raceLoop, delay);
       };
 
       raceLoop();
@@ -463,8 +548,14 @@ class SoundEffectsManager {
     }
   }
 
+  // Cập nhật tiến trình cuộc đua để tăng độ kịch tính âm thanh
+  setRaceProgress(progress) {
+    this.raceProgress = Math.max(0, Math.min(1.0, progress));
+  }
+
   stopRaceAudio() {
     this.raceAudioActive = false;
+    this.raceProgress = 0;
     if (this.raceAudioTimer) {
       clearTimeout(this.raceAudioTimer);
       this.raceAudioTimer = null;
