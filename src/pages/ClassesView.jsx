@@ -21,9 +21,10 @@ export const ClassesView = ({
   const academicYearsList = ['all', '2026 - 2027'];
 
   const filteredClasses = classes.filter(cls => {
-    if (selectedYearFilter === 'all') return true;
-    const clsYear = cls.academic_year || '2026 - 2027';
-    return clsYear === selectedYearFilter;
+    if (!selectedYearFilter || selectedYearFilter === 'all') return true;
+    const clsYear = String(cls.academic_year || '2026 - 2027').replace(/[\s\u2013\u2014-]/g, '').trim();
+    const filterYear = String(selectedYearFilter).replace(/[\s\u2013\u2014-]/g, '').trim();
+    return clsYear === filterYear;
   });
 
   const handleOpenAddModal = () => {
@@ -145,6 +146,7 @@ export const ClassesView = ({
         soundFx.playCorrect();
         setShowAddModal(false);
         setClassName('');
+        setSelectedYearFilter('all');
         if (onRefreshClasses) await onRefreshClasses();
         onSelectClass(createdCls);
       }
@@ -218,6 +220,28 @@ export const ClassesView = ({
           </button>
         ))}
       </div>
+
+      {/* Empty State when no classes exist or match filter */}
+      {filteredClasses.length === 0 && (
+        <div className="bg-white rounded-3xl p-10 text-center border-2 border-dashed border-purple-200 space-y-4 shadow-soft">
+          <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-3xl mx-auto flex items-center justify-center">
+            <School className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-slate-800">Chưa có lớp học nào được hiển thị</h3>
+            <p className="text-xs font-semibold text-slate-400 mt-1">
+              Thầy/Cô bấm nút "+ Tạo lớp học mới" bên dưới để khởi tạo không gian lớp học nhé!
+            </p>
+          </div>
+          <button
+            onClick={handleOpenAddModal}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-2xl shadow-purple-glow inline-flex items-center space-x-2 transition-all transform hover:scale-105"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tạo Lớp Học Mới Ngay</span>
+          </button>
+        </div>
+      )}
 
       {/* Grid List of Class Cards (Matching Image 1 Card Style) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
