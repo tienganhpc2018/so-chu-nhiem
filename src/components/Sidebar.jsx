@@ -26,22 +26,38 @@ import {
 export const Sidebar = ({ activeTab, onTabChange, studentCount = 18, teacherProfile = null }) => {
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = [
-    { id: 'home', label: 'Trang chủ', icon: LayoutDashboard },
-    { id: 'classes', label: 'Lớp học', icon: School },
-    { id: 'students', label: 'Học sinh', icon: GraduationCap, badge: studentCount, badgeColor: 'bg-blue-100 text-blue-700' },
-    { id: 'attendance', label: 'Điểm danh', icon: UserCheck },
-    { id: 'seating', label: 'Sơ đồ lớp', icon: Grid },
-    { id: 'timetable', label: 'Thời khóa biểu', icon: Calendar },
-    { id: 'rewards', label: 'Đổi quà', icon: Gift, badge: 'HOT', badgeColor: 'bg-coral-100 text-coral-600 font-bold' },
-    { id: 'luckywheel', label: 'Vòng quay', icon: Sparkles, badge: 'HOT', badgeColor: 'bg-amber-100 text-amber-700 font-bold' },
-    { id: 'leaderboard', label: 'Cuộn Phim', icon: Film, badge: 'NEW', badgeColor: 'bg-mint-100 text-mint-700 font-bold' },
-    { id: 'noisemeter', label: 'Chống Ồn', icon: Volume2 },
-    { id: 'timer', label: 'Đếm Ngược', icon: Timer },
-    { id: 'links', label: 'Liên Kết', icon: LinkIcon },
-    { id: 'stats', label: 'Thống Kê', icon: BarChart3 },
-    { id: 'data', label: 'Dữ Liệu', icon: Database },
-    { id: 'settings', label: 'Cài Đặt', icon: Settings },
+  const menuGroups = [
+    {
+      title: 'TỔNG QUAN',
+      items: [
+        { id: 'home', label: 'Trang chủ', icon: LayoutDashboard },
+        { id: 'behavior', label: 'Sổ Nề Nếp 4.0', icon: Award, badge: 'MỚI 4.0', badgeColor: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black' }
+      ]
+    },
+    {
+      title: 'QUẢN LÝ LỚP HỌC (4 TAB)',
+      items: [
+        { id: 'classes', label: '1. Thêm & Quản lý Lớp', icon: School },
+        { id: 'students', label: '2. Danh sách Học sinh', icon: GraduationCap, badge: studentCount, badgeColor: 'bg-purple-100 text-purple-800 font-black' },
+        { id: 'seating', label: '3. Xếp Sơ đồ Lớp (4 Dãy)', icon: Grid },
+        { id: 'attendance', label: '4. Điểm danh Chuyên cần', icon: UserCheck }
+      ]
+    },
+    {
+      title: 'CÔNG CỤ TIỆN ÍCH',
+      items: [
+        { id: 'timetable', label: 'Thời khóa biểu', icon: Calendar },
+        { id: 'rewards', label: 'Đổi quà', icon: Gift, badge: 'HOT', badgeColor: 'bg-coral-100 text-coral-600 font-bold' },
+        { id: 'luckywheel', label: 'Vòng quay', icon: Sparkles, badge: 'HOT', badgeColor: 'bg-amber-100 text-amber-700 font-bold' },
+        { id: 'leaderboard', label: 'Cuộn Phim', icon: Film, badge: 'NEW', badgeColor: 'bg-mint-100 text-mint-700 font-bold' },
+        { id: 'noisemeter', label: 'Chống Ồn', icon: Volume2 },
+        { id: 'timer', label: 'Đếm Ngược', icon: Timer },
+        { id: 'links', label: 'Liên Kết', icon: LinkIcon },
+        { id: 'stats', label: 'Thống Kê', icon: BarChart3 },
+        { id: 'data', label: 'Dữ Liệu', icon: Database },
+        { id: 'settings', label: 'Cài Đặt', icon: Settings },
+      ]
+    }
   ];
 
   return (
@@ -84,38 +100,50 @@ export const Sidebar = ({ activeTab, onTabChange, studentCount = 18, teacherProf
         </button>
       </div>
 
-      {/* Main Vertical Menu Scroll Area (Image 1, 2, 5 Style) */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 custom-scrollbar">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                soundFx.playClick();
-                onTabChange(item.id);
-              }}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all ${
-                isActive
-                  ? 'bg-purple-600 text-white shadow-purple-glow transform scale-[1.02]'
-                  : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50'
-              }`}
-              title={collapsed ? item.label : undefined}
-            >
-              <div className="flex items-center space-x-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                {!collapsed && <span>{item.label}</span>}
+      {/* Main Vertical Menu Scroll Area */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 custom-scrollbar">
+        {menuGroups.map((group, gIdx) => (
+          <div key={gIdx} className="space-y-1">
+            {!collapsed && (
+              <div className="px-3 text-[10px] font-black text-purple-400 tracking-wider uppercase mb-1">
+                {group.title}
               </div>
+            )}
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const isHubTab = ['classes', 'students', 'seating', 'attendance'].includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    soundFx.playClick();
+                    onTabChange(item.id);
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-extrabold transition-all ${
+                    isActive
+                      ? 'bg-purple-600 text-white shadow-purple-glow transform scale-[1.02]'
+                      : isHubTab
+                      ? 'text-purple-900 bg-purple-50/70 hover:bg-purple-100 hover:text-purple-950 border border-purple-100'
+                      : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50'
+                  }`}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <div className="flex items-center space-x-3">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : isHubTab ? 'text-purple-600' : 'text-slate-500'}`} />
+                    {!collapsed && <span>{item.label}</span>}
+                  </div>
 
-              {!collapsed && item.badge && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.badgeColor}`}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+                  {!collapsed && item.badge !== undefined && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.badgeColor}`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </div>
 
       {/* Bottom Footer Section (Image 1, 2, 5 Style) */}

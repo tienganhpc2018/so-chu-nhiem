@@ -38,16 +38,22 @@ import {
 export const TeacherDashboard = ({
   classes = [],
   currentClass = null,
+  students: propStudents = [],
   onSelectClass,
   onRefreshClasses,
+  onRefreshStudents,
+  activeTab = 'seating',
   modalState = {},
   onOpenModal,
   onCloseModal
 }) => {
   const { user, profile } = useAuth();
-  const [students, setStudents] = useState([]);
+  const [localStudents, setLocalStudents] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const students = (propStudents && propStudents.length > 0) ? propStudents : localStudents;
+  const setStudents = setLocalStudents;
 
   // Modals state
   const [showAddClassModal, setShowAddClassModal] = useState(false);
@@ -66,7 +72,7 @@ export const TeacherDashboard = ({
     if (currentClass) {
       fetchStudents(currentClass.id);
     } else {
-      setStudents([]);
+      setLocalStudents([]);
     }
   }, [currentClass]);
 
@@ -94,10 +100,10 @@ export const TeacherDashboard = ({
         if (!acc.some(s => s.id === curr.id)) acc.push(curr);
         return acc;
       }, []);
-      setStudents(unique);
+      setLocalStudents(unique);
     } catch (err) {
       console.error('Lỗi tải danh sách học sinh:', err);
-      setStudents(localSt);
+      setLocalStudents(localSt);
     } finally {
       setLoadingStudents(false);
     }
@@ -112,28 +118,28 @@ export const TeacherDashboard = ({
     const classCode = `${newGradeLevel}A-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
     try {
+      const newClassId = `class-${Date.now()}`;
       const payload = {
+        id: newClassId,
         name: newClassName.trim(),
         grade_level: Number(newGradeLevel),
-        code: classCode
+        code: classCode,
+        academic_year: '2026 - 2027'
       };
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('classes')
         .insert([payload])
         .select()
         .single();
 
-      if (error) {
-        console.warn('DB class insert fallback:', error);
-      }
+      const createdClass = data || payload;
 
-      const createdClass = data || {
-        id: `class-${Date.now()}`,
-        name: newClassName.trim(),
-        grade_level: Number(newGradeLevel),
-        code: classCode
-      };
+      try {
+        const stored = JSON.parse(localStorage.getItem('user_created_classes') || '[]');
+        stored.push(createdClass);
+        localStorage.setItem('user_created_classes', JSON.stringify(stored));
+      } catch (e) {}
 
       soundFx.playCorrect();
       setShowAddClassModal(false);
@@ -156,8 +162,19 @@ export const TeacherDashboard = ({
       class_id: currentClass.id
     }));
 
-    // Update state immediately
-    setStudents(prev => [...prev, ...formattedList]);
+    // Save to LocalStorage custom_students_${currentClass.id}
+    try {
+      const stored = JSON.parse(localStorage.getItem(`custom_students_${currentClass.id}`) || '[]');
+      const combined = [...stored, ...formattedList];
+      const unique = combined.reduce((acc, curr) => {
+        if (!acc.some(s => s.id === curr.id)) acc.push(curr);
+        return acc;
+      }, []);
+      localStorage.setItem(`custom_students_${currentClass.id}`, JSON.stringify(unique));
+      setLocalStudents(unique);
+    } catch (e) {
+      console.error(e);
+    }
 
     // Persist in DB
     try {
@@ -165,6 +182,8 @@ export const TeacherDashboard = ({
     } catch (err) {
       console.error('Lỗi lưu danh sách học sinh vào DB:', err);
     }
+
+    if (onRefreshStudents) await onRefreshStudents();
   };
 
   const handleMoveStudentSeat = async (studentId, newRow, newCol) => {
@@ -415,7 +434,7 @@ export const TeacherDashboard = ({
 
           </div>
 
-          {/* Main Seating Chart Grid */}
+          {/* Main Content: Seating Chart Grid vs Student Table List */}
           {loadingStudents ? (
             <SkeletonLoader type="cards" count={8} />
           ) : students.length === 0 ? (
@@ -426,6 +445,102 @@ export const TeacherDashboard = ({
               onAction={handleSeedDemoClass}
               robotMode="happy"
             />
+          ) : activeTab === 'students' ? (
+            /* Student List Table View */
+            <div className="bg-white rounded-3xl border border-purple-200/80 shadow-soft overflow-hidden">
+              <div className="p-4 bg-gradient-to-r from-purple-50 via-slate-50 to-purple-50 border-b border-purple-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center space-x-2">
+                  <span className="text-base font-black text-slate-800">👨‍🎓 Danh Sách Học Sinh Lớp {currentClass.name}</span>
+                  <span className="bg-purple-100 text-purple-800 text-xs font-extrabold px-3 py-1 rounded-full border border-purple-200">
+                    Hiển thị {filteredStudents.length} / {students.length} HS
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowAddStudentModal(true)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-extrabold px-4 py-2 rounded-xl text-xs shadow-md transition-all flex items-center space-x-1.5 transform hover:scale-102"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>+ Thêm Học Sinh Mới</span>
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100/80 text-slate-600 font-black uppercase tracking-wider border-b border-slate-200">
+                      <th className="p-3.5 text-center w-14">STT</th>
+                      <th className="p-3.5">Họ và Tên Học Sinh</th>
+                      <th className="p-3.5 text-center">Tổ Thi Đua</th>
+                      <th className="p-3.5 text-center">Vị Trí Sơ Đồ Bàn Học</th>
+                      <th className="p-3.5 text-center">Tổng Sao Tích Lũy ⭐</th>
+                      <th className="p-3.5 text-center">Thao Tác Nhanh</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                    {filteredStudents.map((st, idx) => (
+                      <tr key={st.id || idx} className="hover:bg-purple-50/60 transition-colors">
+                        <td className="p-3.5 text-center font-bold text-slate-400">{idx + 1}</td>
+                        <td className="p-3.5">
+                          <div className="flex items-center space-x-3">
+                            <button
+                              onClick={() => setSelectedStudentForAvatar(st)}
+                              className="relative group focus:outline-none"
+                              title="Bấm để đổi Avatar"
+                            >
+                              <img
+                                src={st.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(st.full_name)}`}
+                                alt={st.full_name}
+                                className="w-9 h-9 rounded-full object-cover border-2 border-purple-300 shadow-sm group-hover:scale-110 transition-transform"
+                              />
+                            </button>
+                            <div>
+                              <span className="font-bold text-slate-900 block text-sm">{st.full_name}</span>
+                              <span className="text-[10px] text-slate-400 font-normal">Mã: {st.id}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-3.5 text-center">
+                          <span className={`inline-block px-3 py-1 rounded-xl text-xs font-black text-white shadow-xs ${
+                            (st.team_group || 1) === 1 ? 'bg-mint-500' : (st.team_group || 1) === 2 ? 'bg-coral-500' : (st.team_group || 1) === 3 ? 'bg-amber-500' : 'bg-blue-500'
+                          }`}>
+                            Tổ {st.team_group || 1}
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-center font-mono text-slate-700 font-bold">
+                          Dãy {Math.ceil((st.seat_col || 1) / 2)} • Bàn {st.seat_row || 1}
+                        </td>
+                        <td className="p-3.5 text-center">
+                          <span className="inline-flex items-center space-x-1 bg-amber-50 text-amber-800 px-3 py-1 rounded-full border border-amber-300 font-black text-xs">
+                            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                            <span>{st.total_stars || 0} ⭐</span>
+                          </span>
+                        </td>
+                        <td className="p-3.5 text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            <button
+                              onClick={() => setSelectedStudentForPoints(st)}
+                              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl text-[11px] shadow-sm transition-all flex items-center space-x-1"
+                              title="Tích điểm / Trừ điểm"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-white" />
+                              <span>Cộng / Trừ Sao</span>
+                            </button>
+                            <button
+                              onClick={() => setSelectedStudentForReward(st)}
+                              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-extrabold rounded-xl text-[11px] shadow-sm transition-all flex items-center space-x-1"
+                              title="Đổi quà"
+                            >
+                              <Award className="w-3.5 h-3.5" />
+                              <span>Đổi Quà</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
             <SeatingGrid
               students={filteredStudents}
