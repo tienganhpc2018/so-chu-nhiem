@@ -268,18 +268,7 @@ export const TeacherDashboard = ({
     document.body.removeChild(link);
   };
 
-  // Seed 8A5 Demo Class
-  const handleSeedDemoClass = () => {
-    soundFx.playCorrect();
-    const demoClass = {
-      id: '8a500000-0000-0000-0000-0000000008a5',
-      name: '8A5',
-      grade_level: 8,
-      code: '8A5-GVCN-HAI'
-    };
-    onSelectClass(demoClass);
-    setStudents(getSampleStudents8A5(demoClass.id));
-  };
+
 
   const filteredStudents = students.filter(st =>
     st.full_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -358,22 +347,22 @@ export const TeacherDashboard = ({
         </div>
       </div>
 
-      {/* Quick Demo Class Launcher (If no class selected) */}
+      {/* Quick Class Launcher (If no class selected) */}
       {!currentClass && (
-        <div className="bg-white rounded-3xl p-8 border-2 border-mint-200 shadow-soft text-center max-w-2xl mx-auto space-y-4">
-          <div className="inline-flex p-3 bg-mint-50 rounded-full mb-1">
-            <MascotRobot mode="celebrate" size={56} />
+        <div className="bg-white rounded-3xl p-8 border-2 border-purple-200 shadow-soft text-center max-w-2xl mx-auto space-y-4">
+          <div className="inline-flex p-3 bg-purple-50 rounded-full mb-1">
+            <MascotRobot mode="happy" size={56} />
           </div>
-          <h3 className="text-xl font-black text-slate-800">Trải Nghiệm Lớp 8A5 Mẫu Có Sẵn 18 Học Sinh</h3>
+          <h3 className="text-xl font-black text-slate-800">Chưa Chọn Lớp Học Nào</h3>
           <p className="text-xs text-slate-500">
-            Thầy có thể bấm nút bên dưới để mở ngay Lớp 8A5 mẫu với đầy đủ sơ đồ 18 học sinh, điểm sao thi đua & nhóm thảo luận:
+            Thầy hãy bấm nút bên dưới để tạo lớp học đầu tiên hoặc chọn một lớp từ danh sách để bắt đầu:
           </p>
           <button
-            onClick={handleSeedDemoClass}
-            className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-mint-500 to-coral-500 hover:from-mint-600 hover:to-coral-600 text-white font-black text-sm rounded-2xl shadow-mint-glow transition-all transform hover:scale-105 flex items-center justify-center space-x-2 mx-auto"
+            onClick={() => setShowAddClassModal(true)}
+            className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-sm rounded-2xl shadow-purple-glow transition-all transform hover:scale-105 flex items-center justify-center space-x-2 mx-auto"
           >
-            <Sparkles className="w-5 h-5 text-amber-200 fill-amber-200" />
-            <span>MỞ NGAY LỚP 8A5 MẪU (GVCN NGUYỄN VĂN HẢI)</span>
+            <Plus className="w-5 h-5 text-white" />
+            <span>+ TẠO LỚP HỌC ĐẦU TIÊN NGAY</span>
           </button>
         </div>
       )}
@@ -440,9 +429,9 @@ export const TeacherDashboard = ({
           ) : students.length === 0 ? (
             <EmptyState
               title={`Lớp ${currentClass.name} chưa có Học sinh`}
-              description="Thầy hãy bấm nút bên dưới để thêm các học sinh vào lớp hoặc chọn nạp Lớp mẫu 8A5."
-              actionText="Nạp Nhanh 18 HS Lớp Mẫu 8A5"
-              onAction={handleSeedDemoClass}
+              description="Thầy hãy bấm nút bên dưới để thêm các học sinh vào lớp nhé."
+              actionText="+ Thêm Học Sinh Vào Lớp"
+              onAction={() => setShowAddStudentModal(true)}
               robotMode="happy"
             />
           ) : activeTab === 'students' ? (

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Sparkles, Users, Award, ShieldCheck, CheckCircle2, RotateCcw } from 'lucide-react';
+import { Search, Filter, Sparkles, Users, Award, ShieldCheck, CheckCircle2, RotateCcw, School, UserPlus, Plus } from 'lucide-react';
 import { soundFx } from '../../utils/soundEffects';
+import { supabase } from '../../lib/supabase';
 
 import { TopActionBar } from './components/TopActionBar';
 import { StudentCard } from './components/StudentCard';
 import { PointModal } from './components/PointModal';
 import { AttendanceModal4 } from './components/AttendanceModal4';
 import { AddClassModal4 } from './components/AddClassModal4';
+import { QuickAddStudentsModal } from './components/QuickAddStudentsModal';
 import { TetHaiHoaModal } from './components/TetHaiHoaModal';
 import { BlindPouchModal } from './components/BlindPouchModal';
 import { SuspenseCallModal } from './components/SuspenseCallModal';
@@ -33,6 +35,7 @@ export const BehaviorPage = ({
   // Modals state
   const [modalState, setModalState] = useState({
     addClass: false,
+    quickAddStudents: false,
     attendance: false,
     points: false,
     tetHaiHoa: false,
@@ -51,7 +54,12 @@ export const BehaviorPage = ({
 
   // Initialize students from props or LocalStorage
   useEffect(() => {
-    const classKey = currentClass?.id || 'default_class';
+    if (!currentClass) {
+      setStudents([]);
+      return;
+    }
+
+    const classKey = currentClass.id;
     let loaded = [];
 
     try {
@@ -140,12 +148,98 @@ export const BehaviorPage = ({
   };
 
   // Add Class Handler
-  const handleCreateClass = (newClassData) => {
-    if (newClassData.students && newClassData.students.length > 0) {
-      updateStudentsState(newClassData.students);
+  const handleCreateClass = async (newClassData) => {
+    const classId = newClassData.id || `class-${Date.now()}`;
+    const cleanClass = {
+      ...newClassData,
+      id: classId,
+      academic_year: '2026 - 2027'
+    };
+
+    // 1. Save class to LocalStorage user_created_classes
+    try {
+      const stored = JSON.parse(localStorage.getItem('user_created_classes') || '[]');
+      const updated = [...stored.filter(c => c.id !== cleanClass.id && c.name !== cleanClass.name), cleanClass];
+      localStorage.setItem('user_created_classes', JSON.stringify(updated));
+      localStorage.setItem('selected_class_id', cleanClass.id);
+    } catch (e) {
+      console.error(e);
     }
-    if (onSelectClass) onSelectClass(newClassData);
-    if (onRefreshClasses) onRefreshClasses();
+
+    // 2. Save class to Supabase (if online)
+    try {
+      await supabase.from('classes').upsert([{
+        id: cleanClass.id,
+        name: cleanClass.name,
+        grade_level: Number(cleanClass.grade_level || 7),
+        code: `${cleanClass.name}-${Date.now().toString().slice(-4)}`
+      }]);
+    } catch (e) {}
+
+    // 3. Save students if entered
+    const classStudents = cleanClass.students || [];
+    setStudents(classStudents);
+
+    try {
+      localStorage.setItem(`custom_students_${cleanClass.id}`, JSON.stringify(classStudents));
+      localStorage.setItem(`behavior_students_${cleanClass.id}`, JSON.stringify(classStudents));
+    } catch (e) {}
+
+    if (classStudents.length > 0) {
+      try {
+        const dbStudents = classStudents.map((st, i) => ({
+          id: st.id,
+          class_id: cleanClass.id,
+          full_name: st.full_name,
+          gender: st.gender === 'Nữ' ? 'female' : 'male',
+          seat_row: st.seat_row || Math.floor(i / 8) + 1,
+          seat_col: st.seat_col || (i % 8) + 1,
+          team_group: st.team_group || (i % 4) + 1,
+          total_stars: st.plus_points || 0,
+          avatar_url: st.avatar
+        }));
+        await supabase.from('students').upsert(dbStudents);
+      } catch (e) {}
+    }
+
+    if (onSelectClass) onSelectClass(cleanClass);
+    if (onRefreshClasses) await onRefreshClasses();
+  };
+
+  // Quick Add Students directly to current class
+  const handleQuickAddStudents = async (newStudentsList) => {
+    if (!currentClass || !newStudentsList || newStudentsList.length === 0) return;
+    soundFx.playCorrect();
+
+    const formatted = newStudentsList.map((st, idx) => ({
+      ...st,
+      class_id: currentClass.id,
+      seat_row: Math.floor((students.length + idx) / 8) + 1,
+      seat_col: ((students.length + idx) % 8) + 1
+    }));
+
+    const combined = [...students, ...formatted];
+    updateStudentsState(combined);
+
+    try {
+      localStorage.setItem(`custom_students_${currentClass.id}`, JSON.stringify(combined));
+      localStorage.setItem(`behavior_students_${currentClass.id}`, JSON.stringify(combined));
+    } catch (e) {}
+
+    try {
+      const dbStudents = formatted.map(st => ({
+        id: st.id,
+        class_id: currentClass.id,
+        full_name: st.full_name,
+        gender: st.gender === 'Nữ' ? 'female' : 'male',
+        seat_row: st.seat_row,
+        seat_col: st.seat_col,
+        team_group: st.team_group || 1,
+        total_stars: 0,
+        avatar_url: st.avatar
+      }));
+      await supabase.from('students').upsert(dbStudents);
+    } catch (e) {}
   };
 
   // Winner Reward from Random Call / Tet / Blind Pouch
@@ -318,8 +412,48 @@ export const BehaviorPage = ({
 
       </div>
 
-      {/* Main Students Grid */}
-      {filteredStudents.length === 0 ? (
+      {/* Main Students Grid or Empty States */}
+      {!currentClass ? (
+        <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border-2 border-dashed border-purple-200 space-y-4 shadow-soft max-w-xl mx-auto my-6">
+          <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-inner">
+            🏫
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-800">Chưa có lớp học nào trong hệ thống</h3>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Hệ thống đã xóa toàn bộ dữ liệu mẫu. Thầy hãy tạo lớp học đầu tiên (ví dụ: Lớp 7A6, 8A5...) để bắt đầu quản lý nề nếp và học sinh nhé!
+            </p>
+          </div>
+          <button
+            onClick={() => openModal('addClass')}
+            className="px-6 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-2xl shadow-purple-glow inline-flex items-center space-x-2 transition-all transform hover:scale-105"
+          >
+            <School className="w-4 h-4" />
+            <span>+ TẠO LỚP HỌC ĐẦU TIÊN NGAY</span>
+          </button>
+        </div>
+      ) : students.length === 0 ? (
+        <div className="bg-white rounded-3xl p-10 sm:p-14 text-center border-2 border-dashed border-purple-200 space-y-4 shadow-soft max-w-xl mx-auto my-6">
+          <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-inner">
+            👨‍🎓
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-800">Lớp {currentClass.name} chưa có học sinh nào</h3>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Thầy hãy dán danh sách học sinh từ Excel hoặc Word để thêm vào Lớp {currentClass.name} nhé!
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => openModal('quickAddStudents')}
+              className="px-6 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-xs rounded-2xl shadow-purple-glow inline-flex items-center space-x-2 transition-all transform hover:scale-105"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>+ DÁN DANH SÁCH HỌC SINH VÀO LỚP</span>
+            </button>
+          </div>
+        </div>
+      ) : filteredStudents.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200 space-y-3">
           <span className="text-4xl">👨‍🎓</span>
           <h3 className="text-base font-black text-slate-700">Không tìm thấy học sinh phù hợp</h3>
@@ -452,6 +586,14 @@ export const BehaviorPage = ({
         isOpen={modalState.groupTeams}
         onClose={() => closeModal('groupTeams')}
         students={students}
+      />
+
+      {/* 12. Quick Add Students to Current Class Modal */}
+      <QuickAddStudentsModal
+        isOpen={modalState.quickAddStudents}
+        onClose={() => closeModal('quickAddStudents')}
+        currentClass={currentClass}
+        onAddStudents={handleQuickAddStudents}
       />
 
     </div>

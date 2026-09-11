@@ -9,7 +9,8 @@ export const Header = ({
   currentClass = null,
   onSelectClass,
   teacherProfile = null,
-  onOpenSettings
+  onOpenSettings,
+  onOpenAddClass
 }) => {
   const [showClassDropdown, setShowClassDropdown] = useState(false);
 
@@ -40,7 +41,7 @@ export const Header = ({
         </div>
 
         {/* Class Selector Dropdown Pill */}
-        {classes.length > 0 && (
+        {classes.length > 0 ? (
           <div className="relative">
             <button
               onClick={() => {
@@ -82,6 +83,17 @@ export const Header = ({
               </div>
             )}
           </div>
+        ) : (
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              onOpenAddClass?.();
+            }}
+            className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 rounded-2xl text-xs font-black shadow-md shadow-purple-200 transition-all hover:scale-105"
+          >
+            <School className="w-4 h-4 text-purple-200" />
+            <span>+ Tạo Lớp Đầu Tiên</span>
+          </button>
         )}
 
         {/* Teacher Avatar & Name Badge (Image 1, 2, 5 Style) */}

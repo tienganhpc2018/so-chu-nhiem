@@ -24,7 +24,19 @@ import { BehaviorPage } from './features/behavior/BehaviorPage';
 
 const MainLayout = () => {
   const { user, profile, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return localStorage.getItem('sochunhiem_active_tab') || 'behavior';
+    } catch (e) {
+      return 'behavior';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sochunhiem_active_tab', activeTab);
+    } catch (e) {}
+  }, [activeTab]);
   const [classes, setClasses] = useState([]);
   const [currentClass, setCurrentClass] = useState(null);
   const [students, setStudents] = useState([]);
@@ -47,6 +59,36 @@ const MainLayout = () => {
   const closeModal = (name) => {
     setModalState(prev => ({ ...prev, [name]: false }));
   };
+
+  // Clean Slate Routine: Purge legacy mock classes and demo students once
+  useEffect(() => {
+    const CLEAN_KEY = 'system_clean_slate_2026_v2';
+    if (localStorage.getItem(CLEAN_KEY) !== 'done') {
+      try {
+        localStorage.removeItem('user_created_classes');
+        localStorage.removeItem('selected_class_id');
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (
+            k.startsWith('custom_students_') ||
+            k.startsWith('behavior_students_') ||
+            k.startsWith('attendance_') ||
+            k.startsWith('point_history_')
+          )) {
+            keysToRemove.push(k);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+        localStorage.setItem(CLEAN_KEY, 'done');
+        setClasses([]);
+        setCurrentClass(null);
+        setStudents([]);
+      } catch (e) {
+        console.error('Error cleaning legacy storage:', e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     fetchClasses();
@@ -105,35 +147,6 @@ const MainLayout = () => {
     }
   };
 
-const generateDefaultStudents = (classId, className = 'Lớp') => {
-  const names = [
-    'Nguyễn Hoài An', 'Trần Bảo Anh', 'Lê Hoàng Bách', 'Phạm Minh Cường', 'Vũ Đức Duy',
-    'Bùi Thị Giang', 'Đỗ Hà Phương', 'Hồ Quốc Khánh', 'Nông Văn Khoa', 'Đinh Thanh Lâm',
-    'Nguyễn Khánh Linh', 'Trần Nhật Minh', 'Lê Bích Ngọc', 'Phạm Hoàng Nam', 'Vũ Tuyết Nhi',
-    'Bùi Văn Phong', 'Đỗ Như Quỳnh', 'Hồ Tấn Phát', 'Nguyễn Thái Sơn', 'Trần Thu Trang',
-    'Lê Anh Tuấn', 'Phạm Thị Uyên', 'Vũ Quốc Việt', 'Bùi Xuân Vinh', 'Đỗ Hải Yến',
-    'Nguyễn Cao Cường', 'Trần Mỹ Duyên', 'Lê Gia Hưng', 'Phạm Bảo Minh', 'Vũ Diệu Linh',
-    'Bùi Anh Đức', 'Đỗ Quang Huy', 'Hồ Phương Thảo', 'Nguyễn Hữu Đạt', 'Trần Đăng Khoa'
-  ];
-
-  return names.map((name, idx) => {
-    const r = Math.floor(idx / 8) + 1;
-    const c = (idx % 8) + 1;
-    const group = (idx % 4) + 1;
-    return {
-      id: `st-${String(classId).replace(/[^a-zA-Z0-9]/g, '')}-${idx + 1}`,
-      class_id: classId,
-      full_name: name,
-      gender: idx % 2 === 0 ? 'female' : 'male',
-      team_group: group,
-      seat_row: r,
-      seat_col: c,
-      total_stars: Math.floor(Math.random() * 8) + 3,
-      avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`
-    };
-  });
-};
-
   const fetchStudents = async (targetClassOrId) => {
     if (!targetClassOrId) {
       setStudents([]);
@@ -191,14 +204,6 @@ const generateDefaultStudents = (classId, className = 'Lớp') => {
       if (!acc.some(s => s.id === curr.id || s.full_name === curr.full_name)) acc.push(curr);
       return acc;
     }, []);
-
-    if (unique.length === 0 && classId) {
-      unique = generateDefaultStudents(classId, className || 'Lớp');
-      try {
-        localStorage.setItem(`custom_students_${classId}`, JSON.stringify(unique));
-        if (className) localStorage.setItem(`custom_students_${className}`, JSON.stringify(unique));
-      } catch (e) {}
-    }
 
     setStudents(unique);
   };
@@ -269,6 +274,7 @@ const generateDefaultStudents = (classId, className = 'Lớp') => {
           onSelectClass={setCurrentClass}
           teacherProfile={profile}
           onOpenSettings={() => setActiveTab('settings')}
+          onOpenAddClass={() => setActiveTab('classes')}
         />
 
         {/* 4-Tab Management Navigation Bar */}
