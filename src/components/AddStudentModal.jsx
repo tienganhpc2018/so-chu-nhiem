@@ -57,9 +57,9 @@ export const AddStudentModal = ({ isOpen, onClose, currentClass, onAddStudents }
     soundFx.playCorrect();
 
     const newStudents = lines.map((name, idx) => {
-      // Auto assign seats 4x6 grid
-      const r = Math.floor(idx / 6) + 1;
-      const c = (idx % 6) + 1;
+      // Auto assign seats evenly across 4 Dãy Bàn (8 seats per row = 4 double desks)
+      const r = Math.floor(idx / 8) + 1;
+      const c = (idx % 8) + 1;
       const group = (idx % 4) + 1;
 
       return {

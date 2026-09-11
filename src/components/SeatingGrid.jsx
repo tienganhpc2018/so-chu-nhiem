@@ -176,6 +176,19 @@ export const SeatingGrid = ({
     });
   };
 
+  // Auto Arrange ALL students evenly across 4 Aisles (Dãy 1, 2, 3, 4)
+  const handleAutoArrange4Days = () => {
+    soundFx.playCorrect();
+    confetti({ particleCount: 40, spread: 90, origin: { y: 0.5 } });
+
+    const list = [...students];
+    list.forEach((st, idx) => {
+      const seatRow = Math.floor(idx / 8) + 1;
+      const seatCol = (idx % 8) + 1;
+      onMoveStudentSeat?.(st.id, seatRow, seatCol);
+    });
+  };
+
   // Save current seating layout as Preset
   const handleSavePreset = () => {
     soundFx.playCorrect();
@@ -341,6 +354,15 @@ export const SeatingGrid = ({
         {/* Smart Rules & Print Buttons */}
         <div className="flex flex-wrap items-center gap-2">
           
+          <button
+            onClick={handleAutoArrange4Days}
+            className="px-3.5 py-1.5 bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-300 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 shadow-xs"
+            title="Tự động xếp đều tất cả học sinh trải trọn vẹn cả 4 Dãy Bàn (Dãy 1, 2, 3, 4)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+            <span>Xếp đều 4 Dãy Bàn</span>
+          </button>
+
           {/* Feature 3: Boy-Girl Cross Team Rule */}
           <button
             onClick={handleBoyGirlCrossTeamRule}
