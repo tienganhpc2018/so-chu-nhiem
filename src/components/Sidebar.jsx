@@ -3,6 +3,7 @@ import { soundFx } from '../utils/soundEffects';
 import { MascotRobot } from './MascotRobot';
 import {
   LayoutDashboard,
+  Award,
   School,
   GraduationCap,
   UserCheck,
