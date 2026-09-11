@@ -21,18 +21,11 @@ import { QuickLinksView } from './pages/QuickLinksView';
 import { AnalyticsView } from './pages/AnalyticsView';
 import { Auth } from './pages/Auth';
 
-const defaultDemoClass = {
-  id: '8a500000-0000-0000-0000-0000000008a5',
-  name: '8A5',
-  grade_level: 8,
-  code: '8A5-GVCN-HAI'
-};
-
 const MainLayout = () => {
   const { user, profile, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('home');
-  const [classes, setClasses] = useState([defaultDemoClass]);
-  const [currentClass, setCurrentClass] = useState(defaultDemoClass);
+  const [classes, setClasses] = useState([]);
+  const [currentClass, setCurrentClass] = useState(null);
   const [students, setStudents] = useState([]);
 
   // Modals state
@@ -62,6 +55,8 @@ const MainLayout = () => {
     if (currentClass) {
       localStorage.setItem('selected_class_id', currentClass.id);
       fetchStudents(currentClass.id);
+    } else {
+      setStudents([]);
     }
   }, [currentClass]);
 
@@ -80,7 +75,7 @@ const MainLayout = () => {
         .select('*')
         .order('grade_level', { ascending: true });
 
-      const combined = [defaultDemoClass, ...(data || []), ...localClasses];
+      const combined = [...(data || []), ...localClasses];
       // Deduplicate by ID
       const unique = combined.reduce((acc, curr) => {
         if (!acc.some(c => c.id === curr.id)) acc.push(curr);
@@ -92,21 +87,25 @@ const MainLayout = () => {
       // Restore active selected class from LocalStorage
       const savedId = localStorage.getItem('selected_class_id');
       const found = unique.find(c => c.id === savedId);
-      setCurrentClass(found || unique[0]);
+      setCurrentClass(found || (unique.length > 0 ? unique[0] : null));
     } catch (err) {
-      const combined = [defaultDemoClass, ...localClasses];
-      const unique = combined.reduce((acc, curr) => {
+      const unique = localClasses.reduce((acc, curr) => {
         if (!acc.some(c => c.id === curr.id)) acc.push(curr);
         return acc;
       }, []);
       setClasses(unique);
       const savedId = localStorage.getItem('selected_class_id');
       const found = unique.find(c => c.id === savedId);
-      setCurrentClass(found || unique[0]);
+      setCurrentClass(found || (unique.length > 0 ? unique[0] : null));
     }
   };
 
   const fetchStudents = async (classId) => {
+    if (!classId) {
+      setStudents([]);
+      return;
+    }
+
     let localSt = [];
     try {
       const stored = localStorage.getItem(`custom_students_${classId}`);
@@ -129,50 +128,10 @@ const MainLayout = () => {
         return acc;
       }, []);
 
-      if (unique.length >= 30) {
-        setStudents(unique);
-      } else {
-        const full39 = getSampleStudents(classId);
-        setStudents(full39);
-      }
+      setStudents(unique);
     } catch (err) {
-      if (localSt.length >= 30) {
-        setStudents(localSt);
-      } else {
-        setStudents(getSampleStudents(classId));
-      }
+      setStudents(localSt);
     }
-  };
-
-  const getSampleStudents = (cId) => {
-    const sampleNames = [
-      'Nguyễn Minh Anh', 'Trần Bảo Nam', 'Lê Hoàng Khánh', 'Phạm Thu Trang', 'Vũ Đức Anh', 'Đặng Thảo Nguyên',
-      'Bùi Gia Huy', 'Đỗ Phương Linh', 'Nông Văn Mạnh', 'Hà Ánh Tuyết', 'Ngô Quốc Trung', 'Dương Mỹ Duyên',
-      'Lý Hải Long', 'Trịnh Cẩm Tú', 'Đoàn Quang Vinh', 'Mai Ngọc Hà', 'Lương Minh Tuấn', 'Tào Thanh Thảo',
-      'Phùng Quốc Huy', 'Hoàng Bảo Yến', 'Trần Hữu Phước', 'Lê Khánh Ngọc', 'Nguyễn Tấn Đạt', 'Phạm Quỳnh Chi',
-      'Vũ Hoàng Lâm', 'Đặng Thu Hà', 'Bùi Đức Trí', 'Đỗ Linh Chi', 'Nông Văn Hoàng', 'Hà Khánh Linh',
-      'Ngô Gia Bảo', 'Dương Hoài Nam', 'Lý Quốc An', 'Trịnh Thanh Hằng', 'Đoàn Văn Nam', 'Mai Phương Thảo',
-      'Lương Anh Dũng', 'Tào Thu Thủy', 'Nguyễn Gia Hân'
-    ];
-
-    return sampleNames.map((name, idx) => {
-      const seatRow = Math.floor(idx / 8) + 1;
-      const seatCol = (idx % 8) + 1;
-      const teamGroup = (idx % 4) + 1;
-      const stars = 20 + ((idx * 7) % 70);
-      const seed = name.toLowerCase().replace(/\s+/g, '');
-
-      return {
-        id: `st_${cId}_${idx + 1}`,
-        class_id: cId,
-        full_name: name,
-        seat_row: seatRow,
-        seat_col: seatCol,
-        total_stars: stars,
-        team_group: teamGroup,
-        avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`
-      };
-    });
   };
 
   if (loading) {

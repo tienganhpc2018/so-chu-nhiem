@@ -54,9 +54,7 @@ export const AnalyticsView = ({ currentClass, students = [], teacherProfile }) =
   ];
 
   // History Logs
-  const historyLogs = [
-    { id: 'h1', time: new Date().toLocaleTimeString('vi-VN'), student: 'Nguyễn Minh Anh', type: 'plus', amount: 5, reason: 'Làm bài tập Tiếng Anh sạch đẹp, xuất sắc' }
-  ];
+  const historyLogs = [];
 
   // Handle Export Excel Report
   const handleExportExcel = () => {

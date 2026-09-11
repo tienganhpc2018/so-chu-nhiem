@@ -14,19 +14,8 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-const defaultSampleStudents = [
-  { id: 'fs1', full_name: 'Nguyễn Minh Anh', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=minhanh' },
-  { id: 'fs2', full_name: 'Trần Bảo Nam', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=baonam' },
-  { id: 'fs3', full_name: 'Lê Hoàng Khánh', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hoangkhanh' },
-  { id: 'fs4', full_name: 'Phạm Thu Trang', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thutrang' },
-  { id: 'fs5', full_name: 'Vũ Đức Anh', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=ducanh' },
-  { id: 'fs6', full_name: 'Đặng Thảo Nguyên', avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thaonguyen' }
-];
-
 export const FilmStripView = ({ currentClass, students = [] }) => {
-  const displayStudents = students && students.length > 0 ? students : defaultSampleStudents;
-
-  const [availableStudents, setAvailableStudents] = useState(displayStudents);
+  const [availableStudents, setAvailableStudents] = useState(students || []);
   const [excludedStudents, setExcludedStudents] = useState([]);
   const [historyLogs, setHistoryLogs] = useState([]);
   const [autoExclude, setAutoExclude] = useState(true);
@@ -41,11 +30,7 @@ export const FilmStripView = ({ currentClass, students = [] }) => {
   const reelRef = useRef(null);
 
   useEffect(() => {
-    if (students && students.length > 0) {
-      setAvailableStudents(students);
-    } else {
-      setAvailableStudents(defaultSampleStudents);
-    }
+    setAvailableStudents(students || []);
   }, [students]);
 
   // Handle Spin Film Strip Animation

@@ -307,7 +307,7 @@ export const AddStudentModal = ({ isOpen, onClose, currentClass, onAddStudents }
                 rows={6}
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
-                placeholder="1. Nguyễn Minh Anh&#10;2. Trần Bảo Nam&#10;3. Lê Hoàng Khánh&#10;4. Phạm Thu Trang..."
+                placeholder="Dán hoặc nhập danh sách học sinh (mỗi em 1 dòng)..."
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-purple-500 outline-none leading-relaxed"
               ></textarea>
             </div>
