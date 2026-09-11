@@ -22,6 +22,17 @@ import {
   ShieldAlert
 } from 'lucide-react';
 
+const defaultLuckyStudents = [
+  { id: 'st1', full_name: 'Nguyễn Minh Anh', team_group: 1, total_stars: 45, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=minhanh' },
+  { id: 'st2', full_name: 'Trần Bảo Nam', team_group: 1, total_stars: 30, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=baonam' },
+  { id: 'st3', full_name: 'Lê Hoàng Khánh', team_group: 2, total_stars: 50, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hoangkhanh' },
+  { id: 'st4', full_name: 'Phạm Thu Trang', team_group: 2, total_stars: 65, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thutrang' },
+  { id: 'st5', full_name: 'Vũ Đức Anh', team_group: 3, total_stars: 25, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=ducanh' },
+  { id: 'st6', full_name: 'Đặng Thảo Nguyên', team_group: 3, total_stars: 40, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thaonguyen' },
+  { id: 'st7', full_name: 'Bùi Gia Huy', team_group: 4, total_stars: 35, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=giahuy' },
+  { id: 'st8', full_name: 'Đỗ Phương Linh', team_group: 4, total_stars: 80, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=phuonglinh' }
+];
+
 export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) => {
   // Sound mute state
   const [isMuted, setIsMuted] = useState(false);
@@ -48,7 +59,9 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
   const [excludeWinner, setExcludeWinner] = useState(false);
 
   // Available students in cage
-  const [availableStudents, setAvailableStudents] = useState([]);
+  const [availableStudents, setAvailableStudents] = useState(() => {
+    return students && students.length > 0 ? students : defaultLuckyStudents;
+  });
   const [historyLogs, setHistoryLogs] = useState([]);
 
   // Spinning State
@@ -79,20 +92,20 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
   ];
 
   useEffect(() => {
-    if (students && students.length > 0) {
-      setAvailableStudents(students);
-      initBallPositions(students);
-    }
+    const activeList = students && students.length > 0 ? students : defaultLuckyStudents;
+    setAvailableStudents(activeList);
+    initBallPositions(activeList);
   }, [students]);
 
   const initBallPositions = (stList) => {
-    const total = stList.length;
-    const initial = stList.map((st, idx) => {
-      const angle = (idx / total) * 2 * Math.PI;
+    const list = stList && stList.length > 0 ? stList : defaultLuckyStudents;
+    const total = list.length;
+    const initial = list.map((st, idx) => {
+      const angle = (idx / Math.max(1, total)) * 2 * Math.PI;
       const radius = 65 + Math.random() * 25;
       return {
-        id: st.id,
-        student: st,
+        id: st?.id || `st-${idx}`,
+        student: st || { id: `st-${idx}`, full_name: 'Học sinh', avatar_url: '' },
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius,
         vx: (Math.random() - 0.5) * 3,
@@ -175,14 +188,20 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
   // Feature 1: Play Suspense Lottery Audio Spin
   const handleStartSpin = () => {
-    if (availableStudents.length === 0) {
-      alert('Không còn học sinh nào trong lồng cầu! Thầy bấm "Làm mới lượt quay" để nạp lại nhé.');
+    const pool = availableStudents && availableStudents.length > 0 ? availableStudents : (students && students.length > 0 ? students : defaultLuckyStudents);
+
+    if (pool.length === 0) {
+      alert('Không còn học sinh nào trong lồng cầu! Thầy bấm "Nạp Lại" để quay tiếp nhé.');
       return;
     }
 
-    if (!isMuted) {
-      soundFx.playClick();
-      soundFx.playSuspenseSpin(); // Feature 1: Accelerating suspense sound
+    try {
+      if (!isMuted) {
+        soundFx.playClick();
+        soundFx.playSuspenseSpin();
+      }
+    } catch (e) {
+      console.error(e);
     }
 
     let activeEff = selectedEffect;
@@ -196,41 +215,59 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
 
     setCurrentActiveEffect(activeEff);
     setIsSpinning(true);
+    setWinnerStudent(null);
 
     // Pick winner after 3.2 seconds
     setTimeout(() => {
-      let winner;
+      try {
+        const currentPool = availableStudents && availableStudents.length > 0 ? availableStudents : (students && students.length > 0 ? students : defaultLuckyStudents);
+        
+        let winner;
+        if (quietPriority) {
+          const sortedByQuiet = [...currentPool].sort((a, b) => (a.total_stars || 0) - (b.total_stars || 0));
+          const quietCandidates = sortedByQuiet.slice(0, Math.max(3, Math.floor(currentPool.length / 2)));
+          winner = quietCandidates[Math.floor(Math.random() * quietCandidates.length)];
+        } else {
+          const randomIndex = Math.floor(Math.random() * currentPool.length);
+          winner = currentPool[randomIndex] || currentPool[0];
+        }
 
-      // Feature 3: Quiet Students Priority (Pick from lowest stars)
-      if (quietPriority) {
-        const sortedByQuiet = [...availableStudents].sort((a, b) => (a.total_stars || 0) - (b.total_stars || 0));
-        const quietCandidates = sortedByQuiet.slice(0, Math.max(3, Math.floor(availableStudents.length / 2)));
-        winner = quietCandidates[Math.floor(Math.random() * quietCandidates.length)];
-      } else {
-        const randomIndex = Math.floor(Math.random() * availableStudents.length);
-        winner = availableStudents[randomIndex];
-      }
+        if (!winner) winner = defaultLuckyStudents[0];
 
-      // Feature 4: Apply Attached Reward
-      const rewardObj = rewardOptions.find(r => r.id === attachedReward) || rewardOptions[0];
-      if (rewardObj.coins > 0) {
-        winner.total_stars = (winner.total_stars || 0) + rewardObj.coins;
-      }
+        const rewardObj = (rewardOptions && rewardOptions.find(r => r.id === attachedReward)) || { title: '+5 Xu Thi Đua', coins: 5 };
 
-      setWinnerStudent(winner);
-      setIsSpinning(false);
-      setShowWinnerModal(false); // Display inline inside yellow box on page (No popup modal)
+        // Create a new clone object so state mutation doesn't crash React
+        const updatedWinner = {
+          ...winner,
+          total_stars: (winner.total_stars || 0) + (rewardObj.coins || 0)
+        };
 
-      if (!isMuted) soundFx.playWinner();
-      confetti({ particleCount: 75, spread: 100, origin: { y: 0.5 } });
+        setWinnerStudent(updatedWinner);
+        setIsSpinning(false);
+        setShowWinnerModal(false);
 
-      setHistoryLogs(prev => [
-        { id: Date.now(), student: winner, reward: rewardObj.title, time: new Date().toLocaleTimeString('vi-VN') },
-        ...prev
-      ]);
+        if (!isMuted) {
+          try { soundFx.playWinner(); } catch (e) {}
+        }
 
-      if (excludeWinner) {
-        setAvailableStudents(prev => prev.filter(s => s.id !== winner.id));
+        try {
+          confetti({ particleCount: 75, spread: 100, origin: { y: 0.5 } });
+        } catch (e) {
+          console.error(e);
+        }
+
+        setHistoryLogs(prev => [
+          { id: Date.now(), student: updatedWinner, reward: rewardObj.title || 'Xu thi đua', time: new Date().toLocaleTimeString('vi-VN') },
+          ...prev
+        ]);
+
+        if (excludeWinner) {
+          setAvailableStudents(prev => prev.filter(s => s.id !== updatedWinner.id));
+        }
+      } catch (err) {
+        console.error('Lỗi khi chốt kết quả quay:', err);
+        setIsSpinning(false);
+        setWinnerStudent(defaultLuckyStudents[0]);
       }
     }, 3200);
   };
@@ -381,8 +418,8 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
                     }}
                   >
                     <img
-                      src={ball.student.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${ball.id}`}
-                      alt={ball.student.full_name}
+                      src={ball?.student?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${ball?.id || 'st'}`}
+                      alt={ball?.student?.full_name || 'Học sinh'}
                       className="w-full h-full object-cover rounded-full bg-purple-50"
                     />
                   </div>
@@ -647,13 +684,13 @@ export const LuckyWheelView = ({ currentClass, students = [], teacherProfile }) 
                         #{idx + 1}
                       </span>
                       <img
-                        src={log.student.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${log.student.id}`}
-                        alt={log.student.full_name}
+                        src={log?.student?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${log?.student?.id || 'st'}`}
+                        alt={log?.student?.full_name || 'Học sinh'}
                         className="w-8 h-8 rounded-xl object-cover border border-purple-200"
                       />
                       <div>
-                        <span className="text-slate-800 font-extrabold block">{log.student.full_name}</span>
-                        <span className="text-[9px] text-amber-700 font-extrabold">{log.reward}</span>
+                        <span className="text-slate-800 font-extrabold block">{log?.student?.full_name || 'Học sinh'}</span>
+                        <span className="text-[9px] text-amber-700 font-extrabold">{log?.reward || 'Xu thi đua'}</span>
                       </div>
                     </div>
 
