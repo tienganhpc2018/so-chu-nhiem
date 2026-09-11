@@ -558,11 +558,11 @@ export const BehaviorPage = ({
         isOpen={modalState.beeRace}
         onClose={() => closeModal('beeRace')}
         students={students}
-        onRewardTop3={(topDucks) => {
-          topDucks.forEach((d, i) => {
-            const pts = i === 0 ? 5 : i === 1 ? 3 : 2;
-            if (d.student?.id) handleApplyPointChange(d.student.id, pts, 'plus', `Top ${i + 1} Đua Vịt`);
-          });
+        calledStudentIds={calledStudentIds}
+        onConfirmCallStudent={(studentId) => {
+          if (studentId && !calledStudentIds.includes(studentId)) {
+            setCalledStudentIds(prev => [...prev, studentId]);
+          }
         }}
       />
 
