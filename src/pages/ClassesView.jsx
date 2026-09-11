@@ -45,15 +45,51 @@ export const ClassesView = ({
   };
 
   const handleDeleteClass = async (cls) => {
-    if (!window.confirm(`Thầy/Cô có chắc chắn muốn lưu trữ hoặc xóa Lớp ${cls.name}?`)) return;
+    if (!window.confirm(`Thầy/Cô có chắc chắn muốn xóa Lớp ${cls.name}? (Dữ liệu lớp sẽ bị xóa hoàn toàn khỏi hệ thống)`)) return;
     soundFx.playClick();
 
     try {
-      await supabase.from('classes').delete().eq('id', cls.id);
+      // 1. Delete from Supabase DB
+      try {
+        await supabase.from('students').delete().eq('class_id', cls.id);
+        await supabase.from('classes').delete().eq('id', cls.id);
+      } catch (e) {
+        console.error('DB delete error:', e);
+      }
+
+      // 2. Delete from LocalStorage user_created_classes (matching by ID OR Name)
+      try {
+        const stored = JSON.parse(localStorage.getItem('user_created_classes') || '[]');
+        const updated = stored.filter(c => c.id !== cls.id && c.name !== cls.name);
+        localStorage.setItem('user_created_classes', JSON.stringify(updated));
+        localStorage.removeItem(`custom_students_${cls.id}`);
+      } catch (e) {
+        console.error('LocalStorage delete error:', e);
+      }
+
       soundFx.playCorrect();
       if (onRefreshClasses) await onRefreshClasses();
     } catch (err) {
       console.error('Lỗi xóa lớp:', err);
+    }
+  };
+
+  const handleClearAllClasses = async () => {
+    if (!window.confirm('Thầy/Cô có chắc chắn muốn xóa TOÀN BỘ các lớp học để dọn dẹp và khởi tạo lại từ đầu?')) return;
+    soundFx.playClick();
+    try {
+      localStorage.removeItem('user_created_classes');
+      localStorage.removeItem('selected_class_id');
+      classes.forEach(c => {
+        localStorage.removeItem(`custom_students_${c.id}`);
+      });
+      try {
+        await supabase.from('classes').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (e) {}
+      soundFx.playCorrect();
+      if (onRefreshClasses) await onRefreshClasses();
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -138,14 +174,24 @@ export const ClassesView = ({
           </p>
         </div>
 
-        {/* Action Button: + Tạo Lớp Học Mới (Image 1 Style) */}
-        <button
-          onClick={handleOpenAddModal}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-2xl shadow-purple-glow transition-all flex items-center space-x-2 transform hover:scale-105 active:scale-95 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tạo lớp học mới</span>
-        </button>
+        <div className="flex items-center space-x-2 shrink-0">
+          <button
+            onClick={handleClearAllClasses}
+            className="px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold text-xs rounded-2xl border border-rose-200 shadow-xs transition-all flex items-center space-x-1.5"
+            title="Xóa tất cả các lớp rác / trùng lặp"
+          >
+            <Trash2 className="w-4 h-4 text-rose-600" />
+            <span>Xóa tất cả các lớp</span>
+          </button>
+
+          <button
+            onClick={handleOpenAddModal}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs rounded-2xl shadow-purple-glow transition-all flex items-center space-x-2 transform hover:scale-105 active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tạo lớp học mới</span>
+          </button>
+        </div>
       </div>
 
       {/* Academic Year Filter Tabs (Archive Feature) */}

@@ -76,9 +76,11 @@ const MainLayout = () => {
         .order('grade_level', { ascending: true });
 
       const combined = [...(data || []), ...localClasses];
-      // Deduplicate by ID
+      // Deduplicate by ID AND Class Name
       const unique = combined.reduce((acc, curr) => {
-        if (!acc.some(c => c.id === curr.id)) acc.push(curr);
+        if (!acc.some(c => c.id === curr.id || (c.name.trim().toLowerCase() === curr.name.trim().toLowerCase() && Number(c.grade_level) === Number(curr.grade_level)))) {
+          acc.push(curr);
+        }
         return acc;
       }, []);
 
@@ -86,16 +88,18 @@ const MainLayout = () => {
 
       // Restore active selected class from LocalStorage
       const savedId = localStorage.getItem('selected_class_id');
-      const found = unique.find(c => c.id === savedId);
+      const found = unique.find(c => c.id === savedId || c.name === savedId);
       setCurrentClass(found || (unique.length > 0 ? unique[0] : null));
     } catch (err) {
       const unique = localClasses.reduce((acc, curr) => {
-        if (!acc.some(c => c.id === curr.id)) acc.push(curr);
+        if (!acc.some(c => c.id === curr.id || (c.name.trim().toLowerCase() === curr.name.trim().toLowerCase() && Number(c.grade_level) === Number(curr.grade_level)))) {
+          acc.push(curr);
+        }
         return acc;
       }, []);
       setClasses(unique);
       const savedId = localStorage.getItem('selected_class_id');
-      const found = unique.find(c => c.id === savedId);
+      const found = unique.find(c => c.id === savedId || c.name === savedId);
       setCurrentClass(found || (unique.length > 0 ? unique[0] : null));
     }
   };
