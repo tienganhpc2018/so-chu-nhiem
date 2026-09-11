@@ -21,6 +21,7 @@ import { QuickLinksView } from './pages/QuickLinksView';
 import { AnalyticsView } from './pages/AnalyticsView';
 import { Auth } from './pages/Auth';
 import { BehaviorPage } from './features/behavior/BehaviorPage';
+import { AssessmentPage } from './features/assessment/AssessmentPage';
 
 const MainLayout = () => {
   const { user, profile, loading } = useAuth();
@@ -229,6 +230,7 @@ const MainLayout = () => {
   const tabTitleMap = {
     home: { title: 'Trang chủ', subtitle: 'Tổng quan tình hình và hoạt động học tập hôm nay' },
     behavior: { title: 'Sổ Nề Nếp & Quản Lý 4.0', subtitle: 'Hệ thống quản lý nề nếp thi đua, gọi tên ngẫu nhiên & minigames lớp học' },
+    assessment: { title: 'Sổ Đánh Giá Môn Học THCS', subtitle: 'Bảng điểm ĐĐG thường xuyên, giữa kỳ, cuối kỳ & AI tự động nhận xét chuẩn Thông tư 22' },
     classes: { title: 'Quản lý Lớp học', subtitle: 'Danh sách các lớp học chủ nhiệm và khởi tạo lớp mới' },
     students: { title: 'Danh sách Học sinh', subtitle: 'Hồ sơ học sinh, điểm thi đua và phân tổ' },
     attendance: { title: 'Điểm danh Chuyên cần', subtitle: 'Điểm danh hiện diện học sinh theo ngày' },
@@ -278,7 +280,7 @@ const MainLayout = () => {
         />
 
         {/* 4-Tab Management Navigation Bar */}
-        {['classes', 'students', 'seating', 'attendance', 'behavior'].includes(activeTab) && (
+        {['classes', 'students', 'seating', 'attendance', 'behavior', 'assessment'].includes(activeTab) && (
           <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center space-x-1.5 sm:space-x-2 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80">
               <button
@@ -295,6 +297,23 @@ const MainLayout = () => {
                   activeTab === 'behavior' ? 'bg-pink-500 text-white' : 'bg-pink-100 text-pink-700'
                 }`}>
                   MỚI
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('assessment')}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                  activeTab === 'assessment'
+                    ? 'bg-gradient-to-r from-teal-700 to-emerald-700 text-white shadow-md shadow-teal-200 scale-102'
+                    : 'text-teal-800 hover:text-teal-950 hover:bg-teal-50'
+                }`}
+              >
+                <span>📋</span>
+                <span>Sổ Đánh Giá</span>
+                <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                  activeTab === 'assessment' ? 'bg-amber-400 text-amber-950' : 'bg-teal-100 text-teal-800'
+                }`}>
+                  AI ✨
                 </span>
               </button>
 
@@ -391,6 +410,16 @@ const MainLayout = () => {
             />
           )}
 
+          {activeTab === 'assessment' && (
+            <AssessmentPage
+              currentClass={currentClass}
+              classes={classes}
+              students={students}
+              onSelectClass={setCurrentClass}
+              onOpenQuickAddStudents={() => openModal('addStudent')}
+            />
+          )}
+
           {activeTab === 'classes' && (
             <ClassesView
               classes={classes}
@@ -483,7 +512,7 @@ const MainLayout = () => {
             />
           )}
 
-          {activeTab !== 'home' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'luckywheel' && activeTab !== 'filmstrip' && activeTab !== 'noisemeter' && activeTab !== 'timer' && activeTab !== 'links' && activeTab !== 'settings' && (
+          {activeTab !== 'home' && activeTab !== 'behavior' && activeTab !== 'assessment' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'luckywheel' && activeTab !== 'filmstrip' && activeTab !== 'noisemeter' && activeTab !== 'timer' && activeTab !== 'links' && activeTab !== 'settings' && (
             <TeacherDashboard
               classes={classes}
               currentClass={currentClass}

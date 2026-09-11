@@ -21,7 +21,8 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  PhoneCall
+  PhoneCall,
+  ClipboardCheck
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, onTabChange, studentCount = 18, teacherProfile = null }) => {
@@ -32,7 +33,8 @@ export const Sidebar = ({ activeTab, onTabChange, studentCount = 18, teacherProf
       title: 'TỔNG QUAN',
       items: [
         { id: 'home', label: 'Trang chủ', icon: LayoutDashboard },
-        { id: 'behavior', label: 'Sổ Nề Nếp 4.0', icon: Award, badge: 'MỚI 4.0', badgeColor: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black' }
+        { id: 'behavior', label: 'Sổ Nề Nếp 4.0', icon: Award, badge: 'MỚI 4.0', badgeColor: 'bg-gradient-to-r from-purple-600 to-pink-600 text-white font-black' },
+        { id: 'assessment', label: 'Sổ Đánh Giá Môn Học', icon: ClipboardCheck, badge: 'AI 4.0', badgeColor: 'bg-teal-100 text-teal-800 font-black' }
       ]
     },
     {
