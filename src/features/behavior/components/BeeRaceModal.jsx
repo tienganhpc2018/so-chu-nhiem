@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import confetti from 'canvas-confetti';
-import { X, Play, RotateCcw, Trophy, Award, Sparkles, Check, Volume2, ListOrdered } from 'lucide-react';
+import { X, Play, RotateCcw, Trophy, Sparkles, Check, Volume2, ListOrdered } from 'lucide-react';
 import { soundFx } from '../../../utils/soundEffects';
 
 export const BeeRaceModal = ({
@@ -24,10 +24,15 @@ export const BeeRaceModal = ({
   const ducksRef = useRef([]);
   const timerIntervalRef = useRef(null);
 
+  // Hat accessories styles for ducks
+  const DUCK_ACCESSORIES = ['cap', 'beanie', 'sunglasses', 'headband', 'crown', 'none'];
+  const DUCK_COLORS = ['#F59E0B', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+
   // Available students pool (optionally excluding previous winners)
   const activeStudents = useMemo(() => {
-    const filtered = students.filter(s => !excludedIds.includes(s.id));
-    return filtered.length > 0 ? filtered : students;
+    const list = Array.isArray(students) ? students : [];
+    const filtered = list.filter(s => s && s.id && !excludedIds.includes(s.id));
+    return filtered.length > 0 ? filtered : list;
   }, [students, excludedIds]);
 
   // Cleanup upon closing
@@ -42,51 +47,7 @@ export const BeeRaceModal = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
-  // Hat accessories styles for ducks
-  const DUCK_ACCESSORIES = ['cap', 'beanie', 'sunglasses', 'headband', 'crown', 'none'];
-  const DUCK_COLORS = ['#F59E0B', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
-
-  // SCREEN 1: Setup ducks lineup
-  const handleConfirmSetup = () => {
-    soundFx.playClick();
-    setTimeLeft(duration);
-    setShowLeaderboard(false);
-
-    const pool = activeStudents.length > 0 ? activeStudents : students;
-    const count = Math.min(duckCount, Math.max(pool.length, 10));
-    const newDucks = [];
-
-    // Tạo danh sách vịt tương ứng với học sinh
-    for (let i = 0; i < count; i++) {
-      const student = pool[i % pool.length] || { full_name: `Vịt #${i + 1}`, id: `duck-${i + 1}` };
-      newDucks.push({
-        id: i + 1,
-        student,
-        name: student.full_name,
-        color: DUCK_COLORS[i % DUCK_COLORS.length],
-        accessory: DUCK_ACCESSORIES[i % DUCK_ACCESSORIES.length],
-        // Vị trí xếp hàng dọc theo vạch xuất phát nghiêng (giống hình 4)
-        startX: 110 - (i % 2) * 12,
-        x: 0,
-        y: 0,
-        laneY: 0,
-        speed: 0,
-        baseSpeed: (Math.random() * 0.45 + 0.85),
-        boostTimer: Math.random() * 2,
-        wiggleOffset: Math.random() * Math.PI * 2,
-        finished: false,
-        finishRank: null
-      });
-    }
-
-    ducksRef.current = newDucks;
-    setScreen('race');
-    setRaceState('ready');
-  };
-
-  // Draw ducks on canvas (Ready, Running, and Finished states)
+  // Vẽ chú vịt trên Canvas (chuẩn tương thích mọi trình duyệt)
   const drawDuck = (ctx, d, isWinnerSolo = false) => {
     ctx.save();
     ctx.translate(d.x, d.y);
@@ -97,7 +58,11 @@ export const BeeRaceModal = ({
     // Water ripple under duck
     ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
     ctx.beginPath();
-    ctx.ellipse(0, 10, 16, 5, 0, 0, Math.PI * 2);
+    if (ctx.ellipse) {
+      ctx.ellipse(0, 10, 16, 5, 0, 0, Math.PI * 2);
+    } else {
+      ctx.arc(0, 10, 8, 0, Math.PI * 2);
+    }
     ctx.fill();
 
     // Duck body
@@ -167,10 +132,14 @@ export const BeeRaceModal = ({
       ctx.fill();
     }
 
-    // Number Badge on Duck Body (giống túi đeo số ở hình 4 & 5)
+    // Number Badge on Duck Body (túi đeo số ở hình 4 & 5)
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.roundRect(-8, -4, 14, 11, 3);
+    if (ctx.roundRect) {
+      ctx.roundRect(-8, -4, 14, 11, 3);
+    } else {
+      ctx.rect(-8, -4, 14, 11);
+    }
     ctx.fill();
     ctx.strokeStyle = '#0F172A';
     ctx.lineWidth = 1;
@@ -192,9 +161,9 @@ export const BeeRaceModal = ({
     ctx.restore();
   };
 
-  // Vòng lặp render chính (Canvas loop)
+  // Vòng lặp render chính (Canvas loop) - Đặt TRƯỚC mọi return để tuân thủ tuyệt đối Rules of Hooks
   useEffect(() => {
-    if (screen !== 'race') return;
+    if (!isOpen || screen !== 'race') return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -205,7 +174,6 @@ export const BeeRaceModal = ({
     const height = canvas.height;
     const totalDucks = ducksRef.current.length;
 
-    // Khoảng cách theo chiều dọc cho các chú vịt xuất phát
     const startTop = 70;
     const startBottom = height - 40;
     const availableHeight = startBottom - startTop;
@@ -213,7 +181,6 @@ export const BeeRaceModal = ({
     ducksRef.current.forEach((d, idx) => {
       d.laneY = startTop + (idx / Math.max(1, totalDucks - 1)) * availableHeight;
       if (raceState === 'ready') {
-        // Xếp hàng dọc vạch xuất phát hơi chéo (Hình 4)
         const slantOffset = (idx / totalDucks) * 50;
         d.x = 90 + slantOffset + (idx % 2 === 0 ? -10 : 8);
         d.y = d.laneY;
@@ -221,16 +188,13 @@ export const BeeRaceModal = ({
     });
 
     const render = () => {
-      // 1. Vẽ bờ cỏ và sông nước (Giống giao diện Online-Stopwatch hình 4 & 5)
-      // Bờ cỏ trên
+      // 1. Vẽ bờ cỏ và sông nước (Hình 4 & 5)
       ctx.fillStyle = '#22c55e';
       ctx.fillRect(0, 0, width, 45);
 
-      // Bờ đất nâu
       ctx.fillStyle = '#854d0e';
       ctx.fillRect(0, 45, width, 12);
 
-      // Dòng sông xanh biếc
       const waterGrad = ctx.createLinearGradient(0, 57, 0, height);
       waterGrad.addColorStop(0, '#0284c7');
       waterGrad.addColorStop(0.5, '#0369a1');
@@ -238,7 +202,6 @@ export const BeeRaceModal = ({
       ctx.fillStyle = waterGrad;
       ctx.fillRect(0, 57, width, height - 57);
 
-      // Sóng nước nhấp nhô
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 1.2;
       const waveOffset = (Date.now() / 25) % 40;
@@ -250,9 +213,8 @@ export const BeeRaceModal = ({
         ctx.stroke();
       }
 
-      // 2. Trạng thái SẴN SÀNG (READY) - Vẽ Vạch xuất phát kẻ caro nghiêng và TOÀN BỘ VỊT XẾP HÀNG (Hình 4)
+      // 2. Trạng thái READY - Vẽ vạch kẻ caro nghiêng và toàn bộ vịt xếp hàng xuất phát (Hình 4)
       if (raceState === 'ready') {
-        // Checkered Start Line nghiêng
         ctx.save();
         const startLineX1 = 155;
         const startLineX2 = 225;
@@ -266,7 +228,6 @@ export const BeeRaceModal = ({
         ctx.lineWidth = 26;
         ctx.stroke();
 
-        // Ô caro đen trắng
         const numSquares = 22;
         for (let s = 0; s < numSquares; s++) {
           const ratio = s / numSquares;
@@ -280,33 +241,29 @@ export const BeeRaceModal = ({
         }
         ctx.restore();
 
-        // Vẽ tất cả học sinh / chú vịt xếp hàng ngay ngắn tại vạch xuất phát
         ducksRef.current.forEach((d) => {
           drawDuck(ctx, d, false);
         });
       }
 
-      // 3. Trạng thái ĐANG ĐUA (RUNNING) - Vịt bơi đua sôi động
+      // 3. Trạng thái RUNNING - Các chú vịt bơi đua
       else if (raceState === 'running') {
         const finishX = width - 70;
 
-        // Vạch đích caro ở bên phải
         for (let y = 57; y < height; y += 18) {
           ctx.fillStyle = (y / 18) % 2 === 0 ? '#FFFFFF' : '#0F172A';
           ctx.fillRect(finishX, y, 16, 18);
         }
 
-        // Vẽ các chú vịt đang bơi
         ducksRef.current.forEach((d) => {
           drawDuck(ctx, d, false);
         });
       }
 
-      // 4. Trạng thái VỀ ĐÍCH (FINISHED) - CHỈ HIỂN THỊ DUY NHẤT 1 NGƯỜI VỀ ĐÍCH Ở GIỮA SÔNG (Hình 5)
+      // 4. Trạng thái FINISHED - Chỉ hiển thị duy nhất 1 người về đích ở giữa sông (Hình 5)
       else if (raceState === 'finished') {
         const winner = ducksRef.current[0];
         if (winner) {
-          // Vịt quán quân bơi thong dong ở chính giữa sông kèm vương miện
           const centerDuck = {
             ...winner,
             x: width / 2,
@@ -315,7 +272,6 @@ export const BeeRaceModal = ({
           };
           drawDuck(ctx, centerDuck, true);
 
-          // Chữ vinh danh Quán quân
           ctx.fillStyle = '#FEF08A';
           ctx.font = 'black 16px sans-serif';
           ctx.textAlign = 'center';
@@ -331,7 +287,43 @@ export const BeeRaceModal = ({
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [screen, raceState]);
+  }, [isOpen, screen, raceState]);
+
+  // SCREEN 1: Setup ducks lineup
+  const handleConfirmSetup = () => {
+    soundFx.playClick();
+    setTimeLeft(duration);
+    setShowLeaderboard(false);
+
+    const pool = activeStudents.length > 0 ? activeStudents : (Array.isArray(students) ? students : []);
+    const count = Math.min(duckCount, Math.max(pool.length, 10));
+    const newDucks = [];
+
+    for (let i = 0; i < count; i++) {
+      const student = (pool.length > 0 && pool[i % pool.length]) || { full_name: `Vịt #${i + 1}`, id: `duck-${i + 1}` };
+      newDucks.push({
+        id: i + 1,
+        student,
+        name: student.full_name || `Vịt #${i + 1}`,
+        color: DUCK_COLORS[i % DUCK_COLORS.length],
+        accessory: DUCK_ACCESSORIES[i % DUCK_ACCESSORIES.length],
+        startX: 110 - (i % 2) * 12,
+        x: 0,
+        y: 0,
+        laneY: 0,
+        speed: 0,
+        baseSpeed: (Math.random() * 0.45 + 0.85),
+        boostTimer: Math.random() * 2,
+        wiggleOffset: Math.random() * Math.PI * 2,
+        finished: false,
+        finishRank: null
+      });
+    }
+
+    ducksRef.current = newDucks;
+    setScreen('race');
+    setRaceState('ready');
+  };
 
   // Bắt đầu cuộc đua
   const handleStartRace = () => {
@@ -340,16 +332,16 @@ export const BeeRaceModal = ({
     setTimeLeft(duration);
     setShowLeaderboard(false);
 
-    // Kích hoạt NHẠC NỀN ĐUA VỊT sôi động (tiếng nước splash, nhịp beat và quác)
+    // Bật nhạc nền đua vui nhộn
     soundFx.startRaceAudio();
 
     const startTime = Date.now();
     const durationMs = duration * 1000;
     const canvas = canvasRef.current;
-    const width = canvas ? canvas.width : 920;
+    const width = canvas ? canvas.width : 940;
     const finishX = width - 70;
 
-    // Đồng hồ đếm ngược
+    // Đếm ngược thời gian
     timerIntervalRef.current = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -360,39 +352,33 @@ export const BeeRaceModal = ({
       });
     }, 1000);
 
-    // Vòng lặp cập nhật toạ độ x của vịt
+    // Di chuyển vịt
     let raceInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / durationMs, 1);
 
       ducksRef.current.forEach((d) => {
         if (progress < 1) {
-          // Tăng tốc ngẫu nhiên
           d.boostTimer -= 0.05;
           if (d.boostTimer <= 0) {
             d.speed = (Math.random() * 2.8 + 1.4) * d.baseSpeed;
             d.boostTimer = Math.random() * 1.6 + 0.4;
           }
-          // Di chuyển về phía vạch đích
           d.x += d.speed * (width / 500);
           d.y = d.laneY + Math.sin(Date.now() / 150 + d.wiggleOffset) * 4;
 
-          // Giữ trước vạch đích cho đến giây cuối
           if (d.x > finishX - 15 && progress < 0.96) {
             d.x = finishX - 18 - Math.random() * 20;
           }
         } else {
-          // Vượt vạch đích
           d.x = finishX + 40 + d.baseSpeed * 30;
         }
       });
 
-      // Kết thúc đua
       if (progress >= 1) {
         clearInterval(raceInterval);
         soundFx.stopRaceAudio();
 
-        // Xếp hạng tất cả các chú vịt theo thứ tự về đích
         const sorted = [...ducksRef.current].sort((a, b) => b.x - a.x);
         sorted.forEach((d, idx) => {
           d.finishRank = idx + 1;
@@ -402,7 +388,6 @@ export const BeeRaceModal = ({
         setRankedDucks(sorted);
         setRaceState('finished');
 
-        // Âm thanh chiến thắng & pháo hoa
         soundFx.playWinner();
         soundFx.playFanfare();
 
@@ -413,7 +398,6 @@ export const BeeRaceModal = ({
           colors: ['#F59E0B', '#EF4444', '#10B981', '#3B82F6', '#EC4899']
         });
 
-        // Tự động loại người thắng khỏi vòng đua kế tiếp nếu GV bật tuỳ chọn
         if (excludeWinnerNext && sorted[0]?.student?.id) {
           setExcludedIds(prev => [...prev, sorted[0].student.id]);
         }
@@ -421,11 +405,13 @@ export const BeeRaceModal = ({
     }, 40);
   };
 
-  // Đua lại
   const handleRaceAgain = () => {
     soundFx.playClick();
     handleConfirmSetup();
   };
+
+  // NẾU MODAL CHƯA MỞ THÌ RETURN NULL SAU KHI ĐÃ GỌI TẤT CẢ HOOKS HỢP LỆ
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
@@ -460,7 +446,7 @@ export const BeeRaceModal = ({
             <div className="w-full space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-amber-200">
                 <span>Số lượng vịt đua đại diện:</span>
-                <span className="text-sm font-black text-white">{duckCount} chú vịt (Sĩ số lớp: {students.length} HS)</span>
+                <span className="text-sm font-black text-white">{duckCount} chú vịt (Sĩ số lớp: {(students || []).length} HS)</span>
               </div>
 
               <div className="relative pt-6">
@@ -475,7 +461,7 @@ export const BeeRaceModal = ({
                 <input
                   type="range"
                   min={1}
-                  max={Math.max(50, students.length || 35)}
+                  max={Math.max(50, (students || []).length || 35)}
                   value={duckCount}
                   onChange={(e) => setDuckCount(Number(e.target.value))}
                   className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
@@ -535,10 +521,9 @@ export const BeeRaceModal = ({
         {screen === 'race' && (
           <div className="flex-1 flex flex-col justify-between py-1 space-y-2 relative">
             
-            {/* Top Control Bar with Big Timer 00:00:12 */}
+            {/* Top Control Bar with Big Timer */}
             <div className="flex items-center justify-between bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700 shadow-md">
               
-              {/* Left action: Race Again & Exclude Toggle (Giống hình 5) */}
               <div className="flex items-center space-x-2">
                 {raceState === 'finished' && (
                   <button
@@ -561,7 +546,7 @@ export const BeeRaceModal = ({
                 </button>
               </div>
 
-              {/* Big Center Digital Timer (Giống Hình 4 & 5) */}
+              {/* Big Center Digital Timer (Hình 4 & 5) */}
               <div className="bg-slate-950 px-6 py-1 rounded-2xl border-2 border-slate-700 shadow-inner">
                 <span className="font-mono text-2xl sm:text-3xl font-black text-amber-400 tracking-wider">
                   00:00:{String(timeLeft).padStart(2, '0')}
@@ -598,7 +583,7 @@ export const BeeRaceModal = ({
                 className="w-full h-[370px] sm:h-[400px] block"
               />
 
-              {/* Floating Bottom-Right Trophy 🏆 Button (Giống Hình 5) */}
+              {/* Floating Bottom-Right Trophy 🏆 Button (Hình 5) */}
               {raceState === 'finished' && (
                 <button
                   onClick={() => {
@@ -663,7 +648,6 @@ export const BeeRaceModal = ({
 
                 {/* Top 3 Podium Highlights */}
                 <div className="grid grid-cols-3 gap-3 my-2">
-                  {/* Top 1 */}
                   <div className="p-3 bg-amber-500/20 border-2 border-amber-400 rounded-2xl text-center">
                     <span className="text-xl">🥇 Quán Quân</span>
                     <span className="block font-black text-sm text-amber-300 mt-1 truncate">
@@ -672,7 +656,6 @@ export const BeeRaceModal = ({
                     <span className="text-xs text-amber-200 font-bold block">Vịt #{rankedDucks[0]?.id} • +5 Sao ⭐</span>
                   </div>
 
-                  {/* Top 2 */}
                   <div className="p-3 bg-slate-400/20 border-2 border-slate-300 rounded-2xl text-center">
                     <span className="text-xl">🥈 Á Quân</span>
                     <span className="block font-black text-sm text-slate-200 mt-1 truncate">
@@ -681,7 +664,6 @@ export const BeeRaceModal = ({
                     <span className="text-xs text-slate-300 font-bold block">Vịt #{rankedDucks[1]?.id} • +3 Sao ⭐</span>
                   </div>
 
-                  {/* Top 3 */}
                   <div className="p-3 bg-amber-700/20 border-2 border-amber-600 rounded-2xl text-center">
                     <span className="text-xl">🥉 Quý Quân</span>
                     <span className="block font-black text-sm text-amber-400 mt-1 truncate">
@@ -691,7 +673,7 @@ export const BeeRaceModal = ({
                   </div>
                 </div>
 
-                {/* Full Ranking Scroll List (All other ducks) */}
+                {/* Full Ranking Scroll List */}
                 <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 max-h-48 custom-scrollbar my-1">
                   {rankedDucks.map((d, index) => (
                     <div
@@ -758,4 +740,5 @@ export const BeeRaceModal = ({
     </div>
   );
 };
+
 
