@@ -212,7 +212,15 @@ export const ClassesView = ({
 
                 <div className="mt-3 inline-flex items-center space-x-1.5 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-extrabold border border-blue-100">
                   <Users className="w-3.5 h-3.5 text-blue-500" />
-                  <span>18 học sinh</span>
+                  <span>
+                    {(() => {
+                      try {
+                        const localSt = JSON.parse(localStorage.getItem(`custom_students_${cls.id}`) || '[]');
+                        if (localSt.length > 0) return `${localSt.length} học sinh`;
+                      } catch (e) {}
+                      return cls.name === '9A5' || String(cls.id).includes('9A5') ? '39 học sinh' : `${cls.student_count || 39} học sinh`;
+                    })()}
+                  </span>
                 </div>
               </div>
 

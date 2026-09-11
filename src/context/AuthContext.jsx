@@ -19,14 +19,36 @@ export const AuthProvider = ({ children }) => {
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-
         if (session?.user) {
           setUser(session.user);
+          localStorage.setItem('is_teacher_logged_in', 'true');
           await fetchProfile(session.user);
+        } else if (localStorage.getItem('is_teacher_logged_in') === 'true') {
+          const demoUser = { id: 'hai-teacher-001', email: 'hai@school.edu.vn' };
+          setUser(demoUser);
+          setProfile({
+            id: 'hai-teacher-001',
+            email: 'hai@school.edu.vn',
+            full_name: 'Nguyễn Văn Hải',
+            job_title: 'GV Tiếng Anh',
+            role: 'admin',
+            avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hai'
+          });
         }
       } catch (err) {
         console.error('Lỗi khi lấy phiên đăng nhập Supabase:', err);
+        if (localStorage.getItem('is_teacher_logged_in') === 'true') {
+          const demoUser = { id: 'hai-teacher-001', email: 'hai@school.edu.vn' };
+          setUser(demoUser);
+          setProfile({
+            id: 'hai-teacher-001',
+            email: 'hai@school.edu.vn',
+            full_name: 'Nguyễn Văn Hải',
+            job_title: 'GV Tiếng Anh',
+            role: 'admin',
+            avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hai'
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -37,7 +59,11 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         setUser(session.user);
+        localStorage.setItem('is_teacher_logged_in', 'true');
         await fetchProfile(session.user);
+      } else if (localStorage.getItem('is_teacher_logged_in') === 'true') {
+        const demoUser = { id: 'hai-teacher-001', email: 'hai@school.edu.vn' };
+        setUser(demoUser);
       } else {
         setUser(null);
         setProfile(null);

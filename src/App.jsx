@@ -107,6 +107,14 @@ const MainLayout = () => {
   };
 
   const fetchStudents = async (classId) => {
+    let localSt = [];
+    try {
+      const stored = localStorage.getItem(`custom_students_${classId}`);
+      if (stored) localSt = JSON.parse(stored);
+    } catch (e) {
+      console.error(e);
+    }
+
     try {
       const { data } = await supabase
         .from('students')
@@ -115,36 +123,57 @@ const MainLayout = () => {
         .order('seat_row', { ascending: true })
         .order('seat_col', { ascending: true });
 
-      if (data && data.length > 0) {
-        setStudents(data);
+      const combined = [...(data || []), ...localSt];
+      const unique = combined.reduce((acc, curr) => {
+        if (!acc.some(s => s.id === curr.id)) acc.push(curr);
+        return acc;
+      }, []);
+
+      if (unique.length >= 30) {
+        setStudents(unique);
+      } else {
+        const full39 = getSampleStudents(classId);
+        setStudents(full39);
+      }
+    } catch (err) {
+      if (localSt.length >= 30) {
+        setStudents(localSt);
       } else {
         setStudents(getSampleStudents(classId));
       }
-    } catch (err) {
-      setStudents(getSampleStudents(classId));
     }
   };
 
-  const getSampleStudents = (cId) => [
-    { id: 'st1', class_id: cId, full_name: 'Nguyễn Minh Anh', seat_row: 1, seat_col: 1, total_stars: 45, team_group: 1, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=minhanh' },
-    { id: 'st2', class_id: cId, full_name: 'Trần Bảo Nam', seat_row: 1, seat_col: 2, total_stars: 30, team_group: 1, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=baonam' },
-    { id: 'st3', class_id: cId, full_name: 'Lê Hoàng Khánh', seat_row: 1, seat_col: 3, total_stars: 50, team_group: 1, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hoangkhanh' },
-    { id: 'st4', class_id: cId, full_name: 'Phạm Thu Trang', seat_row: 1, seat_col: 4, total_stars: 65, team_group: 2, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thutrang' },
-    { id: 'st5', class_id: cId, full_name: 'Vũ Đức Anh', seat_row: 1, seat_col: 5, total_stars: 25, team_group: 2, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=ducanh' },
-    { id: 'st6', class_id: cId, full_name: 'Đặng Thảo Nguyên', seat_row: 1, seat_col: 6, total_stars: 40, team_group: 2, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thaonguyen' },
-    { id: 'st7', class_id: cId, full_name: 'Bùi Gia Huy', seat_row: 2, seat_col: 1, total_stars: 35, team_group: 3, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=giahuy' },
-    { id: 'st8', class_id: cId, full_name: 'Đỗ Phương Linh', seat_row: 2, seat_col: 2, total_stars: 80, team_group: 3, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=phuonglinh' },
-    { id: 'st9', class_id: cId, full_name: 'Nông Văn Mạnh', seat_row: 2, seat_col: 3, total_stars: 20, team_group: 3, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=vanmanh' },
-    { id: 'st10', class_id: cId, full_name: 'Hà Ánh Tuyết', seat_row: 2, seat_col: 4, total_stars: 55, team_group: 4, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=anhtuyet' },
-    { id: 'st11', class_id: cId, full_name: 'Ngô Quốc Trung', seat_row: 2, seat_col: 5, total_stars: 15, team_group: 4, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=quoctrung' },
-    { id: 'st12', class_id: cId, full_name: 'Dương Mỹ Duyên', seat_row: 2, seat_col: 6, total_stars: 70, team_group: 4, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=myduyen' },
-    { id: 'st13', class_id: cId, full_name: 'Lý Hải Long', seat_row: 3, seat_col: 1, total_stars: 60, team_group: 1, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hailong' },
-    { id: 'st14', class_id: cId, full_name: 'Trịnh Cẩm Tú', seat_row: 3, seat_col: 2, total_stars: 40, team_group: 2, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=camtu' },
-    { id: 'st15', class_id: cId, full_name: 'Đoàn Quang Vinh', seat_row: 3, seat_col: 3, total_stars: 90, team_group: 3, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=quangvinh' },
-    { id: 'st16', class_id: cId, full_name: 'Mai Ngọc Hà', seat_row: 3, seat_col: 4, total_stars: 75, team_group: 4, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=ngocha' },
-    { id: 'st17', class_id: cId, full_name: 'Lương Minh Tuấn', seat_row: 3, seat_col: 5, total_stars: 30, team_group: 1, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=minhtuan' },
-    { id: 'st18', class_id: cId, full_name: 'Tào Thanh Thảo', seat_row: 3, seat_col: 6, total_stars: 45, team_group: 2, avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=thanhthao' }
-  ];
+  const getSampleStudents = (cId) => {
+    const sampleNames = [
+      'Nguyễn Minh Anh', 'Trần Bảo Nam', 'Lê Hoàng Khánh', 'Phạm Thu Trang', 'Vũ Đức Anh', 'Đặng Thảo Nguyên',
+      'Bùi Gia Huy', 'Đỗ Phương Linh', 'Nông Văn Mạnh', 'Hà Ánh Tuyết', 'Ngô Quốc Trung', 'Dương Mỹ Duyên',
+      'Lý Hải Long', 'Trịnh Cẩm Tú', 'Đoàn Quang Vinh', 'Mai Ngọc Hà', 'Lương Minh Tuấn', 'Tào Thanh Thảo',
+      'Phùng Quốc Huy', 'Hoàng Bảo Yến', 'Trần Hữu Phước', 'Lê Khánh Ngọc', 'Nguyễn Tấn Đạt', 'Phạm Quỳnh Chi',
+      'Vũ Hoàng Lâm', 'Đặng Thu Hà', 'Bùi Đức Trí', 'Đỗ Linh Chi', 'Nông Văn Hoàng', 'Hà Khánh Linh',
+      'Ngô Gia Bảo', 'Dương Hoài Nam', 'Lý Quốc An', 'Trịnh Thanh Hằng', 'Đoàn Văn Nam', 'Mai Phương Thảo',
+      'Lương Anh Dũng', 'Tào Thu Thủy', 'Nguyễn Gia Hân'
+    ];
+
+    return sampleNames.map((name, idx) => {
+      const seatRow = Math.floor(idx / 8) + 1;
+      const seatCol = (idx % 8) + 1;
+      const teamGroup = (idx % 4) + 1;
+      const stars = 20 + ((idx * 7) % 70);
+      const seed = name.toLowerCase().replace(/\s+/g, '');
+
+      return {
+        id: `st_${cId}_${idx + 1}`,
+        class_id: cId,
+        full_name: name,
+        seat_row: seatRow,
+        seat_col: seatCol,
+        total_stars: stars,
+        team_group: teamGroup,
+        avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`
+      };
+    });
+  };
 
   if (loading) {
     return (

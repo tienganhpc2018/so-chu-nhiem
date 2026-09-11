@@ -241,7 +241,8 @@ export const SeatingGrid = ({
   const glassesPct = students.length > 0 ? Math.round((glassesCount / students.length) * 100) : 0;
   const weakPct = students.length > 0 ? Math.round((weakCount / students.length) * 100) : 0;
 
-  const rows = [1, 2, 3, 4];
+  const maxRequiredRows = Math.max(5, Math.ceil((students.length || 39) / Math.max(1, dayCount * 2)));
+  const rows = Array.from({ length: maxRequiredRows }, (_, i) => i + 1);
   const cols = Array.from({ length: dayCount }, (_, i) => i + 1);
 
   const renderRoleBadge = (role) => {
