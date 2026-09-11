@@ -4,9 +4,37 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    try {
+      if (localStorage.getItem('is_teacher_logged_in') === 'true') {
+        return {
+          id: 'hai-teacher-001',
+          email: 'nguyenvanhai.thcs@gmail.com',
+          user_metadata: { full_name: 'Nguyễn Văn Hải' }
+        };
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  const [profile, setProfile] = useState(() => {
+    try {
+      if (localStorage.getItem('is_teacher_logged_in') === 'true') {
+        return {
+          id: 'hai-teacher-001',
+          email: 'nguyenvanhai.thcs@gmail.com',
+          full_name: 'Nguyễn Văn Hải',
+          role: 'teacher',
+          job_title: 'GV Tiếng Anh',
+          subject: 'Tiếng Anh',
+          avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hai'
+        };
+      }
+    } catch (e) {}
+    return null;
+  });
+
+  const [loading, setLoading] = useState(false);
   const [configError, setConfigError] = useState(!isSupabaseConfigured());
 
   useEffect(() => {
@@ -18,37 +46,19 @@ export const AuthProvider = ({ children }) => {
 
     const checkSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
           localStorage.setItem('is_teacher_logged_in', 'true');
           await fetchProfile(session.user);
         } else if (localStorage.getItem('is_teacher_logged_in') === 'true') {
-          const demoUser = { id: 'hai-teacher-001', email: 'hai@school.edu.vn' };
-          setUser(demoUser);
-          setProfile({
-            id: 'hai-teacher-001',
-            email: 'hai@school.edu.vn',
-            full_name: 'Nguyễn Văn Hải',
-            job_title: 'GV Tiếng Anh',
-            role: 'admin',
-            avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hai'
-          });
+          // Keep persistent local teacher session
+        } else {
+          setUser(null);
+          setProfile(null);
         }
       } catch (err) {
         console.error('Lỗi khi lấy phiên đăng nhập Supabase:', err);
-        if (localStorage.getItem('is_teacher_logged_in') === 'true') {
-          const demoUser = { id: 'hai-teacher-001', email: 'hai@school.edu.vn' };
-          setUser(demoUser);
-          setProfile({
-            id: 'hai-teacher-001',
-            email: 'hai@school.edu.vn',
-            full_name: 'Nguyễn Văn Hải',
-            job_title: 'GV Tiếng Anh',
-            role: 'admin',
-            avatar_url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hai'
-          });
-        }
       } finally {
         setLoading(false);
       }
@@ -62,8 +72,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('is_teacher_logged_in', 'true');
         await fetchProfile(session.user);
       } else if (localStorage.getItem('is_teacher_logged_in') === 'true') {
-        const demoUser = { id: 'hai-teacher-001', email: 'hai@school.edu.vn' };
-        setUser(demoUser);
+        // Keep persistent local teacher session
       } else {
         setUser(null);
         setProfile(null);
@@ -78,7 +87,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchProfile = async (userData) => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userData.id)
@@ -87,7 +96,6 @@ export const AuthProvider = ({ children }) => {
       if (data) {
         setProfile(data);
       } else {
-        // Fallback upsert profile if trigger didn't create profile row yet
         const fullName = userData.user_metadata?.full_name || userData.email.split('@')[0];
         const newProfile = {
           id: userData.id,
@@ -100,12 +108,12 @@ export const AuthProvider = ({ children }) => {
         setProfile(newProfile);
       }
     } catch (err) {
-      console.error('Fetch profile exception:', err);
       setProfile({
         id: userData.id,
         email: userData.email,
-        full_name: userData.user_metadata?.full_name || 'Giáo viên Chủ Nhiệm',
+        full_name: userData.user_metadata?.full_name || 'Nguyễn Văn Hải',
         role: 'teacher',
+        job_title: 'GV Tiếng Anh',
         avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${userData.id}`
       });
     }
@@ -117,6 +125,9 @@ export const AuthProvider = ({ children }) => {
       email,
       password,
     });
+    if (!error) {
+      localStorage.setItem('is_teacher_logged_in', 'true');
+    }
     setLoading(false);
     return { data, error };
   };
@@ -132,12 +143,16 @@ export const AuthProvider = ({ children }) => {
         },
       },
     });
+    if (!error) {
+      localStorage.setItem('is_teacher_logged_in', 'true');
+    }
     setLoading(false);
     return { data, error };
   };
 
   const enterAppDirectly = (customName = 'Nguyễn Văn Hải', customEmail = 'nguyenvanhai.thcs@gmail.com') => {
-    const fallbackId = '00000000-0000-0000-0000-000000000000';
+    localStorage.setItem('is_teacher_logged_in', 'true');
+    const fallbackId = 'hai-teacher-001';
     const fallbackUser = {
       id: fallbackId,
       email: customEmail,
@@ -164,7 +179,7 @@ export const AuthProvider = ({ children }) => {
     }));
 
     try {
-      if (user?.id && user.id !== '00000000-0000-0000-0000-000000000000') {
+      if (user?.id && user.id !== 'hai-teacher-001') {
         await supabase.from('profiles').upsert({
           id: user.id,
           ...updatedData
@@ -176,14 +191,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
-    setLoading(true);
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.log('Signout cleanup');
-    }
+    localStorage.removeItem('is_teacher_logged_in');
     setUser(null);
     setProfile(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {}
     setLoading(false);
   };
 
