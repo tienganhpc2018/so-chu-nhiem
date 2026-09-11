@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import confetti from 'canvas-confetti';
-import { X, Play, RotateCcw, Trophy, Award, Sparkles } from 'lucide-react';
+import { X, Play, RotateCcw, Trophy, Award, Sparkles, Check, Volume2, ListOrdered } from 'lucide-react';
 import { soundFx } from '../../../utils/soundEffects';
 
 export const BeeRaceModal = ({
@@ -14,44 +14,70 @@ export const BeeRaceModal = ({
   const [duration, setDuration] = useState(12); // in seconds
   const [timeLeft, setTimeLeft] = useState(12);
   const [raceState, setRaceState] = useState('ready'); // 'ready' | 'running' | 'finished'
-  const [topDucks, setTopDucks] = useState([]);
+  const [rankedDucks, setRankedDucks] = useState([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [excludeWinnerNext, setExcludeWinnerNext] = useState(true);
+  const [excludedIds, setExcludedIds] = useState([]);
 
-  // Canvas ref
   const canvasRef = useRef(null);
   const animFrameRef = useRef(null);
   const ducksRef = useRef([]);
+  const timerIntervalRef = useRef(null);
 
+  // Available students pool (optionally excluding previous winners)
+  const activeStudents = useMemo(() => {
+    const filtered = students.filter(s => !excludedIds.includes(s.id));
+    return filtered.length > 0 ? filtered : students;
+  }, [students, excludedIds]);
+
+  // Cleanup upon closing
   useEffect(() => {
     if (!isOpen) {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      soundFx.stopRaceAudio();
       setScreen('setup');
       setRaceState('ready');
+      setShowLeaderboard(false);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Screen 1: Settings
+  // Hat accessories styles for ducks
+  const DUCK_ACCESSORIES = ['cap', 'beanie', 'sunglasses', 'headband', 'crown', 'none'];
+  const DUCK_COLORS = ['#F59E0B', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+
+  // SCREEN 1: Setup ducks lineup
   const handleConfirmSetup = () => {
     soundFx.playClick();
     setTimeLeft(duration);
+    setShowLeaderboard(false);
 
-    // Initialize ducks
-    const numDucks = Math.min(duckCount, Math.max(students.length, 12));
+    const pool = activeStudents.length > 0 ? activeStudents : students;
+    const count = Math.min(duckCount, Math.max(pool.length, 10));
     const newDucks = [];
 
-    for (let i = 0; i < numDucks; i++) {
-      const student = students[i % students.length] || { full_name: `Vịt #${i + 1}`, id: `duck-${i}` };
+    // Tạo danh sách vịt tương ứng với học sinh
+    for (let i = 0; i < count; i++) {
+      const student = pool[i % pool.length] || { full_name: `Vịt #${i + 1}`, id: `duck-${i + 1}` };
       newDucks.push({
         id: i + 1,
         student,
         name: student.full_name,
-        x: 30, // Start x
-        y: 0,  // Will be set based on canvas height
+        color: DUCK_COLORS[i % DUCK_COLORS.length],
+        accessory: DUCK_ACCESSORIES[i % DUCK_ACCESSORIES.length],
+        // Vị trí xếp hàng dọc theo vạch xuất phát nghiêng (giống hình 4)
+        startX: 110 - (i % 2) * 12,
+        x: 0,
+        y: 0,
+        laneY: 0,
         speed: 0,
-        baseSpeed: (Math.random() * 0.4 + 0.8),
+        baseSpeed: (Math.random() * 0.45 + 0.85),
         boostTimer: Math.random() * 2,
-        color: ['#F59E0B', '#EF4444', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899'][i % 6]
+        wiggleOffset: Math.random() * Math.PI * 2,
+        finished: false,
+        finishRank: null
       });
     }
 
@@ -60,160 +86,361 @@ export const BeeRaceModal = ({
     setRaceState('ready');
   };
 
-  // Start the Race
-  const handleStartRace = () => {
-    soundFx.playClick();
-    setRaceState('running');
-    setTimeLeft(duration);
+  // Draw ducks on canvas (Ready, Running, and Finished states)
+  const drawDuck = (ctx, d, isWinnerSolo = false) => {
+    ctx.save();
+    ctx.translate(d.x, d.y);
 
-    const startTime = Date.now();
-    const finishDistance = 820; // x coordinate for finish line
+    const scale = isWinnerSolo ? 1.6 : 0.95;
+    ctx.scale(scale, scale);
 
-    const tickInterval = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(tickInterval);
-          return 0;
-        }
-        soundFx.playTick();
-        return prev - 1;
-      });
-    }, 1000);
+    // Water ripple under duck
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(0, 10, 16, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-    const updateLoop = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+    // Duck body
+    ctx.fillStyle = d.color || '#F59E0B';
+    ctx.beginPath();
+    ctx.arc(0, 0, 13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
-      const width = canvas.width;
-      const height = canvas.height;
-      const laneHeight = height / (ducksRef.current.length || 1);
+    // Duck tail feathers
+    ctx.beginPath();
+    ctx.moveTo(-10, 0);
+    ctx.lineTo(-18, -6);
+    ctx.lineTo(-12, 5);
+    ctx.closePath();
+    ctx.fill();
 
-      // Clear Canvas & draw water track
-      ctx.fillStyle = '#0284c7';
-      ctx.fillRect(0, 0, width, height);
+    // Duck head
+    ctx.beginPath();
+    ctx.arc(10, -5, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
 
-      // Water waves
+    // Orange Beak
+    ctx.fillStyle = '#EA580C';
+    ctx.beginPath();
+    ctx.moveTo(17, -5);
+    ctx.lineTo(26, -3);
+    ctx.lineTo(17, -1);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(12, -7, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(12.5, -7.5, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cute Hat / Accessory
+    if (d.accessory === 'beanie') {
+      ctx.fillStyle = '#3B82F6';
+      ctx.beginPath();
+      ctx.arc(9, -12, 6, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(9, -14, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (d.accessory === 'sunglasses') {
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(8, -8, 10, 4);
+    } else if (d.accessory === 'crown' || isWinnerSolo) {
+      ctx.fillStyle = '#FBBF24';
+      ctx.beginPath();
+      ctx.moveTo(5, -12);
+      ctx.lineTo(7, -19);
+      ctx.lineTo(10, -14);
+      ctx.lineTo(13, -19);
+      ctx.lineTo(15, -12);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Number Badge on Duck Body (giống túi đeo số ở hình 4 & 5)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(-8, -4, 14, 11, 3);
+    ctx.fill();
+    ctx.strokeStyle = '#0F172A';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#0F172A';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(d.id), -1, 1.5);
+
+    // Student Name Tag above duck
+    ctx.fillStyle = isWinnerSolo ? '#FEF08A' : '#FFFFFF';
+    ctx.font = isWinnerSolo ? 'bold 12px sans-serif' : 'bold 9px sans-serif';
+    ctx.textAlign = 'center';
+    const shortName = d.name.length > 12 ? d.name.substring(0, 11) + '..' : d.name;
+    ctx.fillText(shortName, 0, -18);
+
+    ctx.restore();
+  };
+
+  // Vòng lặp render chính (Canvas loop)
+  useEffect(() => {
+    if (screen !== 'race') return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    const totalDucks = ducksRef.current.length;
+
+    // Khoảng cách theo chiều dọc cho các chú vịt xuất phát
+    const startTop = 70;
+    const startBottom = height - 40;
+    const availableHeight = startBottom - startTop;
+
+    ducksRef.current.forEach((d, idx) => {
+      d.laneY = startTop + (idx / Math.max(1, totalDucks - 1)) * availableHeight;
+      if (raceState === 'ready') {
+        // Xếp hàng dọc vạch xuất phát hơi chéo (Hình 4)
+        const slantOffset = (idx / totalDucks) * 50;
+        d.x = 90 + slantOffset + (idx % 2 === 0 ? -10 : 8);
+        d.y = d.laneY;
+      }
+    });
+
+    const render = () => {
+      // 1. Vẽ bờ cỏ và sông nước (Giống giao diện Online-Stopwatch hình 4 & 5)
+      // Bờ cỏ trên
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(0, 0, width, 45);
+
+      // Bờ đất nâu
+      ctx.fillStyle = '#854d0e';
+      ctx.fillRect(0, 45, width, 12);
+
+      // Dòng sông xanh biếc
+      const waterGrad = ctx.createLinearGradient(0, 57, 0, height);
+      waterGrad.addColorStop(0, '#0284c7');
+      waterGrad.addColorStop(0.5, '#0369a1');
+      waterGrad.addColorStop(1, '#075985');
+      ctx.fillStyle = waterGrad;
+      ctx.fillRect(0, 57, width, height - 57);
+
+      // Sóng nước nhấp nhô
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1;
-      for (let y = 15; y < height; y += 25) {
+      ctx.lineWidth = 1.2;
+      const waveOffset = (Date.now() / 25) % 40;
+      for (let y = 75; y < height; y += 32) {
         ctx.beginPath();
-        for (let x = 0; x < width; x += 30) {
-          ctx.arc(x + ((Date.now() / 20) % 30), y, 8, 0, Math.PI);
+        for (let x = -40; x < width + 40; x += 36) {
+          ctx.arc(x + waveOffset, y, 9, 0, Math.PI);
         }
         ctx.stroke();
       }
 
-      // Checkered Finish Line at x = finishDistance
-      const finishX = width - 80;
-      for (let y = 0; y < height; y += 16) {
-        ctx.fillStyle = (y / 16) % 2 === 0 ? '#FFFFFF' : '#000000';
-        ctx.fillRect(finishX, y, 14, 16);
+      // 2. Trạng thái SẴN SÀNG (READY) - Vẽ Vạch xuất phát kẻ caro nghiêng và TOÀN BỘ VỊT XẾP HÀNG (Hình 4)
+      if (raceState === 'ready') {
+        // Checkered Start Line nghiêng
+        ctx.save();
+        const startLineX1 = 155;
+        const startLineX2 = 225;
+        const startLineY1 = 57;
+        const startLineY2 = height;
+
+        ctx.beginPath();
+        ctx.moveTo(startLineX1, startLineY1);
+        ctx.lineTo(startLineX2, startLineY2);
+        ctx.strokeStyle = '#0F172A';
+        ctx.lineWidth = 26;
+        ctx.stroke();
+
+        // Ô caro đen trắng
+        const numSquares = 22;
+        for (let s = 0; s < numSquares; s++) {
+          const ratio = s / numSquares;
+          const sx = startLineX1 + ratio * (startLineX2 - startLineX1);
+          const sy = startLineY1 + ratio * (startLineY2 - startLineY1);
+
+          ctx.fillStyle = s % 2 === 0 ? '#FFFFFF' : '#0F172A';
+          ctx.fillRect(sx - 12, sy - 8, 12, 16);
+          ctx.fillStyle = s % 2 === 0 ? '#0F172A' : '#FFFFFF';
+          ctx.fillRect(sx, sy - 8, 12, 16);
+        }
+        ctx.restore();
+
+        // Vẽ tất cả học sinh / chú vịt xếp hàng ngay ngắn tại vạch xuất phát
+        ducksRef.current.forEach((d) => {
+          drawDuck(ctx, d, false);
+        });
       }
 
-      // Update and draw ducks
-      const elapsed = (Date.now() - startTime) / 1000;
-      const progressRatio = Math.min(elapsed / duration, 1);
+      // 3. Trạng thái ĐANG ĐUA (RUNNING) - Vịt bơi đua sôi động
+      else if (raceState === 'running') {
+        const finishX = width - 70;
 
-      ducksRef.current.forEach((d, idx) => {
-        d.y = idx * laneHeight + laneHeight / 2;
-
-        if (progressRatio < 1) {
-          // Random acceleration bursts
-          d.boostTimer -= 0.016;
-          if (d.boostTimer <= 0) {
-            d.speed = (Math.random() * 2.2 + 1.2) * d.baseSpeed;
-            d.boostTimer = Math.random() * 1.5 + 0.5;
-            if (Math.random() < 0.1) soundFx.playQuack();
-          }
-          d.x += d.speed * (width / 450);
-          // Keep before finish until end
-          if (d.x > finishX - 10 && progressRatio < 0.95) {
-            d.x = finishX - 12 - Math.random() * 15;
-          }
-        } else {
-          // Cross finish line
-          d.x = Math.max(d.x, finishX + 10 + (d.baseSpeed * 20));
+        // Vạch đích caro ở bên phải
+        for (let y = 57; y < height; y += 18) {
+          ctx.fillStyle = (y / 18) % 2 === 0 ? '#FFFFFF' : '#0F172A';
+          ctx.fillRect(finishX, y, 16, 18);
         }
 
-        // Draw duck
-        ctx.save();
-        ctx.translate(d.x, d.y);
-
-        // Duck body
-        ctx.fillStyle = d.color || '#F59E0B';
-        ctx.beginPath();
-        ctx.arc(0, 0, 12, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Duck head & beak
-        ctx.fillStyle = '#F59E0B';
-        ctx.beginPath();
-        ctx.arc(10, -4, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Beak
-        ctx.fillStyle = '#EA580C';
-        ctx.beginPath();
-        ctx.moveTo(16, -4);
-        ctx.lineTo(24, -2);
-        ctx.lineTo(16, 0);
-        ctx.fill();
-
-        // Eye
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(12, -6, 1.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Duck name tag
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 9px sans-serif';
-        ctx.fillText(d.name.substring(0, 8), -15, -15);
-
-        ctx.restore();
-      });
-
-      // Check if finished
-      if (progressRatio >= 1) {
-        setRaceState('finished');
-        clearInterval(tickInterval);
-
-        // Sort Top 3 ducks by x coordinate
-        const sorted = [...ducksRef.current].sort((a, b) => b.x - a.x).slice(0, 3);
-        setTopDucks(sorted);
-
-        soundFx.playFanfare();
-        confetti({
-          particleCount: 140,
-          spread: 100,
-          origin: { y: 0.5 },
-          colors: ['#F59E0B', '#FBBF24', '#3B82F6', '#10B981']
+        // Vẽ các chú vịt đang bơi
+        ducksRef.current.forEach((d) => {
+          drawDuck(ctx, d, false);
         });
-        return;
       }
 
-      animFrameRef.current = requestAnimationFrame(updateLoop);
+      // 4. Trạng thái VỀ ĐÍCH (FINISHED) - CHỈ HIỂN THỊ DUY NHẤT 1 NGƯỜI VỀ ĐÍCH Ở GIỮA SÔNG (Hình 5)
+      else if (raceState === 'finished') {
+        const winner = ducksRef.current[0];
+        if (winner) {
+          // Vịt quán quân bơi thong dong ở chính giữa sông kèm vương miện
+          const centerDuck = {
+            ...winner,
+            x: width / 2,
+            y: height / 2 + Math.sin(Date.now() / 300) * 6,
+            accessory: 'crown'
+          };
+          drawDuck(ctx, centerDuck, true);
+
+          // Chữ vinh danh Quán quân
+          ctx.fillStyle = '#FEF08A';
+          ctx.font = 'black 16px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`🏆 QUÁN QUÂN: ${winner.name.toUpperCase()} (#${winner.id})`, width / 2, height / 2 + 55);
+        }
+      }
+
+      animFrameRef.current = requestAnimationFrame(render);
     };
 
-    animFrameRef.current = requestAnimationFrame(updateLoop);
+    animFrameRef.current = requestAnimationFrame(render);
+
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, [screen, raceState]);
+
+  // Bắt đầu cuộc đua
+  const handleStartRace = () => {
+    soundFx.playClick();
+    setRaceState('running');
+    setTimeLeft(duration);
+    setShowLeaderboard(false);
+
+    // Kích hoạt NHẠC NỀN ĐUA VỊT sôi động (tiếng nước splash, nhịp beat và quác)
+    soundFx.startRaceAudio();
+
+    const startTime = Date.now();
+    const durationMs = duration * 1000;
+    const canvas = canvasRef.current;
+    const width = canvas ? canvas.width : 920;
+    const finishX = width - 70;
+
+    // Đồng hồ đếm ngược
+    timerIntervalRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerIntervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Vòng lặp cập nhật toạ độ x của vịt
+    let raceInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / durationMs, 1);
+
+      ducksRef.current.forEach((d) => {
+        if (progress < 1) {
+          // Tăng tốc ngẫu nhiên
+          d.boostTimer -= 0.05;
+          if (d.boostTimer <= 0) {
+            d.speed = (Math.random() * 2.8 + 1.4) * d.baseSpeed;
+            d.boostTimer = Math.random() * 1.6 + 0.4;
+          }
+          // Di chuyển về phía vạch đích
+          d.x += d.speed * (width / 500);
+          d.y = d.laneY + Math.sin(Date.now() / 150 + d.wiggleOffset) * 4;
+
+          // Giữ trước vạch đích cho đến giây cuối
+          if (d.x > finishX - 15 && progress < 0.96) {
+            d.x = finishX - 18 - Math.random() * 20;
+          }
+        } else {
+          // Vượt vạch đích
+          d.x = finishX + 40 + d.baseSpeed * 30;
+        }
+      });
+
+      // Kết thúc đua
+      if (progress >= 1) {
+        clearInterval(raceInterval);
+        soundFx.stopRaceAudio();
+
+        // Xếp hạng tất cả các chú vịt theo thứ tự về đích
+        const sorted = [...ducksRef.current].sort((a, b) => b.x - a.x);
+        sorted.forEach((d, idx) => {
+          d.finishRank = idx + 1;
+        });
+
+        ducksRef.current = sorted;
+        setRankedDucks(sorted);
+        setRaceState('finished');
+
+        // Âm thanh chiến thắng & pháo hoa
+        soundFx.playWinner();
+        soundFx.playFanfare();
+
+        confetti({
+          particleCount: 160,
+          spread: 90,
+          origin: { y: 0.5 },
+          colors: ['#F59E0B', '#EF4444', '#10B981', '#3B82F6', '#EC4899']
+        });
+
+        // Tự động loại người thắng khỏi vòng đua kế tiếp nếu GV bật tuỳ chọn
+        if (excludeWinnerNext && sorted[0]?.student?.id) {
+          setExcludedIds(prev => [...prev, sorted[0].student.id]);
+        }
+      }
+    }, 40);
+  };
+
+  // Đua lại
+  const handleRaceAgain = () => {
+    soundFx.playClick();
+    handleConfirmSetup();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-5xl bg-slate-900 border-4 border-amber-400 rounded-[2.5rem] shadow-2xl p-4 sm:p-6 text-white flex flex-col justify-between min-h-[600px] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
+      <div className="relative w-full max-w-5xl bg-slate-900 border-4 border-amber-400 rounded-[2.5rem] shadow-2xl p-4 sm:p-6 text-white flex flex-col justify-between min-h-[620px] overflow-hidden">
         
         {/* Header Bar */}
-        <div className="w-full flex items-center justify-between pb-3 border-b border-amber-500/30">
+        <div className="w-full flex items-center justify-between pb-2.5 border-b border-amber-500/30">
           <div className="flex items-center space-x-2">
             <span className="text-2xl">🐥</span>
             <div>
               <h3 className="text-lg sm:text-xl font-black text-amber-400 tracking-wider">
-                BEE RACE — ĐƯỜNG ĐUA VỊT BẤT HỦ
+                BEE RACE — ĐƯỜNG ĐUA VỊT HỌC SINH 4.0
               </h3>
               <p className="text-[11px] text-amber-200/80 font-bold">
-                Cài đặt số lượng vịt, thời gian đua và vinh danh Top 1-2-3 học sinh
+                Mô phỏng đường đua nước, âm thanh sôi động và bảng xếp hạng thứ tự về đích
               </p>
             </div>
           </div>
@@ -225,21 +452,20 @@ export const BeeRaceModal = ({
           </button>
         </div>
 
-        {/* SCREEN 1: Setup Slider & Time */}
+        {/* SCREEN 1: Setup Sliders */}
         {screen === 'setup' && (
-          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full space-y-8 py-6">
+          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full space-y-7 py-4">
             
-            {/* Duck Count Range Slider with Floating Green Bubble */}
+            {/* Sĩ số học sinh tham gia */}
             <div className="w-full space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-amber-200">
-                <span>Số Lượng Vịt Đua (1 - 100):</span>
-                <span className="text-sm font-black text-white">{duckCount} con vịt</span>
+                <span>Số lượng vịt đua đại diện:</span>
+                <span className="text-sm font-black text-white">{duckCount} chú vịt (Sĩ số lớp: {students.length} HS)</span>
               </div>
 
               <div className="relative pt-6">
-                {/* Floating Green Number Bubble */}
                 <div
-                  className="absolute -top-1 px-3 py-1 bg-emerald-500 text-white font-black text-xs rounded-full shadow-md -translate-x-1/2 transition-all pointer-events-none"
+                  className="absolute -top-1 px-3 py-1 bg-emerald-500 text-white font-black text-xs rounded-full shadow-md -translate-x-1/2 pointer-events-none"
                   style={{ left: `${((duckCount - 1) / 99) * 100}%` }}
                 >
                   {duckCount} 🐥
@@ -249,7 +475,7 @@ export const BeeRaceModal = ({
                 <input
                   type="range"
                   min={1}
-                  max={100}
+                  max={Math.max(50, students.length || 35)}
                   value={duckCount}
                   onChange={(e) => setDuckCount(Number(e.target.value))}
                   className="w-full h-3 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
@@ -259,16 +485,16 @@ export const BeeRaceModal = ({
 
             {/* Duration Selector Pills */}
             <div className="w-full space-y-2">
-              <label className="text-xs font-bold text-amber-200 block">Thời Gian Đua (Giây):</label>
+              <label className="text-xs font-bold text-amber-200 block">Thời Gian Cuộc Đua:</label>
               <div className="grid grid-cols-4 gap-3">
-                {[10, 12, 15, 30].map((t) => (
+                {[8, 12, 15, 20].map((t) => (
                   <button
                     key={t}
                     onClick={() => {
                       soundFx.playClick();
                       setDuration(t);
                     }}
-                    className={`py-3 rounded-2xl font-black text-xs transition-all border ${
+                    className={`py-2.5 rounded-2xl font-black text-xs transition-all border ${
                       duration === t
                         ? 'bg-amber-500 text-slate-950 border-amber-300 shadow-lg shadow-amber-500/40 scale-105'
                         : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
@@ -280,116 +506,248 @@ export const BeeRaceModal = ({
               </div>
             </div>
 
+            {/* Option to exclude previous winners */}
+            <div className="w-full flex items-center justify-between p-3 bg-slate-800/80 rounded-2xl border border-slate-700 text-xs">
+              <span className="font-bold text-slate-300">Tự động loại người thắng ở vòng sau:</span>
+              <button
+                type="button"
+                onClick={() => setExcludeWinnerNext(!excludeWinnerNext)}
+                className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${
+                  excludeWinnerNext ? 'bg-emerald-500 border-emerald-400 text-slate-950' : 'bg-slate-700 border-slate-600'
+                }`}
+              >
+                {excludeWinnerNext && <Check className="w-4 h-4 stroke-[3]" />}
+              </button>
+            </div>
+
             {/* SET Button */}
             <button
               onClick={handleConfirmSetup}
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/30 transform hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-2"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/30 transform hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-2"
             >
-              <span>XÁC NHẬN CÀI ĐẶT (SET)</span>
+              <span>XÁC NHẬN CÀI ĐẶT & VÀO VẠCH XUẤT PHÁT</span>
               <Play className="w-5 h-5 fill-slate-950" />
             </button>
           </div>
         )}
 
-        {/* SCREEN 2: Water Race Track Canvas & Live Podium */}
+        {/* SCREEN 2: Water Race Track Canvas */}
         {screen === 'race' && (
-          <div className="flex-1 flex flex-col justify-between py-2 space-y-3">
+          <div className="flex-1 flex flex-col justify-between py-1 space-y-2 relative">
             
-            {/* Top Bar: Timer 00:00:12 & Action Controls */}
-            <div className="flex items-center justify-between bg-slate-800/80 px-4 py-2.5 rounded-2xl border border-slate-700">
+            {/* Top Control Bar with Big Timer 00:00:12 */}
+            <div className="flex items-center justify-between bg-slate-800/90 px-4 py-2 rounded-2xl border border-slate-700 shadow-md">
+              
+              {/* Left action: Race Again & Exclude Toggle (Giống hình 5) */}
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-black text-slate-400 uppercase">ĐỒNG HỒ ĐUA:</span>
-                <span className="font-mono text-xl font-black text-amber-400">
+                {raceState === 'finished' && (
+                  <button
+                    onClick={handleRaceAgain}
+                    className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center space-x-1.5 transition-all"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Đua Lại (Race Again)</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    soundFx.stopRaceAudio();
+                    setScreen('setup');
+                  }}
+                  className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-bold text-slate-300 rounded-xl"
+                >
+                  Cài Đặt Lại
+                </button>
+              </div>
+
+              {/* Big Center Digital Timer (Giống Hình 4 & 5) */}
+              <div className="bg-slate-950 px-6 py-1 rounded-2xl border-2 border-slate-700 shadow-inner">
+                <span className="font-mono text-2xl sm:text-3xl font-black text-amber-400 tracking-wider">
                   00:00:{String(timeLeft).padStart(2, '0')}
                 </span>
               </div>
 
+              {/* Right Action: Xuất phát */}
               <div className="flex items-center space-x-2">
                 {raceState === 'ready' && (
                   <button
                     onClick={handleStartRace}
-                    className="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center space-x-1"
+                    className="px-6 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center space-x-1.5 transform hover:scale-105 active:scale-95 transition-all"
                   >
                     <Play className="w-4 h-4 fill-slate-950" />
                     <span>XUẤT PHÁT!</span>
                   </button>
                 )}
 
-                <button
-                  onClick={() => {
-                    soundFx.playClick();
-                    setScreen('setup');
-                    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-                  }}
-                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-xs font-bold text-slate-300 rounded-xl"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
+                {raceState === 'running' && (
+                  <span className="flex items-center space-x-1 text-xs font-black text-amber-400 bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-400/40 animate-pulse">
+                    <Volume2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>ĐANG ĐUA SÔI ĐỘNG...</span>
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* Canvas Water Track */}
-            <div className="relative w-full rounded-2xl overflow-hidden border-2 border-sky-400 shadow-xl bg-sky-600">
+            {/* Canvas River Track */}
+            <div className="relative w-full rounded-2xl overflow-hidden border-2 border-sky-400 shadow-2xl bg-sky-800">
               <canvas
                 ref={canvasRef}
-                width={920}
-                height={380}
-                className="w-full h-[360px] sm:h-[380px] block"
+                width={940}
+                height={400}
+                className="w-full h-[370px] sm:h-[400px] block"
               />
-            </div>
 
-            {/* Finished State: Top 1-2-3 Podium Leaderboard */}
-            {raceState === 'finished' && topDucks.length >= 3 && (
-              <div className="p-4 bg-slate-800/95 border-2 border-amber-400 rounded-3xl animate-in zoom-in-90 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center space-x-2">
-                  <Trophy className="w-7 h-7 text-amber-400" />
-                  <div>
-                    <h4 className="font-black text-sm text-amber-300">VINH DANH TOP 3 ĐUA VỊT</h4>
-                    <span className="text-[11px] text-slate-400">Chúc mừng 3 chú vịt bứt phá về đích xuất sắc</span>
-                  </div>
-                </div>
-
-                {/* Top 3 Cards */}
-                <div className="flex items-center space-x-3">
-                  {/* Top 1 (Gold) */}
-                  <div className="p-2.5 bg-amber-500/20 border-2 border-amber-400 rounded-2xl text-center min-w-[100px]">
-                    <span className="text-base">🥇</span>
-                    <span className="block font-black text-xs text-amber-300 truncate max-w-[90px]">
-                      {topDucks[0]?.name}
-                    </span>
-                    <span className="text-[10px] text-amber-200 font-bold">+5 Điểm</span>
-                  </div>
-
-                  {/* Top 2 (Silver) */}
-                  <div className="p-2.5 bg-slate-400/20 border-2 border-slate-300 rounded-2xl text-center min-w-[100px]">
-                    <span className="text-base">🥈</span>
-                    <span className="block font-black text-xs text-slate-200 truncate max-w-[90px]">
-                      {topDucks[1]?.name}
-                    </span>
-                    <span className="text-[10px] text-slate-300 font-bold">+3 Điểm</span>
-                  </div>
-
-                  {/* Top 3 (Bronze) */}
-                  <div className="p-2.5 bg-amber-700/20 border-2 border-amber-600 rounded-2xl text-center min-w-[100px]">
-                    <span className="text-base">🥉</span>
-                    <span className="block font-black text-xs text-amber-400 truncate max-w-[90px]">
-                      {topDucks[2]?.name}
-                    </span>
-                    <span className="text-[10px] text-amber-300 font-bold">+2 Điểm</span>
-                  </div>
-                </div>
-
+              {/* Floating Bottom-Right Trophy 🏆 Button (Giống Hình 5) */}
+              {raceState === 'finished' && (
                 <button
                   onClick={() => {
-                    soundFx.playWinner();
-                    onRewardTop3?.(topDucks);
-                    setScreen('setup');
+                    soundFx.playClick();
+                    setShowLeaderboard(true);
                   }}
-                  className="px-5 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center space-x-1.5"
+                  title="Xem thứ tự về đích của các em học sinh"
+                  className="absolute bottom-4 right-4 w-14 h-14 rounded-full bg-slate-950 border-3 border-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.6)] flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-30 group"
                 >
-                  <Sparkles className="w-4 h-4 text-slate-950" />
-                  <span>CỘNG ĐIỂM TOP 3</span>
+                  <Trophy className="w-7 h-7 text-amber-400 group-hover:rotate-12 transition-transform" />
+                  <span className="absolute -top-2 -left-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-md">
+                    Top
+                  </span>
                 </button>
+              )}
+            </div>
+
+            {/* FINISH BANNER ON BOTTOM */}
+            {raceState === 'finished' && rankedDucks.length > 0 && (
+              <div className="flex items-center justify-between bg-slate-800/95 border-2 border-amber-400 px-4 py-2.5 rounded-2xl shadow-xl animate-in zoom-in-95">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl">🥇</span>
+                  <div>
+                    <span className="text-[10px] font-black text-amber-300 uppercase tracking-wider block">
+                      Chúc mừng quán quân cuộc đua:
+                    </span>
+                    <span className="text-sm font-black text-white">
+                      {rankedDucks[0]?.name} (Vịt #{rankedDucks[0]?.id})
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setShowLeaderboard(true)}
+                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center space-x-1.5 transition-all"
+                  >
+                    <ListOrdered className="w-4 h-4 text-slate-950" />
+                    <span>XEM THỨ TỰ VỀ ĐÍCH 🏆</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* MODAL BẢNG THỨ TỰ VỀ ĐÍCH (KHI BẤM ICON CÚP 🏆) */}
+            {showLeaderboard && (
+              <div className="absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-md rounded-2xl p-4 flex flex-col justify-between animate-in zoom-in-95 border-2 border-amber-400">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-700">
+                  <div className="flex items-center space-x-2">
+                    <Trophy className="w-6 h-6 text-amber-400" />
+                    <h4 className="font-black text-base text-amber-300">
+                      BẢNG XẾP HẠNG THỨ TỰ VỀ ĐÍCH CUỘC ĐUA
+                    </h4>
+                  </div>
+                  <button
+                    onClick={() => setShowLeaderboard(false)}
+                    className="p-1 text-slate-400 hover:text-white rounded-lg"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Top 3 Podium Highlights */}
+                <div className="grid grid-cols-3 gap-3 my-2">
+                  {/* Top 1 */}
+                  <div className="p-3 bg-amber-500/20 border-2 border-amber-400 rounded-2xl text-center">
+                    <span className="text-xl">🥇 Quán Quân</span>
+                    <span className="block font-black text-sm text-amber-300 mt-1 truncate">
+                      {rankedDucks[0]?.name}
+                    </span>
+                    <span className="text-xs text-amber-200 font-bold block">Vịt #{rankedDucks[0]?.id} • +5 Sao ⭐</span>
+                  </div>
+
+                  {/* Top 2 */}
+                  <div className="p-3 bg-slate-400/20 border-2 border-slate-300 rounded-2xl text-center">
+                    <span className="text-xl">🥈 Á Quân</span>
+                    <span className="block font-black text-sm text-slate-200 mt-1 truncate">
+                      {rankedDucks[1]?.name || 'N/A'}
+                    </span>
+                    <span className="text-xs text-slate-300 font-bold block">Vịt #{rankedDucks[1]?.id} • +3 Sao ⭐</span>
+                  </div>
+
+                  {/* Top 3 */}
+                  <div className="p-3 bg-amber-700/20 border-2 border-amber-600 rounded-2xl text-center">
+                    <span className="text-xl">🥉 Quý Quân</span>
+                    <span className="block font-black text-sm text-amber-400 mt-1 truncate">
+                      {rankedDucks[2]?.name || 'N/A'}
+                    </span>
+                    <span className="text-xs text-amber-300 font-bold block">Vịt #{rankedDucks[2]?.id} • +2 Sao ⭐</span>
+                  </div>
+                </div>
+
+                {/* Full Ranking Scroll List (All other ducks) */}
+                <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 max-h-48 custom-scrollbar my-1">
+                  {rankedDucks.map((d, index) => (
+                    <div
+                      key={d.id}
+                      className={`p-2 rounded-xl flex items-center justify-between text-xs ${
+                        index === 0
+                          ? 'bg-amber-400/20 text-amber-300 font-black border border-amber-400/50'
+                          : index === 1
+                          ? 'bg-slate-300/20 text-slate-200 font-bold border border-slate-400/30'
+                          : index === 2
+                          ? 'bg-amber-700/20 text-amber-300 font-bold border border-amber-600/30'
+                          : 'bg-slate-800/60 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <span className="w-6 font-mono font-black text-center">
+                          #{index + 1}
+                        </span>
+                        <span>{d.name}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          (Vịt số {d.id})
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-bold">
+                        {index === 0 ? '+5 Sao' : index === 1 ? '+3 Sao' : index === 2 ? '+2 Sao' : 'Hoàn thành'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom Reward Buttons */}
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-bold">
+                    Tổng cộng: {rankedDucks.length} học sinh tham gia
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        soundFx.playWinner();
+                        onRewardTop3?.(rankedDucks.slice(0, 3));
+                        setShowLeaderboard(false);
+                      }}
+                      className="px-5 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center space-x-1.5"
+                    >
+                      <Sparkles className="w-4 h-4 text-slate-950" />
+                      <span>CỘNG ĐIỂM CHO TOP 3</span>
+                    </button>
+                    <button
+                      onClick={() => setShowLeaderboard(false)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl"
+                    >
+                      Đóng Bảng
+                    </button>
+                  </div>
+                </div>
+
               </div>
             )}
 
@@ -400,3 +758,4 @@ export const BeeRaceModal = ({
     </div>
   );
 };
+

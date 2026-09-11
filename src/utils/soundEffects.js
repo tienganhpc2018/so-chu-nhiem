@@ -331,6 +331,145 @@ class SoundEffectsManager {
       osc.stop(now + 0.15);
     } catch (e) {}
   }
+
+  // Âm thanh hồi hộp drumroll (dùng cho Hái hoa và Bốc thăm đại diện)
+  startSuspenseDrum(durationSec = 6) {
+    try {
+      this.initContext();
+      this.stopSuspenseDrum();
+      if (!this.ctx) return;
+
+      const startTime = Date.now();
+      const endTime = startTime + durationSec * 1000;
+
+      const playPulse = () => {
+        if (!this.suspenseInterval) return;
+        const now = Date.now();
+        if (now >= endTime) {
+          this.stopSuspenseDrum();
+          return;
+        }
+
+        // Calculate progress (0 to 1) to accelerate beat
+        const progress = (now - startTime) / (durationSec * 1000);
+        const pitch = 180 + progress * 240;
+
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = progress > 0.7 ? 'triangle' : 'sine';
+          osc.frequency.setValueAtTime(pitch, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(pitch * 0.6, this.ctx.currentTime + 0.06);
+
+          const vol = 0.08 + progress * 0.12;
+          gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.06);
+        } catch (err) {}
+
+        // Schedule next beat with decreasing interval (faster towards end)
+        const nextDelay = Math.max(50, Math.floor(180 - progress * 130));
+        this.suspenseInterval = setTimeout(playPulse, nextDelay);
+      };
+
+      this.suspenseInterval = setTimeout(playPulse, 100);
+    } catch (e) {
+      console.warn("Suspense audio error:", e);
+    }
+  }
+
+  stopSuspenseDrum() {
+    if (this.suspenseInterval) {
+      clearTimeout(this.suspenseInterval);
+      this.suspenseInterval = null;
+    }
+  }
+
+  // Nhạc nền cuộc đua vịt (tiếng nước, nhịp điệu đua vui nhộn và tiếng quác)
+  startRaceAudio() {
+    try {
+      this.initContext();
+      this.stopRaceAudio();
+      if (!this.ctx) return;
+
+      this.raceAudioActive = true;
+      let beatStep = 0;
+
+      // Loop nhịp điệu đua xe/đua vịt
+      const raceLoop = () => {
+        if (!this.raceAudioActive || !this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const bassFreq = [130.81, 146.83, 164.81, 174.61, 196.00][beatStep % 5];
+
+        // 1. Nhịp Bass nảy tưng bừng
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(bassFreq, now);
+          osc.frequency.exponentialRampToValueAtTime(bassFreq * 0.7, now + 0.12);
+
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } catch (e) {}
+
+        // 2. Tiếng nước té bọt splash (noise ngắn)
+        try {
+          const bufferSize = Math.floor(this.ctx.sampleRate * 0.05);
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1200 + (beatStep % 4) * 300, now);
+
+          const splashGain = this.ctx.createGain();
+          splashGain.gain.setValueAtTime(0.08, now);
+          splashGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+          noise.connect(filter);
+          filter.connect(splashGain);
+          splashGain.connect(this.ctx.destination);
+          noise.start(now);
+        } catch (e) {}
+
+        // 3. Thỉnh thoảng phát tiếng vịt quác vui nhộn
+        if (beatStep % 6 === 3) {
+          this.playQuack();
+        }
+
+        beatStep++;
+        this.raceAudioTimer = setTimeout(raceLoop, 170); // ~176 BPM sôi động
+      };
+
+      raceLoop();
+    } catch (e) {
+      console.warn("Race audio error:", e);
+    }
+  }
+
+  stopRaceAudio() {
+    this.raceAudioActive = false;
+    if (this.raceAudioTimer) {
+      clearTimeout(this.raceAudioTimer);
+      this.raceAudioTimer = null;
+    }
+  }
 }
 
 export const soundFx = new SoundEffectsManager();
