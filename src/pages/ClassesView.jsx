@@ -286,9 +286,10 @@ export const ClassesView = ({
                     {(() => {
                       try {
                         const localSt = JSON.parse(localStorage.getItem(`custom_students_${cls.id}`) || '[]');
-                        if (localSt.length > 0) return `${localSt.length} học sinh`;
-                      } catch (e) {}
-                      return cls.name === '9A5' || String(cls.id).includes('9A5') ? '39 học sinh' : `${cls.student_count || 39} học sinh`;
+                        return `${localSt.length} học sinh`;
+                      } catch (e) {
+                        return `${cls.student_count || 0} học sinh`;
+                      }
                     })()}
                   </span>
                 </div>
