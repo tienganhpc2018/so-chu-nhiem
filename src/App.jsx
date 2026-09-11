@@ -105,7 +105,7 @@ const MainLayout = () => {
     }
   };
 
-const generate7A6Students = (classId) => {
+const generateDefaultStudents = (classId, className = 'Lớp') => {
   const names = [
     'Nguyễn Hoài An', 'Trần Bảo Anh', 'Lê Hoàng Bách', 'Phạm Minh Cường', 'Vũ Đức Duy',
     'Bùi Thị Giang', 'Đỗ Hà Phương', 'Hồ Quốc Khánh', 'Nông Văn Khoa', 'Đinh Thanh Lâm',
@@ -121,7 +121,7 @@ const generate7A6Students = (classId) => {
     const c = (idx % 8) + 1;
     const group = (idx % 4) + 1;
     return {
-      id: `st-7a6-${idx + 1}`,
+      id: `st-${String(classId).replace(/[^a-zA-Z0-9]/g, '')}-${idx + 1}`,
       class_id: classId,
       full_name: name,
       gender: idx % 2 === 0 ? 'female' : 'male',
@@ -192,11 +192,11 @@ const generate7A6Students = (classId) => {
       return acc;
     }, []);
 
-    if (unique.length === 0 && (className === '7A6' || String(classId).includes('7A6'))) {
-      unique = generate7A6Students(classId);
+    if (unique.length === 0 && classId) {
+      unique = generateDefaultStudents(classId, className || 'Lớp');
       try {
         localStorage.setItem(`custom_students_${classId}`, JSON.stringify(unique));
-        localStorage.setItem(`custom_students_7A6`, JSON.stringify(unique));
+        if (className) localStorage.setItem(`custom_students_${className}`, JSON.stringify(unique));
       } catch (e) {}
     }
 
