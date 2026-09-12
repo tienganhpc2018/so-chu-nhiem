@@ -236,7 +236,7 @@ const MainLayout = () => {
     attendance: { title: 'Điểm danh Chuyên cần', subtitle: 'Điểm danh hiện diện học sinh theo ngày' },
     seating: { title: 'Sơ đồ Chỗ ngồi Lớp học', subtitle: 'Kéo thả avatar học sinh sắp xếp bàn học 4x6' },
     timetable: { title: 'Thời khóa biểu', subtitle: 'Lịch học và thời gian các tiết trong tuần' },
-    rewards: { title: 'Cửa hàng Đổi quà', subtitle: 'Đổi xu sao lấy đặc quyền học tập' },
+    rewards: { title: 'Cửa Hàng Đổi Quà Lớp', subtitle: 'Quy đổi xu thi đua lấy phần thưởng học tập, đặc quyền và quà lưu niệm' },
     luckywheel: { title: 'Vòng quay May mắn', subtitle: 'Gọi tên học sinh ngẫu nhiên phát biểu' },
     leaderboard: { title: 'Bảng Vinh danh & Cuộn Phim', subtitle: 'Vinh danh top học sinh xuất sắc và tiến bộ' },
     noisemeter: { title: 'Đo Độ ồn Lớp học', subtitle: 'Giám sát âm thanh microphone thời gian thực' },
@@ -280,7 +280,7 @@ const MainLayout = () => {
         />
 
         {/* 4-Tab Management Navigation Bar */}
-        {['classes', 'students', 'seating', 'attendance', 'behavior', 'assessment'].includes(activeTab) && (
+        {['classes', 'students', 'seating', 'attendance', 'behavior', 'assessment', 'rewards'].includes(activeTab) && (
           <div className="bg-white border-b border-slate-200 px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center space-x-1.5 sm:space-x-2 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80">
               <button
@@ -314,6 +314,23 @@ const MainLayout = () => {
                   activeTab === 'assessment' ? 'bg-amber-400 text-amber-950' : 'bg-teal-100 text-teal-800'
                 }`}>
                   AI ✨
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('rewards')}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                  activeTab === 'rewards'
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md shadow-rose-200 scale-102'
+                    : 'text-rose-700 hover:text-rose-900 hover:bg-rose-50'
+                }`}
+              >
+                <span>🎁</span>
+                <span>Cửa Hàng Đổi Quà</span>
+                <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                  activeTab === 'rewards' ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  HOT
                 </span>
               </button>
 
