@@ -20,8 +20,10 @@ import { GroupTeamsModal } from './components/GroupTeamsModal';
 export const BehaviorPage = ({
   currentClass,
   students: propStudents = [],
+  teacherProfile = null,
   onSelectClass,
-  onRefreshClasses
+  onRefreshClasses,
+  onRefreshStudents = null
 }) => {
   // State 1: students
   const [students, setStudents] = useState([]);
@@ -133,18 +135,157 @@ export const BehaviorPage = ({
     updateStudentsState(updated);
   };
 
-  // Drag & Drop Seat Swap Handler
-  const handleSwapSeats = (studentA, targetRow, targetCol, studentB) => {
+  // Drag & Drop / Click-to-Move Seat Swap Handler
+  const handleSwapSeats = async (studentA, targetRow, targetCol, studentB) => {
+    if (!studentA) return;
+    const classKey = currentClass?.id || 'default_class';
+
     const updated = students.map(st => {
       if (st.id === studentA.id) {
-        return { ...st, seat_row: targetRow, seat_col: targetCol };
+        return { ...st, seat_row: Number(targetRow), seat_col: Number(targetCol) };
       }
       if (studentB && st.id === studentB.id) {
-        return { ...st, seat_row: studentA.seat_row, seat_col: studentA.seat_col };
+        return {
+          ...st,
+          seat_row: Number(studentA.seat_row || targetRow),
+          seat_col: Number(studentA.seat_col || targetCol)
+        };
       }
       return st;
     });
+
     updateStudentsState(updated);
+
+    // Save to custom_students_${classKey} for cross-tab sync
+    try {
+      localStorage.setItem(`custom_students_${classKey}`, JSON.stringify(updated));
+    } catch (e) {}
+
+    // Async sync to Supabase DB
+    try {
+      const updates = [];
+      if (studentA.id) {
+        updates.push(
+          supabase.from('students').update({ seat_row: Number(targetRow), seat_col: Number(targetCol) }).eq('id', studentA.id)
+        );
+      }
+      if (studentB && studentB.id) {
+        updates.push(
+          supabase.from('students').update({
+            seat_row: Number(studentA.seat_row || targetRow),
+            seat_col: Number(studentA.seat_col || targetCol)
+          }).eq('id', studentB.id)
+        );
+      }
+      await Promise.allSettled(updates);
+    } catch (err) {
+      console.error('Lỗi lưu chỗ ngồi DB:', err);
+    }
+
+    onRefreshStudents?.();
+  };
+
+  // Tự động xếp các học sinh chưa có chỗ vào các bàn còn trống
+  const handleAutoAssignSeats = async (maxRow = 5) => {
+    const classKey = currentClass?.id || 'default_class';
+    const occupiedSeats = new Set();
+    const unseatedList = [];
+
+    students.forEach(st => {
+      const r = Number(st.seat_row);
+      const c = Number(st.seat_col);
+      if (r >= 1 && r <= maxRow && c >= 1 && c <= 8) {
+        occupiedSeats.add(`${r}-${c}`);
+      } else {
+        unseatedList.push(st);
+      }
+    });
+
+    if (unseatedList.length === 0) return;
+
+    // Find all empty seats
+    const emptySeats = [];
+    for (let r = 1; r <= maxRow; r++) {
+      for (let c = 1; c <= 8; c++) {
+        if (!occupiedSeats.has(`${r}-${c}`)) {
+          emptySeats.push({ r, c });
+        }
+      }
+    }
+
+    let seatIdx = 0;
+    const assignments = new Map();
+    unseatedList.forEach(st => {
+      if (seatIdx < emptySeats.length) {
+        assignments.set(st.id, emptySeats[seatIdx]);
+        seatIdx++;
+      }
+    });
+
+    const updated = students.map(st => {
+      if (assignments.has(st.id)) {
+        const { r, c } = assignments.get(st.id);
+        return { ...st, seat_row: r, seat_col: c };
+      }
+      return st;
+    });
+
+    updateStudentsState(updated);
+    try {
+      localStorage.setItem(`custom_students_${classKey}`, JSON.stringify(updated));
+    } catch (e) {}
+
+    try {
+      const updates = [];
+      assignments.forEach(({ r, c }, stId) => {
+        updates.push(supabase.from('students').update({ seat_row: r, seat_col: c }).eq('id', stId));
+      });
+      await Promise.allSettled(updates);
+    } catch (err) {
+      console.error('Lỗi lưu tự động xếp bàn DB:', err);
+    }
+
+    onRefreshStudents?.();
+  };
+
+  // Xáo trộn ngẫu nhiên chỗ ngồi
+  const handleShuffleSeats = async (maxRow = 5) => {
+    const classKey = currentClass?.id || 'default_class';
+    if (students.length === 0) return;
+
+    // Generate all grid coordinates
+    const allSeats = [];
+    for (let r = 1; r <= maxRow; r++) {
+      for (let c = 1; c <= 8; c++) {
+        allSeats.push({ r, c });
+      }
+    }
+
+    // Shuffle seats
+    const shuffledSeats = [...allSeats].sort(() => Math.random() - 0.5);
+
+    const updated = students.map((st, idx) => {
+      if (idx < shuffledSeats.length) {
+        return { ...st, seat_row: shuffledSeats[idx].r, seat_col: shuffledSeats[idx].c };
+      }
+      return st;
+    });
+
+    updateStudentsState(updated);
+    try {
+      localStorage.setItem(`custom_students_${classKey}`, JSON.stringify(updated));
+    } catch (e) {}
+
+    try {
+      const updates = updated.map(st =>
+        supabase.from('students').update({ seat_row: st.seat_row, seat_col: st.seat_col }).eq('id', st.id)
+      );
+      await Promise.allSettled(updates);
+    } catch (err) {
+      console.error('Lỗi lưu xáo trộn DB:', err);
+    }
+
+    onRefreshStudents?.();
   };
 
   // Add Class Handler
@@ -572,7 +713,10 @@ export const BehaviorPage = ({
         onClose={() => closeModal('seating')}
         students={students}
         currentClass={currentClass}
+        teacherProfile={teacherProfile}
         onSwapSeats={handleSwapSeats}
+        onAutoAssignSeats={handleAutoAssignSeats}
+        onShuffleSeats={handleShuffleSeats}
       />
 
       {/* 10. Discussion Timer Modal */}

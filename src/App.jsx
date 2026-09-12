@@ -441,8 +441,10 @@ const MainLayout = () => {
             <BehaviorPage
               currentClass={currentClass}
               students={students}
+              teacherProfile={profile}
               onSelectClass={setCurrentClass}
               onRefreshClasses={fetchClasses}
+              onRefreshStudents={() => currentClass && fetchStudents(currentClass.id)}
             />
           )}
 
