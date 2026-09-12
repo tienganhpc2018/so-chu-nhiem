@@ -25,6 +25,10 @@ import { GiftShopLeaderboard } from './components/GiftShopLeaderboard';
 import { GiftVoucherModal } from './components/GiftVoucherModal';
 import { BatchVoucherModal } from './components/BatchVoucherModal';
 import { FlashSaleModal } from './components/FlashSaleModal';
+import { GiftLuckyWheelModal } from './components/GiftLuckyWheelModal';
+import { VoucherScannerModal } from './components/VoucherScannerModal';
+import { MysteryBoxModal } from './components/MysteryBoxModal';
+import { PiggyBankModal } from './components/PiggyBankModal';
 import { soundFx } from '../../utils/soundEffects';
 import { supabase } from '../../lib/supabase';
 
@@ -67,6 +71,12 @@ export const GiftShopView = ({
   // Batch Voucher Modal state (In hàng loạt 4 voucher / A4)
   const [showBatchVoucherModal, setShowBatchVoucherModal] = useState(false);
   const [batchVouchersData, setBatchVouchersData] = useState([]);
+
+  // 4 Modals tính năng mới
+  const [showLuckyWheelModal, setShowLuckyWheelModal] = useState(false);
+  const [showScannerModal, setShowScannerModal] = useState(false);
+  const [showMysteryBoxModal, setShowMysteryBoxModal] = useState(false);
+  const [showPiggyBankModal, setShowPiggyBankModal] = useState(false);
 
   // Projector / Kiosk Mode state (Chế độ máy chiếu dành cho học sinh)
   const [isProjectorMode, setIsProjectorMode] = useState(false);
@@ -410,6 +420,103 @@ export const GiftShopView = ({
     saveRedemptionsState([]);
   };
 
+  // Cập nhật số xu của học sinh cả LocalStorage và Supabase
+  const handleUpdateStudentCoins = async (studentId, newCoins) => {
+    ['custom_students_', 'behavior_students_'].forEach(prefix => {
+      const key = `${prefix}${classId}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          const list = JSON.parse(stored);
+          const mapped = list.map(st => {
+            if (st.id === studentId) {
+              return { ...st, coins: newCoins, total_stars: newCoins };
+            }
+            return st;
+          });
+          localStorage.setItem(key, JSON.stringify(mapped));
+        } catch (e) {}
+      }
+    });
+
+    try {
+      await supabase
+        .from('students')
+        .update({ total_stars: newCoins })
+        .eq('id', studentId);
+    } catch (e) {}
+
+    onRefreshStudents?.();
+  };
+
+  // Xác nhận đã trao quà cho học sinh (Voucher 1 lần)
+  const handleConfirmGive = (redemptionId) => {
+    const updated = redemptions.map(r => {
+      if (r.id === redemptionId) {
+        return {
+          ...r,
+          status: 'given',
+          givenAt: new Date().toISOString()
+        };
+      }
+      return r;
+    });
+    saveRedemptionsState(updated);
+  };
+
+  // Vòng quay may mắn thành công
+  const handleSpinSuccess = async ({ student, prize, coinsDeducted }) => {
+    let finalCoins = Math.max(0, Number(student.coins ?? student.total_stars ?? 0) - coinsDeducted);
+
+    if (prize.type === 'coins') {
+      finalCoins += Number(prize.value || 0);
+    }
+
+    await handleUpdateStudentCoins(student.id, finalCoins);
+
+    // Nếu trúng hiện vật, tạo 1 bản ghi vào redemptions
+    if (prize.type === 'gift') {
+      const voucherCode = `VC-WHEEL-${Date.now().toString().slice(-6)}`;
+      const newRedemption = {
+        id: `red-${Date.now()}`,
+        voucherCode,
+        classId,
+        studentId: student.id,
+        studentName: student.full_name,
+        giftId: prize.id,
+        giftName: `[Vòng Quay] ${prize.name}`,
+        coinsSpent: coinsDeducted,
+        timestamp: new Date().toISOString(),
+        status: 'pending'
+      };
+      const updated = [newRedemption, ...redemptions];
+      saveRedemptionsState(updated);
+    }
+  };
+
+  // Hộp quà bí ẩn mở thành công
+  const handleUnboxSuccess = async ({ student, item, coinsSpent }) => {
+    const finalCoins = Math.max(0, Number(student.coins ?? student.total_stars ?? 0) - coinsSpent);
+    await handleUpdateStudentCoins(student.id, finalCoins);
+
+    const voucherCode = `VC-BOX-${Date.now().toString().slice(-6)}`;
+    const newRedemption = {
+      id: `red-${Date.now()}`,
+      voucherCode,
+      classId,
+      studentId: student.id,
+      studentName: student.full_name,
+      giftId: item.id,
+      giftName: `[Hộp Bí Ẩn] ${item.name}`,
+      coinsSpent,
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    };
+    const updated = [newRedemption, ...redemptions];
+    saveRedemptionsState(updated);
+    return newRedemption;
+  };
+
   // Khôi phục 6 quà mẫu mặc định nếu lỡ xóa hết
   const handleRestorePresets = () => {
     soundFx?.playClick();
@@ -522,6 +629,54 @@ export const GiftShopView = ({
             >
               <Flame className={`w-4 h-4 ${isFlashActive ? 'fill-rose-600 text-rose-600' : 'text-amber-300'}`} />
               <span>{isFlashActive ? `Giờ Vàng (-${discountPercent}%)` : 'Giờ Vàng'}</span>
+            </button>
+          )}
+
+          {/* Nút Vòng Quay May Mắn (5 xu) */}
+          {!isProjectorMode && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFx?.playClick();
+                setShowLuckyWheelModal(true);
+              }}
+              className="px-3.5 py-3 bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/25 font-black text-xs sm:text-sm rounded-2xl flex items-center space-x-1.5 transition-all shadow-md active:scale-95"
+              title="Vòng quay may mắn đổi quà bằng 5 xu"
+            >
+              <span className="text-base">🎡</span>
+              <span>Vòng Quay</span>
+            </button>
+          )}
+
+          {/* Nút Hộp Quà Bí Ẩn (15 xu) */}
+          {!isProjectorMode && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFx?.playClick();
+                setShowMysteryBoxModal(true);
+              }}
+              className="px-3.5 py-3 bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/25 font-black text-xs sm:text-sm rounded-2xl flex items-center space-x-1.5 transition-all shadow-md active:scale-95"
+              title="Mở rương bí mật gacha nhận quà cực phẩm"
+            >
+              <span className="text-base">🎁</span>
+              <span>Hộp Bí Ẩn</span>
+            </button>
+          )}
+
+          {/* Nút Ví Tiết Kiệm Heo Đất */}
+          {!isProjectorMode && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFx?.playClick();
+                setShowPiggyBankModal(true);
+              }}
+              className="px-3.5 py-3 bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/25 font-black text-xs sm:text-sm rounded-2xl flex items-center space-x-1.5 transition-all shadow-md active:scale-95"
+              title="Ví tiết kiệm Heo đất tích lũy nhận lãi suất tuần"
+            >
+              <span className="text-base">🐷</span>
+              <span>Heo Đất</span>
             </button>
           )}
 
@@ -853,6 +1008,8 @@ export const GiftShopView = ({
             setBatchVouchersData(items);
             setShowBatchVoucherModal(true);
           }}
+          onOpenScanner={() => setShowScannerModal(true)}
+          onConfirmGive={handleConfirmGive}
         />
       )}
 
@@ -917,6 +1074,41 @@ export const GiftShopView = ({
             localStorage.setItem(`gift_flash_sale_${classId}`, JSON.stringify(ended));
           } catch (e) {}
         }}
+      />
+
+      {/* MODAL VÒNG QUAY MAY MẮN (5 XU) */}
+      <GiftLuckyWheelModal
+        isOpen={showLuckyWheelModal}
+        onClose={() => setShowLuckyWheelModal(false)}
+        students={students}
+        onSpinSuccess={handleSpinSuccess}
+      />
+
+      {/* MODAL QUÉT & XÁC THỰC MÃ VOUCHER DÙNG 1 LẦN */}
+      <VoucherScannerModal
+        isOpen={showScannerModal}
+        onClose={() => setShowScannerModal(false)}
+        redemptions={redemptions}
+        onConfirmGive={handleConfirmGive}
+      />
+
+      {/* MODAL HỘP QUÀ BÍ ẨN GACHA (15 XU) */}
+      <MysteryBoxModal
+        isOpen={showMysteryBoxModal}
+        onClose={() => setShowMysteryBoxModal(false)}
+        students={students}
+        onUnboxSuccess={handleUnboxSuccess}
+        onOpenVoucher={handleOpenVoucher}
+      />
+
+      {/* MODAL VÍ TIẾT KIỆM HEO ĐẤT & LÃI SUẤT TUẦN */}
+      <PiggyBankModal
+        isOpen={showPiggyBankModal}
+        onClose={() => setShowPiggyBankModal(false)}
+        classId={classId}
+        className={className}
+        students={students}
+        onUpdateStudentCoins={handleUpdateStudentCoins}
       />
 
       {/* MODAL XÁC NHẬN XÓA QUÀ */}

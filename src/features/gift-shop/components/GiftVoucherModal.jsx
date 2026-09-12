@@ -164,19 +164,28 @@ export const GiftVoucherModal = ({
             </div>
           </div>
 
-          {/* Simulated QR Code & Barcode */}
+          {/* Real QR Code & Barcode */}
           <div className="p-2.5 bg-white rounded-2xl border border-slate-200/80 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-12 h-12 bg-slate-900 rounded-lg p-1 flex items-center justify-center shrink-0">
-                <QrCode className="w-10 h-10 text-white" />
+            <div className="flex items-center space-x-2.5">
+              <div className="w-12 h-12 bg-white border border-slate-200 rounded-xl p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(voucherCode)}`}
+                  alt="QR Code"
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
+                  }}
+                />
+                <QrCode className="w-9 h-9 text-slate-800 hidden" />
               </div>
               <div className="text-left">
                 <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Mã xác thực</span>
-                <span className="font-mono text-xs font-black text-slate-800 tracking-wider">
+                <span className="font-mono text-xs font-black text-indigo-700 tracking-wider">
                   {voucherCode}
                 </span>
                 <span className="text-[9px] text-emerald-600 font-bold block flex items-center gap-0.5">
-                  <CheckCircle2 className="w-3 h-3 inline" /> Hợp lệ & Đã duyệt
+                  <CheckCircle2 className="w-3 h-3 inline" /> Chỉ có giá trị 1 lần
                 </span>
               </div>
             </div>
@@ -192,7 +201,7 @@ export const GiftVoucherModal = ({
                   />
                 ))}
               </div>
-              <span className="text-[8px] font-mono text-slate-400">CLASS-REWARD-A6</span>
+              <span className="text-[8px] font-mono text-slate-400">VOUCHER-SINGLE-USE</span>
             </div>
           </div>
 

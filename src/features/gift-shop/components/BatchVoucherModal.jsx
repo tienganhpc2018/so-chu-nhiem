@@ -177,9 +177,18 @@ export const BatchVoucherModal = ({
                     {/* Footer Signature & Date */}
                     <div className="mt-3 pt-2 border-t border-purple-100 flex items-end justify-between">
                       <div className="flex items-center space-x-1.5 opacity-80">
-                        <QrCode className="w-7 h-7 text-purple-800" />
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(voucherCode)}`}
+                          alt="QR"
+                          className="w-7 h-7 object-contain"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            if (e.target.nextSibling) e.target.nextSibling.style.display = 'block';
+                          }}
+                        />
+                        <QrCode className="w-7 h-7 text-purple-800 hidden" />
                         <span className="text-[7px] text-slate-400 font-bold uppercase leading-tight">
-                          QUÉT MÃ<br />XÁC THỰC
+                          QUÉT MÃ<br />1 LẦN
                         </span>
                       </div>
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { History, FileSpreadsheet, Trash2, Search, Calendar, User, Gift, AlertTriangle, RotateCcw, Printer } from 'lucide-react';
+import { History, FileSpreadsheet, Trash2, Search, Calendar, User, Gift, AlertTriangle, RotateCcw, Printer, QrCode, CheckCircle2 } from 'lucide-react';
 import { soundFx } from '../../../utils/soundEffects';
 
 export const RedemptionHistoryTable = ({
@@ -8,7 +8,9 @@ export const RedemptionHistoryTable = ({
   onClearHistory,
   onUndoRedeem,
   onPrintVoucher,
-  onBatchPrintVoucher
+  onBatchPrintVoucher,
+  onOpenScanner,
+  onConfirmGive
 }) => {
   const [search, setSearch] = useState('');
   const [showConfirmClear, setShowConfirmClear] = useState(false);
@@ -121,6 +123,19 @@ export const RedemptionHistoryTable = ({
 
         {/* Action Buttons */}
         <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={() => {
+              soundFx?.playClick();
+              onOpenScanner?.();
+            }}
+            className="px-3.5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 text-white rounded-xl text-xs font-black flex items-center space-x-1.5 shadow-sm transition-all active:scale-95"
+            title="Quét mã QR hoặc kiểm tra mã voucher chống tái sử dụng"
+          >
+            <QrCode className="w-4 h-4" />
+            <span>Quét Mã Voucher</span>
+          </button>
+
           {redemptions.length > 0 && (
             <>
               <button
@@ -212,6 +227,7 @@ export const RedemptionHistoryTable = ({
               <th className="py-3 px-3 min-w-[80px]">Lớp</th>
               <th className="py-3 px-4 min-w-[170px]">Phần quà đã đổi</th>
               <th className="py-3 px-4 text-right min-w-[110px]">Số xu đã trừ</th>
+              <th className="py-3 px-3 text-center min-w-[125px]">Trạng thái</th>
               <th className="py-3 px-3 text-center min-w-[110px]">Thao tác</th>
             </tr>
           </thead>
@@ -260,6 +276,26 @@ export const RedemptionHistoryTable = ({
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center whitespace-nowrap">
+                      {item.status === 'given' ? (
+                        <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300" title={`Đã trao lúc: ${formatDateTime(item.givenAt)}`}>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Đã trao quà</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            soundFx?.playWinner();
+                            onConfirmGive?.(item.id);
+                          }}
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[10px] font-black bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-all shadow-2xs cursor-pointer"
+                          title="Bấm để xác nhận đã trao quà cho học sinh"
+                        >
+                          <span>⏳ Chờ trao (Duyệt)</span>
+                        </button>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center space-x-1.5">
                         <button
                           type="button"
@@ -287,7 +323,7 @@ export const RedemptionHistoryTable = ({
               })
             ) : (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-slate-400 font-medium">
+                <td colSpan={9} className="py-10 text-center text-slate-400 font-medium">
                   {redemptions.length === 0 ? (
                     <div className="space-y-1">
                       <div className="text-3xl">🎁</div>
