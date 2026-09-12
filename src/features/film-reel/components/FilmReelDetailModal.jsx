@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Heart, Calendar, Play, Edit3, Trash2, Maximize2, Sparkles, Tag, Users } from 'lucide-react';
+import { X, Heart, Calendar, Play, Edit3, Trash2, Maximize2, Sparkles, Tag, Users, Printer } from 'lucide-react';
 import { FILM_REEL_CATEGORIES } from '../constants/filmReelPresets';
 import { soundFx } from '../../../utils/soundEffects';
 
@@ -43,11 +43,11 @@ export const FilmReelDetailModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto print:static print:bg-white print:p-0 print:m-0 print:overflow-visible">
+      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh] my-auto print:max-w-none print:max-h-none print:shadow-none print:border-none print:rounded-none print:my-0">
         
         {/* 1. THANH CÔNG CỤ ĐẦU TRANG (Action Bar) */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-purple-50/40 to-pink-50/40 shrink-0">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 via-purple-50/40 to-pink-50/40 shrink-0 print:hidden">
           <div className="flex items-center space-x-2">
             <span className={`text-xs font-black uppercase px-3 py-1 rounded-full border ${categoryInfo.badge}`}>
               {reel.category}
@@ -58,6 +58,19 @@ export const FilmReelDetailModal = ({
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Nút In / Xuất Kỷ yếu A4 */}
+            <button
+              onClick={() => {
+                soundFx?.playClick();
+                window.print();
+              }}
+              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors"
+              title="In hoặc Lưu file PDF Kỷ Yếu (Khổ A4)"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">In Kỷ Yếu A4</span>
+            </button>
+
             {/* Nút Thả tim */}
             <button
               onClick={() => {
