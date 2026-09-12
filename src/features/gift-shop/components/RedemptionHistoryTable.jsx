@@ -7,11 +7,13 @@ export const RedemptionHistoryTable = ({
   className = '',
   onClearHistory,
   onUndoRedeem,
-  onPrintVoucher
+  onPrintVoucher,
+  onBatchPrintVoucher
 }) => {
   const [search, setSearch] = useState('');
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [undoTarget, setUndoTarget] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Format datetime dd/mm/yyyy hh:mm
   const formatDateTime = (isoString) => {
@@ -38,6 +40,22 @@ export const RedemptionHistoryTable = ({
       item.giftName?.toLowerCase().includes(q)
     );
   });
+
+  // Select all toggle
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === filtered.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filtered.map(item => item.id));
+    }
+  };
+
+  // Row toggle
+  const handleToggleSelectRow = (id) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   // Export to Excel / CSV with UTF-8 BOM (\uFEFF)
   const handleExportCSV = () => {
@@ -74,7 +92,7 @@ export const RedemptionHistoryTable = ({
 
   const handleConfirmUndo = () => {
     if (!undoTarget) return;
-    soundFx?.playClick();
+    soundFx?.playUndoRestore();
     onUndoRedeem?.(undoTarget.id);
     setUndoTarget(null);
   };
@@ -127,6 +145,39 @@ export const RedemptionHistoryTable = ({
         </div>
       </div>
 
+      {/* Floating Batch Print Bar (Khi có chọn ít nhất 1 dòng) */}
+      {selectedIds.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-gradient-to-r from-purple-50 via-indigo-50 to-purple-50 border-2 border-purple-300 rounded-2xl shadow-sm animate-in fade-in">
+          <div className="flex items-center space-x-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse"></span>
+            <span className="text-xs font-black text-purple-950">
+              Đã chọn: <strong className="text-purple-700 text-sm">{selectedIds.length}</strong> lượt đổi quà
+            </span>
+          </div>
+          <div className="flex items-center space-x-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-300 rounded-xl transition-all"
+            >
+              Bỏ chọn
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const selectedItems = redemptions.filter(item => selectedIds.includes(item.id));
+                soundFx?.playPrintVoucher();
+                onBatchPrintVoucher?.(selectedItems);
+              }}
+              className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 text-white text-xs font-black rounded-xl shadow-md flex items-center space-x-1.5 transition-all active:scale-95"
+            >
+              <Printer className="w-4 h-4" />
+              <span>In Hàng Loạt ({selectedIds.length} Phiếu A6 / A4)</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Search Filter */}
       {redemptions.length > 0 && (
         <div className="relative max-w-sm">
@@ -146,7 +197,16 @@ export const RedemptionHistoryTable = ({
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
-              <th className="py-3 px-3 text-center w-12">STT</th>
+              <th className="py-3 px-3 text-center w-10">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && selectedIds.length === filtered.length}
+                  onChange={handleToggleSelectAll}
+                  className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
+                  title="Chọn tất cả để in hàng loạt"
+                />
+              </th>
+              <th className="py-3 px-2 text-center w-10">STT</th>
               <th className="py-3 px-3 min-w-[130px]">Thời gian đổi</th>
               <th className="py-3 px-4 min-w-[150px]">Học sinh nhận quà</th>
               <th className="py-3 px-3 min-w-[80px]">Lớp</th>
@@ -157,55 +217,74 @@ export const RedemptionHistoryTable = ({
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
             {filtered.length > 0 ? (
-              filtered.map((item, idx) => (
-                <tr key={item.id || idx} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="py-3 px-3 text-center font-bold text-slate-400">
-                    {idx + 1}
-                  </td>
-                  <td className="py-3 px-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
-                    {formatDateTime(item.timestamp)}
-                  </td>
-                  <td className="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">
-                    {item.studentName}
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
-                      {className || 'Lớp học'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-slate-800 font-semibold">
-                    <div className="flex items-center space-x-1.5">
-                      <span>🎁</span>
-                      <span>{item.giftName}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-right whitespace-nowrap">
-                    <span className="font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 text-xs">
-                      -{item.coinsSpent} xu
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-center whitespace-nowrap">
-                    <div className="flex items-center justify-center space-x-1.5">
-                      <button
-                        type="button"
-                        onClick={() => onPrintVoucher?.(item)}
-                        className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors shadow-2xs"
-                        title="In thẻ Voucher A6 cho học sinh"
-                      >
-                        <Printer className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setUndoTarget(item)}
-                        className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-colors shadow-2xs"
-                        title="Hoàn tác / Hủy lượt đổi & Hoàn lại xu"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              filtered.map((item, idx) => {
+                const isChecked = selectedIds.includes(item.id);
+                return (
+                  <tr
+                    key={item.id || idx}
+                    className={`transition-colors ${
+                      isChecked ? 'bg-purple-50/70' : 'hover:bg-slate-50/80'
+                    }`}
+                  >
+                    <td className="py-3 px-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleSelectRow(item.id)}
+                        className="rounded border-slate-300 text-purple-600 focus:ring-purple-500 w-4 h-4 cursor-pointer"
+                      />
+                    </td>
+                    <td className="py-3 px-2 text-center font-bold text-slate-400">
+                      {idx + 1}
+                    </td>
+                    <td className="py-3 px-3 text-slate-500 whitespace-nowrap font-mono text-[11px]">
+                      {formatDateTime(item.timestamp)}
+                    </td>
+                    <td className="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">
+                      {item.studentName}
+                    </td>
+                    <td className="py-3 px-3">
+                      <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                        {className || 'Lớp học'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-800 font-semibold">
+                      <div className="flex items-center space-x-1.5">
+                        <span>🎁</span>
+                        <span>{item.giftName}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <span className="font-black text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200 text-xs">
+                        -{item.coinsSpent} xu
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center space-x-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            soundFx?.playPrintVoucher();
+                            onPrintVoucher?.(item);
+                          }}
+                          className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors shadow-2xs"
+                          title="In thẻ Voucher A6 cho học sinh"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setUndoTarget(item)}
+                          className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-colors shadow-2xs"
+                          title="Hoàn tác / Hủy lượt đổi & Hoàn lại xu"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={7} className="py-10 text-center text-slate-400 font-medium">

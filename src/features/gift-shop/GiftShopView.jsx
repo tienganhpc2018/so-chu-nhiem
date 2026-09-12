@@ -11,7 +11,11 @@ import {
   Filter,
   Search,
   Users,
-  RotateCcw
+  RotateCcw,
+  Tv,
+  Flame,
+  Clock,
+  X
 } from 'lucide-react';
 import { PRESET_GIFTS, GIFT_CATEGORIES, COLOR_THEMES } from './constants/presetGifts';
 import { AddEditGiftModal } from './components/AddEditGiftModal';
@@ -19,6 +23,8 @@ import { RedeemGiftModal } from './components/RedeemGiftModal';
 import { RedemptionHistoryTable } from './components/RedemptionHistoryTable';
 import { GiftShopLeaderboard } from './components/GiftShopLeaderboard';
 import { GiftVoucherModal } from './components/GiftVoucherModal';
+import { BatchVoucherModal } from './components/BatchVoucherModal';
+import { FlashSaleModal } from './components/FlashSaleModal';
 import { soundFx } from '../../utils/soundEffects';
 import { supabase } from '../../lib/supabase';
 
@@ -57,6 +63,71 @@ export const GiftShopView = ({
   // Voucher Modal state
   const [voucherData, setVoucherData] = useState(null);
   const [showVoucherModal, setShowVoucherModal] = useState(false);
+
+  // Batch Voucher Modal state (In hàng loạt 4 voucher / A4)
+  const [showBatchVoucherModal, setShowBatchVoucherModal] = useState(false);
+  const [batchVouchersData, setBatchVouchersData] = useState([]);
+
+  // Projector / Kiosk Mode state (Chế độ máy chiếu dành cho học sinh)
+  const [isProjectorMode, setIsProjectorMode] = useState(false);
+
+  // Flash Sale State (Ưu đãi giờ vàng đếm ngược)
+  const [flashSale, setFlashSale] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`gift_flash_sale_${classId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.endTime && new Date(parsed.endTime) > new Date()) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return { active: false, discountPercent: 30, endTime: null, title: 'ƯU ĐÃI GIỜ VÀNG' };
+  });
+  const [showFlashSaleModal, setShowFlashSaleModal] = useState(false);
+  const [flashSaleTimeLeft, setFlashSaleTimeLeft] = useState('');
+
+  // Lắng nghe phím Escape để thoát chế độ trình chiếu
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isProjectorMode) {
+        setIsProjectorMode(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isProjectorMode]);
+
+  // Bộ đếm ngược thời gian thực cho Flash Sale
+  useEffect(() => {
+    if (!flashSale?.active || !flashSale?.endTime) return;
+
+    const updateTimer = () => {
+      const now = new Date().getTime();
+      const end = new Date(flashSale.endTime).getTime();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setFlashSale(prev => {
+          const updated = { ...prev, active: false };
+          try {
+            localStorage.setItem(`gift_flash_sale_${classId}`, JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
+        setFlashSaleTimeLeft('00:00:00');
+      } else {
+        const hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, '0');
+        const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, '0');
+        const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, '0');
+        setFlashSaleTimeLeft(`${hours}:${minutes}:${seconds}`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [flashSale?.active, flashSale?.endTime, classId]);
 
   // Load gifts from LocalStorage or Preset Samples
   useEffect(() => {
@@ -362,9 +433,42 @@ export const GiftShopView = ({
     });
   }, [gifts, selectedCategory, searchQuery]);
 
+  const isFlashActive = Boolean(flashSale?.active && new Date(flashSale?.endTime) > new Date());
+  const discountPercent = isFlashActive ? Number(flashSale?.discountPercent || 0) : 0;
+
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in pb-20">
+    <div className={`max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in pb-20 ${
+      isProjectorMode ? 'bg-slate-950/5 min-h-screen rounded-3xl' : ''
+    }`}>
       
+      {/* 0. THANH ĐIỀU HƯỚNG TRÌNH CHIẾU CHO HỌC SINH (PROJECTOR MODE BAR) */}
+      {isProjectorMode && (
+        <div className="sticky top-3 z-40 bg-slate-900/95 backdrop-blur-md text-white px-5 py-3 rounded-2xl border border-white/20 shadow-2xl flex items-center justify-between animate-in slide-in-from-top-4">
+          <div className="flex items-center space-x-3">
+            <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping shrink-0" />
+            <div>
+              <span className="text-xs sm:text-sm font-black text-emerald-300 block">
+                📺 ĐANG TRÌNH CHIẾU MÀN HÌNH CỬA HÀNG QUÀ CHO HỌC SINH
+              </span>
+              <span className="text-[11px] text-slate-400 hidden sm:inline">
+                Chế độ tối ưu xem trên máy chiếu & TV lớp học (Đã ẩn các nút quản trị)
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              soundFx?.playClick();
+              setIsProjectorMode(false);
+            }}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-lg shadow-rose-900/40 flex items-center space-x-1.5 transition-all active:scale-95 shrink-0"
+          >
+            <X className="w-4 h-4 stroke-[3]" />
+            <span>Thoát Trình Chiếu (Esc)</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. HEADER BANNER CỬA HÀNG QUÀ */}
       <div className="relative rounded-3xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 p-6 sm:p-8 text-white shadow-xl shadow-rose-200/50 overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         
@@ -389,8 +493,8 @@ export const GiftShopView = ({
           </p>
         </div>
 
-        {/* Cụm thông tin xu & Nút Thêm Quà Mới */}
-        <div className="relative z-10 flex flex-wrap items-center gap-3">
+        {/* Cụm thông tin xu & Các Nút Điều Khiển */}
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5">
           <div className="bg-white/15 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20 text-center">
             <span className="text-[10px] uppercase font-bold text-rose-100 block">
               Tổng quỹ xu lớp:
@@ -401,20 +505,111 @@ export const GiftShopView = ({
             </span>
           </div>
 
-          <button
-            onClick={() => {
-              soundFx?.playClick();
-              setEditingGift(null);
-              setShowAddEditModal(true);
-            }}
-            className="px-5 py-3.5 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-black/10 flex items-center space-x-2 transform hover:scale-105 active:scale-95 transition-all"
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-            <span>+ Thêm phần quà mới</span>
-          </button>
+          {/* Nút Giờ Vàng Flash Sale */}
+          {!isProjectorMode && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFx?.playClick();
+                setShowFlashSaleModal(true);
+              }}
+              className={`px-3.5 py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center space-x-1.5 transition-all shadow-md ${
+                isFlashActive
+                  ? 'bg-amber-400 hover:bg-amber-300 text-rose-950 shadow-amber-500/30 animate-pulse'
+                  : 'bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/25'
+              }`}
+              title="Thiết lập chương trình giảm giá xu thi đua"
+            >
+              <Flame className={`w-4 h-4 ${isFlashActive ? 'fill-rose-600 text-rose-600' : 'text-amber-300'}`} />
+              <span>{isFlashActive ? `Giờ Vàng (-${discountPercent}%)` : 'Giờ Vàng'}</span>
+            </button>
+          )}
+
+          {/* Nút Chuyển sang Trình Chiếu Máy Chiếu */}
+          {!isProjectorMode && (
+            <button
+              type="button"
+              onClick={() => {
+                soundFx?.playClick();
+                setIsProjectorMode(true);
+              }}
+              className="px-3.5 py-3 bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/25 font-black text-xs sm:text-sm rounded-2xl flex items-center space-x-1.5 transition-all shadow-md"
+              title="Chuyển sang chế độ máy chiếu cho học sinh xem"
+            >
+              <Tv className="w-4 h-4 text-emerald-300" />
+              <span>Trình Chiếu</span>
+            </button>
+          )}
+
+          {/* Nút Thêm Quà Mới (Ẩn khi đang trình chiếu) */}
+          {!isProjectorMode && (
+            <button
+              onClick={() => {
+                soundFx?.playClick();
+                setEditingGift(null);
+                setShowAddEditModal(true);
+              }}
+              className="px-4 py-3 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 font-black text-xs sm:text-sm rounded-2xl shadow-lg shadow-black/10 flex items-center space-x-1.5 transform hover:scale-105 active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>+ Thêm quà mới</span>
+            </button>
+          )}
         </div>
 
       </div>
+
+      {/* 1.1 BANNER ĐẾM NGƯỢC FLASH SALE GIỜ VÀNG (KHI KÍCH HOẠT) */}
+      {isFlashActive && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 via-rose-500 to-red-600 p-4 sm:p-5 text-white shadow-xl shadow-rose-200 border-2 border-amber-300 animate-in fade-in">
+          <div className="absolute -right-8 -bottom-8 w-36 h-36 bg-yellow-300/20 rounded-full blur-xl pointer-events-none" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl shadow-inner animate-bounce shrink-0">
+                🔥
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-white text-rose-600 font-black text-[10px] uppercase tracking-wider shadow-xs">
+                    FLASH SALE ĐANG DIỄN RA
+                  </span>
+                  <span className="text-xs font-black text-amber-200">
+                    GIẢM {discountPercent}% TẤT CẢ PHẦN QUÀ
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black tracking-tight mt-0.5 drop-shadow-xs">
+                  {flashSale.title || 'Ưu Đãi Giờ Vàng Đổi Quà'}
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3 self-end md:self-auto">
+              {/* Đồng hồ đếm ngược */}
+              <div className="flex items-center space-x-2.5 bg-black/30 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/20 shadow-inner">
+                <Clock className="w-4 h-4 text-amber-300 animate-pulse" />
+                <div>
+                  <span className="text-[9px] uppercase font-black text-amber-200 block tracking-wider">
+                    Thời gian còn lại:
+                  </span>
+                  <span className="font-mono text-base sm:text-lg font-black tracking-widest text-white drop-shadow-sm">
+                    {flashSaleTimeLeft || '00:00:00'}
+                  </span>
+                </div>
+              </div>
+
+              {!isProjectorMode && (
+                <button
+                  type="button"
+                  onClick={() => setShowFlashSaleModal(true)}
+                  className="px-3.5 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl text-xs font-bold border border-white/20 transition-all"
+                >
+                  Cài đặt
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. BẢNG XẾP HẠNG ĐẠI GIA TÍCH XU & SIÊU SAO ĐỔI QUÀ */}
       <GiftShopLeaderboard students={students} redemptions={redemptions} />
@@ -470,6 +665,9 @@ export const GiftShopView = ({
           {filteredGifts.map(gift => {
             const theme = COLOR_THEMES.find(t => t.id === gift.color) || COLOR_THEMES[0];
             const isOutOfStock = (gift.stock ?? 0) <= 0;
+            const effectivePrice = isFlashActive
+              ? Math.max(1, Math.round(gift.requiredCoins * (1 - discountPercent / 100)))
+              : gift.requiredCoins;
 
             return (
               <div
@@ -478,10 +676,18 @@ export const GiftShopView = ({
               >
                 
                 {/* Header thẻ quà: Danh mục & Huy hiệu tồn kho */}
-                <div className="p-4 pb-2 flex items-center justify-between">
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${theme.badge}`}>
-                    {gift.category || 'Dụng cụ học tập'}
-                  </span>
+                <div className="p-4 pb-2 flex items-center justify-between gap-1 flex-wrap">
+                  <div className="flex items-center space-x-1.5">
+                    <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${theme.badge}`}>
+                      {gift.category || 'Dụng cụ học tập'}
+                    </span>
+                    {isFlashActive && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white shadow-xs flex items-center space-x-0.5 animate-pulse">
+                        <span>🔥</span>
+                        <span>-{discountPercent}%</span>
+                      </span>
+                    )}
+                  </div>
 
                   {isOutOfStock ? (
                     <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
@@ -529,37 +735,51 @@ export const GiftShopView = ({
                   {/* Giá xu quy đổi */}
                   <div className="flex items-center justify-between pt-1 border-t border-slate-100">
                     <span className="text-xs text-slate-400 font-semibold">Giá đổi:</span>
-                    <span className="text-sm sm:text-base font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-xl border border-amber-200/80 flex items-center space-x-1">
-                      <span>🪙</span>
-                      <span>{gift.requiredCoins} xu</span>
-                    </span>
+                    {isFlashActive ? (
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-xs text-slate-400 line-through font-semibold">
+                          {gift.requiredCoins} xu
+                        </span>
+                        <span className="text-sm sm:text-base font-black text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-xl border border-rose-200 flex items-center space-x-1 shadow-xs">
+                          <span>🔥</span>
+                          <span>{effectivePrice} xu</span>
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-sm sm:text-base font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-xl border border-amber-200/80 flex items-center space-x-1">
+                        <span>🪙</span>
+                        <span>{gift.requiredCoins} xu</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 {/* Hành động: Nút Đổi quà & Nút Sửa/Xóa */}
                 <div className="p-4 pt-0 space-y-2">
-                  <div className="flex items-center space-x-1.5">
-                    <button
-                      onClick={() => {
-                        soundFx?.playClick();
-                        setEditingGift(gift);
-                        setShowAddEditModal(true);
-                      }}
-                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center space-x-1 transition-colors"
-                      title="Chỉnh sửa phần quà"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span>Sửa</span>
-                    </button>
+                  {!isProjectorMode && (
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        onClick={() => {
+                          soundFx?.playClick();
+                          setEditingGift(gift);
+                          setShowAddEditModal(true);
+                        }}
+                        className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center space-x-1 transition-colors"
+                        title="Chỉnh sửa phần quà"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Sửa</span>
+                      </button>
 
-                    <button
-                      onClick={() => setDeletingGiftId(gift.id)}
-                      className="p-2 bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-colors"
-                      title="Xóa phần quà"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                      <button
+                        onClick={() => setDeletingGiftId(gift.id)}
+                        className="p-2 bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-colors"
+                        title="Xóa phần quà"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Nút Đổi quà chính */}
                   <button
@@ -621,14 +841,20 @@ export const GiftShopView = ({
         </div>
       )}
 
-      {/* 5. BẢNG LỊCH SỬ ĐỔI QUÀ & XUẤT FILE EXCEL */}
-      <RedemptionHistoryTable
-        redemptions={redemptions}
-        className={className}
-        onClearHistory={handleClearHistory}
-        onUndoRedeem={handleUndoRedeem}
-        onPrintVoucher={handlePrintVoucherFromHistory}
-      />
+      {/* 5. BẢNG LỊCH SỬ ĐỔI QUÀ & XUẤT FILE EXCEL (ẨN KHI ĐANG TRÌNH CHIẾU CHO HỌC SINH) */}
+      {!isProjectorMode && (
+        <RedemptionHistoryTable
+          redemptions={redemptions}
+          className={className}
+          onClearHistory={handleClearHistory}
+          onUndoRedeem={handleUndoRedeem}
+          onPrintVoucher={handlePrintVoucherFromHistory}
+          onBatchPrintVoucher={(items) => {
+            setBatchVouchersData(items);
+            setShowBatchVoucherModal(true);
+          }}
+        />
+      )}
 
       {/* MODAL THÊM / SỬA PHẦN QUÀ */}
       <AddEditGiftModal
@@ -651,15 +877,46 @@ export const GiftShopView = ({
         gift={selectedGiftForRedeem}
         students={students}
         redemptions={redemptions}
+        flashSale={flashSale}
         onConfirmRedeem={handleConfirmRedeem}
         onOpenVoucher={handleOpenVoucher}
       />
 
-      {/* MODAL IN THẺ VOUCHER A6 */}
+      {/* MODAL IN THẺ VOUCHER A6 LẺ */}
       <GiftVoucherModal
         isOpen={showVoucherModal}
         onClose={() => setShowVoucherModal(false)}
         voucherData={voucherData}
+      />
+
+      {/* MODAL IN HÀNG LOẠT VOUCHER A6 TRÊN TRANG A4 (2x2) */}
+      <BatchVoucherModal
+        isOpen={showBatchVoucherModal}
+        onClose={() => setShowBatchVoucherModal(false)}
+        selectedRedemptions={batchVouchersData}
+        className={className}
+        teacherName={teacherName}
+        schoolName={schoolName}
+      />
+
+      {/* MODAL CẤU HÌNH FLASH SALE GIỜ VÀNG */}
+      <FlashSaleModal
+        isOpen={showFlashSaleModal}
+        onClose={() => setShowFlashSaleModal(false)}
+        currentFlashSale={flashSale}
+        onStartSale={(saleData) => {
+          setFlashSale(saleData);
+          try {
+            localStorage.setItem(`gift_flash_sale_${classId}`, JSON.stringify(saleData));
+          } catch (e) {}
+        }}
+        onEndSale={() => {
+          const ended = { ...flashSale, active: false };
+          setFlashSale(ended);
+          try {
+            localStorage.setItem(`gift_flash_sale_${classId}`, JSON.stringify(ended));
+          } catch (e) {}
+        }}
       />
 
       {/* MODAL XÁC NHẬN XÓA QUÀ */}

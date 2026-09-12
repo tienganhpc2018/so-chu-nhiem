@@ -561,6 +561,75 @@ class SoundEffectsManager {
       this.raceAudioTimer = null;
     }
   }
+
+  // 1. Âm thanh "teng teng" khôi phục xu / hoàn tác giao dịch (chuông bạc thanh thoát tăng dần)
+  playUndoRestore() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      // Chuỗi nốt thanh thoát G5 -> C6 -> E6
+      [783.99, 1046.50, 1318.51].forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.35);
+      });
+    } catch (e) {
+      console.warn("Undo sound error:", e);
+    }
+  }
+
+  // 2. Âm thanh máy in mini in phiếu / kéo giấy xé phiếu
+  playPrintVoucher() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+
+      // Mô phỏng tiếng động cơ máy in kéo giấy: 4 xung âm cơ học nhịp nhàng
+      for (let i = 0; i < 4; i++) {
+        const startTime = now + i * 0.09;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(320 + (i % 2) * 120, startTime);
+        osc.frequency.exponentialRampToValueAtTime(220, startTime + 0.06);
+
+        gain.gain.setValueAtTime(0.08, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.005, startTime + 0.06);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.06);
+      }
+
+      // Xung xé giấy kết thúc: tiếng chũm nhỏ 'tinh'
+      const ding = this.ctx.createOscillator();
+      const dingGain = this.ctx.createGain();
+      ding.type = 'sine';
+      ding.frequency.setValueAtTime(1174.66, now + 0.42); // D6
+      dingGain.gain.setValueAtTime(0.15, now + 0.42);
+      dingGain.gain.exponentialRampToValueAtTime(0.001, now + 0.72);
+
+      ding.connect(dingGain);
+      dingGain.connect(this.ctx.destination);
+      ding.start(now + 0.42);
+      ding.stop(now + 0.72);
+    } catch (e) {
+      console.warn("Print sound error:", e);
+    }
+  }
 }
 
 export const soundFx = new SoundEffectsManager();

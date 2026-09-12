@@ -10,6 +10,7 @@ export const RedeemGiftModal = ({
   gift,
   students = [],
   redemptions = [],
+  flashSale = null,
   onConfirmRedeem,
   onOpenVoucher
 }) => {
@@ -28,7 +29,13 @@ export const RedeemGiftModal = ({
     }
   }, [isOpen, gift?.id]);
 
-  const requiredCoins = gift?.requiredCoins ?? 0;
+  // Tính toán giá xu thực tế nếu đang trong Flash Sale Giờ Vàng
+  const isFlashActive = flashSale?.active && new Date(flashSale?.endTime) > new Date();
+  const discountPercent = isFlashActive ? Number(flashSale.discountPercent || 0) : 0;
+  const originalCoins = gift?.requiredCoins ?? 0;
+  const requiredCoins = isFlashActive
+    ? Math.max(1, Math.round(originalCoins * (1 - discountPercent / 100)))
+    : originalCoins;
 
   // Chuẩn hóa số xu của từng học sinh (coins hoặc total_stars)
   const studentsWithCoins = useMemo(() => {
@@ -134,14 +141,14 @@ export const RedeemGiftModal = ({
     const newRedemption = onConfirmRedeem?.({
       gift,
       student: selectedStudent,
-      coinsSpent: gift.requiredCoins
+      coinsSpent: requiredCoins
     });
 
     // Chuyển sang màn hình chúc mừng & in voucher
     setRedeemedResult({
       student: selectedStudent,
       gift,
-      coinsSpent: gift.requiredCoins,
+      coinsSpent: requiredCoins,
       redemption: newRedemption
     });
   };
@@ -274,11 +281,22 @@ export const RedeemGiftModal = ({
                   {gift.name}
                 </h4>
                 <div className="flex items-center space-x-3 text-xs font-bold mt-1">
-                  <span className="text-amber-700 font-extrabold flex items-center bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300/60">
-                    🪙 Giá: {gift.requiredCoins} xu
-                  </span>
-                  <span className={gift.stock > 0 ? 'text-emerald-700' : 'text-red-600'}>
-                    {gift.stock > 0 ? `Còn ${gift.stock} món trong kho` : 'Hết hàng'}
+                  {isFlashActive ? (
+                    <div className="flex items-center space-x-1.5">
+                      <span className="line-through text-slate-400 font-medium text-xs">
+                        {originalCoins} xu
+                      </span>
+                      <span className="text-rose-700 font-black flex items-center bg-rose-100 px-2 py-0.5 rounded-lg border border-rose-300">
+                        🔥 {requiredCoins} xu (-{discountPercent}%)
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-amber-700 font-extrabold flex items-center bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-300/60">
+                      🪙 Giá: {requiredCoins} xu
+                    </span>
+                  )}
+                  <span className={gift.stock > 0 ? 'text-emerald-700 font-bold' : 'text-red-600 font-bold'}>
+                    {gift.stock > 0 ? `Còn ${gift.stock} món` : 'Hết hàng'}
                   </span>
                 </div>
               </div>
