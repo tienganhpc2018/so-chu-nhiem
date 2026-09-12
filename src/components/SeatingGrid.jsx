@@ -33,7 +33,10 @@ import {
   Shield,
   Heart,
   Search,
-  Sparkles
+  Sparkles,
+  LogIn,
+  ArrowRight,
+  DoorOpen
 } from 'lucide-react';
 
 export const SeatingGrid = ({
@@ -53,6 +56,7 @@ export const SeatingGrid = ({
   const [viewMode, setViewMode] = useState('3D');
   const [zoomLevel, setZoomLevel] = useState(85);
   const [perspective, setPerspective] = useState('normal');
+  const [rowOrder, setRowOrder] = useState('board_bottom'); // 'board_bottom' (Chuẩn Ảnh 1: Bàn 1 gần Bảng ở dưới) | 'top_down'
   const [selectedUnseatedId, setSelectedUnseatedId] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
 
@@ -256,6 +260,7 @@ export const SeatingGrid = ({
 
   const maxRequiredRows = Math.max(5, Math.ceil((students.length || 39) / Math.max(1, dayCount * 2)));
   const rows = Array.from({ length: maxRequiredRows }, (_, i) => i + 1);
+  const displayRows = rowOrder === 'board_bottom' ? [...rows].reverse() : rows;
   const cols = Array.from({ length: dayCount }, (_, i) => i + 1);
 
   const renderRoleBadge = (role) => {
@@ -473,6 +478,23 @@ export const SeatingGrid = ({
             </button>
           </div>
 
+          {/* Nút Đổi hướng nhìn: Bàn 1 gần Bảng ở dưới (Ảnh 1) hoặc Bàn 1 ở trên */}
+          <button
+            onClick={() => {
+              soundFx.playClick();
+              setRowOrder(prev => prev === 'board_bottom' ? 'top_down' : 'board_bottom');
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center space-x-1.5 ${
+              rowOrder === 'board_bottom'
+                ? 'bg-amber-50 text-amber-900 border-amber-300 font-black shadow-xs'
+                : 'bg-slate-100 text-slate-700 border-slate-200'
+            }`}
+            title="Đổi chiều hàng ghế: Bàn 1 gần Bảng ở dưới (Chuẩn thực tế Ảnh 1) hoặc Bàn 1 ở trên"
+          >
+            <Shuffle className="w-3.5 h-3.5 text-amber-600" />
+            <span>{rowOrder === 'board_bottom' ? 'Bàn 1 gần Bảng (Dưới)' : 'Bàn 1 ở Trên'}</span>
+          </button>
+
           <div className="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-1 text-xs font-bold">
             <button onClick={() => handleZoom(-10)} className="text-slate-500 hover:text-purple-600">
               <ZoomOut className="w-4 h-4" />
@@ -528,32 +550,18 @@ export const SeatingGrid = ({
               </div>
             )}
 
-            {/* Blackboard Banner */}
-            <div className="w-full bg-slate-900 text-white rounded-3xl p-6 shadow-2xl border-4 border-amber-500/40 text-center relative overflow-hidden mb-6">
-              <div className="text-[11px] font-extrabold tracking-widest text-amber-400 uppercase mb-1">
-                ✦ KỶ LUẬT - TRI THỨC ✦ SÁNG TẠO ✦
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-amber-300">
-                ✦ ★ BẢNG LỚP {currentClass?.name || '8A5'} ★ ✦
-              </h2>
-              <div className="text-xs font-bold text-slate-300 mt-2 flex flex-wrap items-center justify-center gap-3">
-                <span>Niên khóa: {currentClass?.academic_year || '2025 - 2026'}</span>
-                <span>•</span>
-                <span>GVCN: {teacherProfile?.full_name || 'Nguyễn Văn Hải'}</span>
-                <span>•</span>
-                <span>Sĩ số: {students.length} học sinh</span>
-              </div>
-            </div>
-
-            {/* Teacher Desk Box */}
-            <div className="w-64 mx-auto bg-purple-100/90 border-2 border-purple-300 rounded-3xl p-3.5 text-center shadow-md mb-8">
-              <div className="text-xs font-black text-purple-800 flex items-center justify-center space-x-1.5 uppercase">
-                <Monitor className="w-4 h-4 text-purple-600" />
-                <span>BÀN GIÁO VIÊN ☀️</span>
-              </div>
-              <div className="text-sm font-extrabold text-slate-800 mt-0.5">
-                {teacherProfile?.full_name || 'Nguyễn Văn Hải'}
-              </div>
+            {/* Vách Tường Cuối Lớp (Back of Classroom) */}
+            <div className="w-full bg-gradient-to-r from-purple-50 via-slate-50 to-purple-50 border border-purple-100 rounded-2xl p-2.5 mb-6 text-center text-xs font-bold text-slate-500 flex items-center justify-between px-4">
+              <span className="flex items-center space-x-1.5 text-purple-700">
+                <span>🏢</span>
+                <span className="font-extrabold">TƯỜNG CUỐI LỚP HỌC</span>
+              </span>
+              <span className="text-[11px] text-slate-400 font-semibold hidden sm:inline">
+                {rowOrder === 'board_bottom' ? '⬆️ Các dãy bàn phía sau (Bảng ở dưới cùng)' : 'Học sinh ngồi Bàn 1'}
+              </span>
+              <span className="text-xs font-extrabold text-purple-900 bg-white px-2.5 py-0.5 rounded-lg border border-purple-100">
+                Lớp {currentClass?.name || '7A6'}
+              </span>
             </div>
 
             {/* 4 DÃY BÀN ĐÔI (2 EM / BÀN) */}
@@ -568,7 +576,7 @@ export const SeatingGrid = ({
                     <span>DÃY {c}</span>
                   </div>
 
-                  {rows.map(r => {
+                  {displayRows.map(r => {
                     const studentLeft = getStudentAtSeatPos(r, c, 1);
                     const studentRight = getStudentAtSeatPos(r, c, 2);
                     const deskNumber = (r - 1) * dayCount + c;
@@ -588,7 +596,7 @@ export const SeatingGrid = ({
                         }`}
                       >
                         <div className="text-[10px] font-black text-purple-800 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100 flex items-center justify-between">
-                          <span>🪑 Bàn Đôi {deskNumber} • Hàng {r}</span>
+                          <span>🪑 Bàn Đôi {deskNumber} • Hàng {r} {r === 1 ? '(Bàn đầu)' : r === maxRequiredRows ? '(Cuối lớp)' : ''}</span>
                           <span className="text-[9px] text-slate-400">(2 Ghế)</span>
                         </div>
 
@@ -750,6 +758,56 @@ export const SeatingGrid = ({
 
                 </div>
               ))}
+            </div>
+
+            {/* BỤC GIẢNG & BẢNG LỚP HỌC (DƯỚI CÙNG - CHUẨN ẢNH 1 THẦY YÊU CẦU) */}
+            <div className="mt-8 pt-6 border-t-4 border-double border-purple-200 flex flex-col md:flex-row items-stretch justify-between gap-4">
+              
+              {/* 1. GÓC DƯỚI BÊN TRÁI: CỬA VÀO */}
+              <div className="w-full md:w-56 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-dashed border-amber-400 rounded-3xl p-4 shadow-sm flex items-center space-x-3 text-amber-950 shrink-0">
+                <div className="p-3 bg-amber-400 text-slate-950 rounded-2xl shadow-sm">
+                  <LogIn className="w-6 h-6 stroke-[2.5]" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-sm font-black uppercase tracking-wider text-amber-950">CỬA VÀO</span>
+                    <ArrowRight className="w-4 h-4 text-amber-700 stroke-[3] animate-pulse" />
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-700 block">Lối vào lớp học (Ảnh 1)</span>
+                </div>
+              </div>
+
+              {/* 2. CHÍNH GIỮA DƯỚI CÙNG: BẢNG ĐEN LỚP HỌC */}
+              <div className="flex-1 w-full bg-slate-900 text-white rounded-3xl p-5 shadow-2xl border-4 border-amber-500/40 text-center relative overflow-hidden flex flex-col justify-center">
+                <div className="text-[10px] sm:text-[11px] font-extrabold tracking-widest text-amber-400 uppercase mb-1">
+                  ✦ KỶ LUẬT - TRI THỨC ✦ SÁNG TẠO ✦
+                </div>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-amber-300">
+                  ✦ ★ BẢNG LỚP {currentClass?.name || '7A6'} ★ ✦
+                </h2>
+                <div className="text-xs font-bold text-slate-300 mt-1.5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+                  <span>Niên khóa: {currentClass?.academic_year || '2025 - 2026'}</span>
+                  <span>•</span>
+                  <span>GVCN: {teacherProfile?.full_name || 'Nguyễn Văn Hải'}</span>
+                  <span>•</span>
+                  <span>Sĩ số: {students.length} học sinh</span>
+                </div>
+              </div>
+
+              {/* 3. GÓC DƯỚI BÊN PHẢI: BÀN GIÁO VIÊN */}
+              <div className="w-full md:w-64 bg-purple-100/95 border-2 border-purple-300 rounded-3xl p-4 text-center shadow-md relative overflow-hidden flex flex-col justify-center shrink-0">
+                <div className="text-xs font-black text-purple-900 flex items-center justify-center space-x-1.5 uppercase">
+                  <Monitor className="w-4 h-4 text-purple-700" />
+                  <span>BÀN GIÁO VIÊN ☀️</span>
+                </div>
+                <div className="text-sm font-extrabold text-slate-900 mt-0.5 truncate">
+                  {teacherProfile?.full_name || 'Nguyễn Văn Hải'}
+                </div>
+                <div className="text-[10px] font-bold text-purple-600 mt-0.5">
+                  Bục giảng hướng nhìn lên lớp
+                </div>
+              </div>
+
             </div>
 
           </div>

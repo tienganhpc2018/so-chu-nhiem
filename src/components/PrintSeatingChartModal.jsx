@@ -1,7 +1,7 @@
 import React from 'react';
 import { soundFx } from '../utils/soundEffects';
 import { getSmartDisplayName } from '../utils/nameFormatter';
-import { Printer, X } from 'lucide-react';
+import { Printer, X, LogIn, ArrowRight } from 'lucide-react';
 
 export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students = [], teacherProfile }) => {
   if (!isOpen) return null;
@@ -12,7 +12,9 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
   };
 
   const dayCount = 4; // 4 Dãy Bàn
-  const rows = [1, 2, 3, 4];
+  const maxRows = Math.max(4, Math.ceil((students.length || 36) / 8));
+  const rows = Array.from({ length: maxRows }, (_, i) => i + 1);
+  const displayRows = [...rows].reverse(); // Hàng 1 ở dưới cùng gần Bảng (Ảnh 1)
   const cols = [1, 2, 3, 4];
 
   // Get student at Double Desk (row r, col c, seatPos 1=Left, 2=Right)
@@ -88,22 +90,15 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
             </div>
           </div>
 
-          {/* Blackboard Banner */}
-          <div className="w-full bg-slate-900 text-white rounded-xl p-3 text-center mb-4 shadow-md border-2 border-amber-400">
-            <span className="text-sm font-black tracking-widest text-amber-300">
-              ✦ BẢNG ĐEN / BÀN GIÁO VIÊN CHỦ NHIỆM ✦
-            </span>
-          </div>
-
           {/* 4 DÃY BÀN ĐÔI (2 HỌC SINH / 1 BÀN) */}
-          <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-4 gap-4 mb-6">
             {cols.map(c => (
               <div key={`p-col-${c}`} className="space-y-3">
                 <div className="bg-purple-800 text-white font-black text-xs py-1 text-center rounded-lg uppercase tracking-wider">
                   DÃY {c}
                 </div>
 
-                {rows.map(r => {
+                {displayRows.map(r => {
                   const studentLeft = getStudentAtSeatPos(r, c, 1);
                   const studentRight = getStudentAtSeatPos(r, c, 2);
                   const deskNum = (r - 1) * 4 + c;
@@ -115,7 +110,7 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
                     >
                       <div className="text-[9px] font-extrabold text-purple-900 bg-purple-100 px-1.5 py-0.5 rounded flex justify-between">
                         <span>Bàn Đôi {deskNum}</span>
-                        <span>Hàng {r}</span>
+                        <span>Hàng {r} {r === 1 ? '(Bàn đầu)' : ''}</span>
                       </div>
 
                       {/* 2 Seats per Desk */}
@@ -160,6 +155,31 @@ export const PrintSeatingChartModal = ({ isOpen, onClose, currentClass, students
                 })}
               </div>
             ))}
+          </div>
+
+          {/* KHU VỰC BỤC GIẢNG: CỬA VÀO - BẢNG - BÀN GIÁO VIÊN (CHUẨN ẢNH 1 THẦY ĐÍNH KÈM) */}
+          <div className="flex items-center justify-between gap-4 my-6 pt-4 border-t-2 border-dashed border-purple-300">
+            {/* 1. CỬA VÀO GÓC TRÁI DƯỚI CÙNG */}
+            <div className="w-36 border-2 border-slate-900 rounded-lg p-2.5 text-center font-black text-xs flex items-center justify-center space-x-1.5 uppercase bg-amber-50">
+              <LogIn className="w-4 h-4 text-slate-900 stroke-[2.5]" />
+              <span>CỬA VÀO</span>
+              <ArrowRight className="w-4 h-4 text-slate-900 stroke-[3]" />
+            </div>
+
+            {/* 2. CHÍNH GIỮA: BẢNG LỚP HỌC */}
+            <div className="flex-1 border-2 border-slate-900 rounded-lg p-3 text-center bg-slate-900 text-white shadow-sm">
+              <span className="text-sm font-black tracking-widest text-amber-300">
+                ✦ BẢNG LỚP HỌC ✦
+              </span>
+            </div>
+
+            {/* 3. GÓC PHẢI DƯỚI CÙNG: BÀN GIÁO VIÊN (VIỀN GẠCH SỌC CHÉO Y HỆT ẢNH 1) */}
+            <div className="w-48 border-2 border-dashed border-slate-900 bg-amber-50/70 rounded-lg p-2.5 text-center font-black text-xs uppercase text-slate-900">
+              <div>BÀN GIÁO VIÊN</div>
+              <div className="text-[10px] font-bold text-purple-900 normal-case mt-0.5 truncate">
+                {teacherProfile?.full_name || 'Nguyễn Văn Hải'}
+              </div>
+            </div>
           </div>
 
           {/* Signature Area */}

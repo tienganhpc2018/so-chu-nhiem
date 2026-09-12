@@ -70,16 +70,6 @@ export const SeatingChartModal = ({
           </button>
         </div>
 
-        {/* Teacher's Blackboard at Front */}
-        <div className="my-4 mx-auto w-full max-w-md bg-gradient-to-b from-emerald-900 to-emerald-950 border-4 border-amber-700 rounded-2xl p-3 shadow-lg text-center">
-          <span className="text-xs font-black text-amber-200 tracking-widest uppercase">
-            BẢNG LỚP HỌC — BÀN GIÁO VIÊN
-          </span>
-          <div className="text-[10px] text-emerald-300/80 font-bold mt-0.5">
-            Lớp {currentClass?.name || '7A6'} • Bục giảng hướng nhìn xuống lớp
-          </div>
-        </div>
-
         {/* 4 Aisles Seating Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 my-2">
           {aisles.map(aisle => (
@@ -90,9 +80,9 @@ export const SeatingChartModal = ({
                 <span className="text-xs font-black text-amber-300">{aisle.label}</span>
               </div>
 
-              {/* Rows */}
+              {/* Rows: Hàng 1 ở dưới cùng gần Bảng (Ảnh 1) */}
               {Array.from({ length: maxRow }, (_, rIdx) => {
-                const r = rIdx + 1;
+                const r = maxRow - rIdx;
                 return (
                   <div key={r} className="flex items-center space-x-2">
                     <span className="text-[10px] font-black text-slate-400 w-4 text-center">B{r}</span>
@@ -149,6 +139,33 @@ export const SeatingChartModal = ({
               })}
             </div>
           ))}
+        </div>
+
+        {/* BỤC GIẢNG & BẢNG LỚP HỌC (DƯỚI CÙNG - CHUẨN ẢNH 1) */}
+        <div className="my-4 flex items-center justify-between gap-3 p-3 bg-slate-900/90 rounded-2xl border border-slate-700">
+          {/* CỬA VÀO */}
+          <div className="w-28 bg-amber-500/20 border border-amber-500/40 rounded-xl p-2 text-center text-amber-300 font-black text-[11px] flex items-center justify-center space-x-1 shrink-0">
+            <span>CỬA VÀO</span>
+            <span>➔</span>
+          </div>
+
+          {/* BẢNG ĐEN */}
+          <div className="flex-1 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border-2 border-amber-500/50 rounded-xl p-2 text-center">
+            <span className="text-xs font-black text-amber-300 uppercase tracking-wider block">
+              ✦ BẢNG LỚP {currentClass?.name || '7A6'} ✦
+            </span>
+            <span className="text-[10px] text-slate-400 font-bold block">
+              Niên khóa: {currentClass?.academic_year || '2025 - 2026'}
+            </span>
+          </div>
+
+          {/* BÀN GIÁO VIÊN */}
+          <div className="w-36 bg-purple-900/40 border border-purple-500/40 rounded-xl p-2 text-center shrink-0">
+            <span className="text-[10px] font-black text-purple-300 uppercase block">BÀN GIÁO VIÊN</span>
+            <span className="text-[9px] text-slate-300 font-bold block truncate">
+              {teacherProfile?.full_name || 'GV Chủ Nhiệm'}
+            </span>
+          </div>
         </div>
 
         {/* Footer info */}
