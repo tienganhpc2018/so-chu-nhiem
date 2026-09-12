@@ -11,6 +11,7 @@ export interface GiftItem {
   category: string;
   image: string; // Base64 image, URL, hoặc Emoji
   color: string; // 'rose' | 'amber' | 'emerald' | 'indigo' | 'purple' | 'sky'
+  redemptionLimit?: 'none' | 'week' | 'month' | 'semester'; // Giới hạn tần suất quy đổi
   createdAt?: string;
 }
 

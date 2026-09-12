@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, Smile, Link as LinkIcon, Check } from 'lucide-react';
-import { GIFT_CATEGORIES, COLOR_THEMES, POPULAR_EMOJIS } from '../constants/presetGifts';
+import { GIFT_CATEGORIES, COLOR_THEMES, POPULAR_EMOJIS, LIMIT_OPTIONS } from '../constants/presetGifts';
 import { soundFx } from '../../../utils/soundEffects';
 
 export const AddEditGiftModal = ({ isOpen, onClose, onSave, editingGift = null }) => {
@@ -8,6 +8,7 @@ export const AddEditGiftModal = ({ isOpen, onClose, onSave, editingGift = null }
   const [requiredCoins, setRequiredCoins] = useState(10);
   const [stock, setStock] = useState(10);
   const [category, setCategory] = useState(GIFT_CATEGORIES[0]);
+  const [redemptionLimit, setRedemptionLimit] = useState('none');
   const [imageType, setImageType] = useState('emoji'); // 'emoji' | 'upload' | 'url'
   const [imageValue, setImageValue] = useState('🎁');
   const [color, setColor] = useState('rose');
@@ -19,6 +20,7 @@ export const AddEditGiftModal = ({ isOpen, onClose, onSave, editingGift = null }
       setRequiredCoins(editingGift.requiredCoins || 10);
       setStock(editingGift.stock ?? 10);
       setCategory(editingGift.category || GIFT_CATEGORIES[0]);
+      setRedemptionLimit(editingGift.redemptionLimit || 'none');
       setColor(editingGift.color || 'rose');
 
       const img = editingGift.image || '🎁';
@@ -37,6 +39,7 @@ export const AddEditGiftModal = ({ isOpen, onClose, onSave, editingGift = null }
       setRequiredCoins(10);
       setStock(10);
       setCategory(GIFT_CATEGORIES[0]);
+      setRedemptionLimit('none');
       setImageType('emoji');
       setImageValue('🎁');
       setColor('rose');
@@ -88,6 +91,7 @@ export const AddEditGiftModal = ({ isOpen, onClose, onSave, editingGift = null }
       requiredCoins: Number(requiredCoins),
       stock: Number(stock),
       category: category || 'Khác',
+      redemptionLimit: redemptionLimit || 'none',
       image: imageValue || '🎁',
       color: color || 'rose'
     };
@@ -183,6 +187,29 @@ export const AddEditGiftModal = ({ isOpen, onClose, onSave, editingGift = null }
             >
               {GIFT_CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Giới hạn đổi quà theo tuần/tháng/học kỳ */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-slate-700">
+                Giới hạn tần suất đổi quà
+              </label>
+              <span className="text-[10px] text-purple-600 font-bold bg-purple-50 px-2 py-0.5 rounded-md">
+                Kiểm soát đặc quyền
+              </span>
+            </div>
+            <select
+              value={redemptionLimit}
+              onChange={(e) => setRedemptionLimit(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              {LIMIT_OPTIONS.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label} — {opt.desc}
+                </option>
               ))}
             </select>
           </div>

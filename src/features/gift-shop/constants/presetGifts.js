@@ -9,7 +9,8 @@ export const PRESET_GIFTS = [
     stock: 20,
     category: 'Dụng cụ học tập',
     image: '🖍️',
-    color: 'amber'
+    color: 'amber',
+    redemptionLimit: 'none'
   },
   {
     id: 'preset-2',
@@ -18,7 +19,8 @@ export const PRESET_GIFTS = [
     stock: 15,
     category: 'Dụng cụ học tập',
     image: '📓',
-    color: 'sky'
+    color: 'sky',
+    redemptionLimit: 'none'
   },
   {
     id: 'preset-3',
@@ -27,7 +29,8 @@ export const PRESET_GIFTS = [
     stock: 25,
     category: 'Dụng cụ học tập',
     image: '📏',
-    color: 'emerald'
+    color: 'emerald',
+    redemptionLimit: 'none'
   },
   {
     id: 'preset-4',
@@ -36,7 +39,8 @@ export const PRESET_GIFTS = [
     stock: 10,
     category: 'Đồ lưu niệm',
     image: '🧸',
-    color: 'rose'
+    color: 'rose',
+    redemptionLimit: 'none'
   },
   {
     id: 'preset-5',
@@ -45,7 +49,8 @@ export const PRESET_GIFTS = [
     stock: 5,
     category: 'Đặc quyền học tập',
     image: '🎟️',
-    color: 'purple'
+    color: 'purple',
+    redemptionLimit: 'month'
   },
   {
     id: 'preset-6',
@@ -54,8 +59,16 @@ export const PRESET_GIFTS = [
     stock: 8,
     category: 'Đồ lưu niệm',
     image: '🍶',
-    color: 'indigo'
+    color: 'indigo',
+    redemptionLimit: 'none'
   }
+];
+
+export const LIMIT_OPTIONS = [
+  { id: 'none', label: 'Không giới hạn', desc: 'Đổi tự do khi đủ xu' },
+  { id: 'week', label: '1 lần / tuần', desc: 'Tối đa 1 lần mỗi tuần cho mỗi em' },
+  { id: 'month', label: '1 lần / tháng', desc: 'Tối đa 1 lần mỗi tháng (khuyên dùng cho đặc quyền)' },
+  { id: 'semester', label: '1 lần / học kỳ', desc: 'Tối đa 1 lần trong cả học kỳ' }
 ];
 
 export const GIFT_CATEGORIES = [

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { History, FileSpreadsheet, Trash2, Search, Calendar, User, Gift, AlertTriangle } from 'lucide-react';
+import { History, FileSpreadsheet, Trash2, Search, Calendar, User, Gift, AlertTriangle, RotateCcw, Printer } from 'lucide-react';
 import { soundFx } from '../../../utils/soundEffects';
 
 export const RedemptionHistoryTable = ({
   redemptions = [],
   className = '',
-  onClearHistory
+  onClearHistory,
+  onUndoRedeem,
+  onPrintVoucher
 }) => {
   const [search, setSearch] = useState('');
   const [showConfirmClear, setShowConfirmClear] = useState(false);
+  const [undoTarget, setUndoTarget] = useState(null);
 
   // Format datetime dd/mm/yyyy hh:mm
   const formatDateTime = (isoString) => {
@@ -69,6 +72,13 @@ export const RedemptionHistoryTable = ({
     setShowConfirmClear(false);
   };
 
+  const handleConfirmUndo = () => {
+    if (!undoTarget) return;
+    soundFx?.playClick();
+    onUndoRedeem?.(undoTarget.id);
+    setUndoTarget(null);
+  };
+
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
       
@@ -86,7 +96,7 @@ export const RedemptionHistoryTable = ({
               </span>
             </h3>
             <p className="text-xs text-slate-500 font-medium">
-              Ghi nhận chi tiết từng lần trừ xu và trao quà cho học sinh
+              Ghi nhận chi tiết từng lần trừ xu, hỗ trợ in Voucher A6 và hoàn tác giao dịch
             </p>
           </div>
         </div>
@@ -137,11 +147,12 @@ export const RedemptionHistoryTable = ({
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
               <th className="py-3 px-3 text-center w-12">STT</th>
-              <th className="py-3 px-3 min-w-[140px]">Thời gian đổi</th>
-              <th className="py-3 px-4 min-w-[160px]">Học sinh nhận quà</th>
-              <th className="py-3 px-3 min-w-[90px]">Lớp</th>
-              <th className="py-3 px-4 min-w-[180px]">Phần quà đã đổi</th>
-              <th className="py-3 px-4 text-right min-w-[120px]">Số xu đã trừ</th>
+              <th className="py-3 px-3 min-w-[130px]">Thời gian đổi</th>
+              <th className="py-3 px-4 min-w-[150px]">Học sinh nhận quà</th>
+              <th className="py-3 px-3 min-w-[80px]">Lớp</th>
+              <th className="py-3 px-4 min-w-[170px]">Phần quà đã đổi</th>
+              <th className="py-3 px-4 text-right min-w-[110px]">Số xu đã trừ</th>
+              <th className="py-3 px-3 text-center min-w-[110px]">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
@@ -173,11 +184,31 @@ export const RedemptionHistoryTable = ({
                       -{item.coinsSpent} xu
                     </span>
                   </td>
+                  <td className="py-3 px-3 text-center whitespace-nowrap">
+                    <div className="flex items-center justify-center space-x-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onPrintVoucher?.(item)}
+                        className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors shadow-2xs"
+                        title="In thẻ Voucher A6 cho học sinh"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUndoTarget(item)}
+                        className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg border border-amber-200 transition-colors shadow-2xs"
+                        title="Hoàn tác / Hủy lượt đổi & Hoàn lại xu"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-10 text-center text-slate-400 font-medium">
+                <td colSpan={7} className="py-10 text-center text-slate-400 font-medium">
                   {redemptions.length === 0 ? (
                     <div className="space-y-1">
                       <div className="text-3xl">🎁</div>
@@ -193,6 +224,54 @@ export const RedemptionHistoryTable = ({
           </tbody>
         </table>
       </div>
+
+      {/* Modal xác nhận hoàn tác đổi quà */}
+      {undoTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-5 border border-slate-200 space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-xs">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            
+            <div className="text-center space-y-1.5">
+              <h4 className="font-black text-base text-slate-800">
+                Xác Nhận Hoàn Tác Đổi Quà?
+              </h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Thầy có chắc chắn muốn hủy lượt đổi món quà <strong className="text-slate-800">"{undoTarget.giftName}"</strong> của em <strong className="text-purple-700">{undoTarget.studentName}</strong>?
+              </p>
+            </div>
+
+            <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-left text-xs space-y-1 text-amber-900">
+              <div className="font-bold flex items-center gap-1">
+                <span>⚡ Kết quả hoàn tác:</span>
+              </div>
+              <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                <li>Cộng lại <strong>+{undoTarget.coinsSpent} xu</strong> cho em {undoTarget.studentName}</li>
+                <li>Tăng lại <strong>+1</strong> số lượng tồn kho của phần quà</li>
+                <li>Xóa bản ghi này khỏi nhật ký lịch sử</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setUndoTarget(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmUndo}
+                className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-md shadow-amber-200"
+              >
+                Xác Nhận Hoàn Tác
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal xác nhận xóa lịch sử */}
       {showConfirmClear && (

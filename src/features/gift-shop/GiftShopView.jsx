@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Gift,
   Plus,
@@ -10,12 +10,15 @@ import {
   CheckCircle2,
   Filter,
   Search,
-  Users
+  Users,
+  RotateCcw
 } from 'lucide-react';
 import { PRESET_GIFTS, GIFT_CATEGORIES, COLOR_THEMES } from './constants/presetGifts';
 import { AddEditGiftModal } from './components/AddEditGiftModal';
 import { RedeemGiftModal } from './components/RedeemGiftModal';
 import { RedemptionHistoryTable } from './components/RedemptionHistoryTable';
+import { GiftShopLeaderboard } from './components/GiftShopLeaderboard';
+import { GiftVoucherModal } from './components/GiftVoucherModal';
 import { soundFx } from '../../utils/soundEffects';
 import { supabase } from '../../lib/supabase';
 
@@ -26,6 +29,17 @@ export const GiftShopView = ({
 }) => {
   const classId = currentClass?.id || 'default_class';
   const className = currentClass?.name || 'Chủ Nhiệm';
+
+  // Thông tin giáo viên & trường từ cài đặt
+  const teacherProfile = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('teacher_profile') || '{}');
+    } catch (e) {
+      return {};
+    }
+  }, []);
+  const teacherName = teacherProfile.full_name || 'Thầy Chủ Nhiệm';
+  const schoolName = teacherProfile.school_name || 'TRƯỜNG THCS CÁT MINH';
 
   // State gifts & redemptions
   const [gifts, setGifts] = useState([]);
@@ -39,6 +53,10 @@ export const GiftShopView = ({
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [selectedGiftForRedeem, setSelectedGiftForRedeem] = useState(null);
   const [deletingGiftId, setDeletingGiftId] = useState(null);
+
+  // Voucher Modal state
+  const [voucherData, setVoucherData] = useState(null);
+  const [showVoucherModal, setShowVoucherModal] = useState(false);
 
   // Load gifts from LocalStorage or Preset Samples
   useEffect(() => {
@@ -198,45 +216,176 @@ export const GiftShopView = ({
       // Refresh student list
       onRefreshStudents?.();
     } catch (e) {
-      console.error('Error updating student coins:', e);
+      console.error('Lỗi khi trừ xu học sinh:', e);
     }
+
+    return newRedemption;
   };
 
-  // Clear history
+  // Undo / Hủy lượt đổi quà handler
+  const handleUndoRedeem = async (redemptionId) => {
+    const item = redemptions.find(r => r.id === redemptionId);
+    if (!item) return;
+
+    // 1. Khôi phục lại tồn kho của phần quà (+1)
+    const updatedGifts = gifts.map(g => {
+      if (g.id === item.giftId || g.name === item.giftName) {
+        return { ...g, stock: (g.stock ?? 0) + 1 };
+      }
+      return g;
+    });
+    saveGiftsState(updatedGifts);
+
+    // 2. Hoàn lại số xu cho học sinh
+    try {
+      const targetStudent = students.find(s => s.id === item.studentId);
+      const currentCoins = Number(targetStudent?.coins ?? targetStudent?.total_stars ?? 0);
+      const restoredCoins = currentCoins + Number(item.coinsSpent || 0);
+
+      ['custom_students_', 'behavior_students_'].forEach(prefix => {
+        const key = `${prefix}${classId}`;
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const list = JSON.parse(stored);
+          const mapped = list.map(st => {
+            if (st.id === item.studentId) {
+              return {
+                ...st,
+                coins: restoredCoins,
+                total_stars: restoredCoins
+              };
+            }
+            return st;
+          });
+          localStorage.setItem(key, JSON.stringify(mapped));
+        }
+      });
+
+      // Ghi log hoàn tác vào point_history
+      const historyKey = `point_history_${classId}`;
+      const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+      const pointLog = {
+        id: `pt-undo-${Date.now()}`,
+        student_id: item.studentId,
+        class_id: classId,
+        student_name: item.studentName,
+        points_changed: item.coinsSpent,
+        action_type: 'add',
+        reason: `Hoàn tác đổi quà: ${item.giftName}`,
+        created_at: new Date().toISOString()
+      };
+      localStorage.setItem(historyKey, JSON.stringify([pointLog, ...existingHistory]));
+
+      // Cập nhật Supabase nếu có kết nối
+      try {
+        await supabase
+          .from('students')
+          .update({ total_stars: restoredCoins })
+          .eq('id', item.studentId);
+
+        await supabase
+          .from('point_history')
+          .insert({
+            student_id: item.studentId,
+            class_id: classId,
+            points_changed: item.coinsSpent,
+            action_type: 'add',
+            reason: `Hoàn tác đổi quà: ${item.giftName}`
+          });
+      } catch (err) {}
+
+      onRefreshStudents?.();
+    } catch (e) {
+      console.error('Lỗi khi hoàn xu học sinh:', e);
+    }
+
+    // 3. Xóa bản ghi khỏi danh sách lịch sử
+    const updatedRedemptions = redemptions.filter(r => r.id !== redemptionId);
+    saveRedemptionsState(updatedRedemptions);
+
+    soundFx?.playCorrect();
+  };
+
+  // Mở Voucher modal từ kết quả đổi quà hoặc từ dòng lịch sử
+  const handleOpenVoucher = ({ student, gift, redemption }) => {
+    setVoucherData({
+      student,
+      gift,
+      redemption: redemption || {},
+      className,
+      teacherName,
+      schoolName
+    });
+    setShowVoucherModal(true);
+  };
+
+  const handlePrintVoucherFromHistory = (item) => {
+    const student = students.find(s => s.id === item.studentId) || {
+      id: item.studentId,
+      full_name: item.studentName,
+      team_group: 1
+    };
+    const gift = gifts.find(g => g.id === item.giftId || g.name === item.giftName) || {
+      name: item.giftName,
+      requiredCoins: item.coinsSpent,
+      image: '🎁'
+    };
+
+    handleOpenVoucher({ student, gift, redemption: item });
+  };
+
+  // Xóa toàn bộ lịch sử
   const handleClearHistory = () => {
     saveRedemptionsState([]);
   };
 
-  // Filtered gifts list
-  const filteredGifts = gifts.filter(gift => {
-    const matchCat = selectedCategory === 'all' || gift.category === selectedCategory;
-    const matchQuery = !searchQuery.trim() || gift.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchCat && matchQuery;
-  });
+  // Khôi phục 6 quà mẫu mặc định nếu lỡ xóa hết
+  const handleRestorePresets = () => {
+    soundFx?.playClick();
+    const initial = PRESET_GIFTS.map(g => ({ ...g, classId }));
+    saveGiftsState(initial);
+  };
 
-  // Tổng số xu học sinh trong lớp đang có
-  const totalClassCoins = students.reduce((sum, st) => sum + Number(st.coins ?? st.total_stars ?? 0), 0);
+  // Tính toán tổng số xu trong lớp
+  const totalClassCoins = useMemo(() => {
+    return (students || []).reduce((acc, curr) => {
+      return acc + Number(curr.coins ?? curr.total_stars ?? 0);
+    }, 0);
+  }, [students]);
+
+  // Lọc danh sách quà theo danh mục & tìm kiếm
+  const filteredGifts = useMemo(() => {
+    return gifts.filter(gift => {
+      const matchCat = selectedCategory === 'all' || gift.category === selectedCategory;
+      const matchSearch = !searchQuery.trim() || gift.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [gifts, selectedCategory, searchQuery]);
 
   return (
-    <div className="space-y-6 pb-12 animate-in fade-in duration-200">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 animate-in fade-in pb-20">
       
-      {/* 1. HEADER CỬA HÀNG ĐỔI QUÀ */}
-      <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl shadow-rose-200/60 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* 1. HEADER BANNER CỬA HÀNG QUÀ */}
+      <div className="relative rounded-3xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 p-6 sm:p-8 text-white shadow-xl shadow-rose-200/50 overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         
-        {/* Background Decorative Rings */}
-        <div className="absolute -right-8 -bottom-8 w-44 h-44 bg-white/10 rounded-full blur-xl pointer-events-none" />
-        <div className="absolute left-1/3 -top-12 w-36 h-36 bg-pink-300/20 rounded-full blur-lg pointer-events-none" />
+        {/* Background Decorative Blur Rings */}
+        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute left-1/3 -top-10 w-36 h-36 bg-amber-400/20 rounded-full blur-xl pointer-events-none" />
 
+        {/* Tiêu đề & mô tả */}
         <div className="relative z-10 space-y-2 max-w-xl">
-          <div className="inline-flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-white/30">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-black uppercase tracking-wider text-rose-100 border border-white/20">
             <span>🎁</span>
-            <span>Cửa Hàng Đổi Quà Thi Đua Học Đường</span>
+            <span>GIFT SHOP & REWARD REDEMPTION</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Cửa Hàng Đổi Quà Lớp {className}
+
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight drop-shadow-sm flex items-center space-x-2.5">
+            <span>Cửa Hàng Đổi Quà Lớp {className}</span>
+            <Sparkles className="w-6 h-6 text-amber-300 animate-spin" style={{ animationDuration: '6s' }} />
           </h1>
-          <p className="text-xs sm:text-sm text-rose-100 font-medium">
-            Học sinh dùng số xu sao thi đua đạt được để đổi các phần quà học tập, quà lưu niệm và đặc quyền miễn bài tập hấp dẫn!
+
+          <p className="text-xs sm:text-sm text-rose-100/90 font-medium leading-relaxed">
+            Dùng điểm xu thi đua nề nếp để quy đổi các phần quà học tập, đồ chơi và đặc quyền lớp học hấp dẫn cho các em học sinh.
           </p>
         </div>
 
@@ -267,7 +416,10 @@ export const GiftShopView = ({
 
       </div>
 
-      {/* 2. THANH BỘ LỌC & TÌM KIẾM */}
+      {/* 2. BẢNG XẾP HẠNG ĐẠI GIA TÍCH XU & SIÊU SAO ĐỔI QUÀ */}
+      <GiftShopLeaderboard students={students} redemptions={redemptions} />
+
+      {/* 3. THANH BỘ LỌC & TÌM KIẾM */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
         {/* Lọc danh mục */}
         <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto custom-scrollbar pb-1 sm:pb-0">
@@ -312,7 +464,7 @@ export const GiftShopView = ({
         </div>
       </div>
 
-      {/* 3. LƯỚI HIỂN THỊ QUÀ (RESPONSIVE GRID 1-4 CỘT) */}
+      {/* 4. LƯỚI HIỂN THỊ QUÀ (RESPONSIVE GRID 1-4 CỘT) */}
       {filteredGifts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
           {filteredGifts.map(gift => {
@@ -322,74 +474,94 @@ export const GiftShopView = ({
             return (
               <div
                 key={gift.id}
-                className={`rounded-3xl border-2 ${theme.border} ${theme.bg} p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-200 relative group overflow-hidden`}
+                className={`group relative bg-white rounded-3xl border-2 ${theme.border} hover:shadow-xl hover:shadow-rose-100/60 transition-all duration-300 flex flex-col justify-between overflow-hidden`}
               >
-                {/* Góc trên: Huy hiệu số lượng tồn kho & Nút sửa/xóa */}
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full border shadow-xs ${
-                    gift.stock > 0
-                      ? 'bg-white text-slate-700 border-slate-200'
-                      : 'bg-red-500 text-white border-red-400'
-                  }`}>
-                    {gift.stock > 0 ? `Kho: ${gift.stock} món` : 'Hết hàng'}
+                
+                {/* Header thẻ quà: Danh mục & Huy hiệu tồn kho */}
+                <div className="p-4 pb-2 flex items-center justify-between">
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${theme.badge}`}>
+                    {gift.category || 'Dụng cụ học tập'}
                   </span>
 
-                  {/* Cụm nút Thao tác nhanh (Bút chì & Thùng rác) */}
-                  <div className="flex items-center space-x-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                  {isOutOfStock ? (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                      Hết hàng
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Kho: {gift.stock}
+                    </span>
+                  )}
+                </div>
+
+                {/* Khung hình ảnh / Biểu tượng quà */}
+                <div className="px-4 py-3 flex items-center justify-center">
+                  <div className={`w-28 h-28 sm:w-32 sm:h-32 rounded-3xl ${theme.bg} border-2 ${theme.border} flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:scale-105 shadow-inner`}>
+                    {gift.image && (gift.image.startsWith('data:image') || gift.image.startsWith('http')) ? (
+                      <img
+                        src={gift.image}
+                        alt={gift.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-5xl sm:text-6xl drop-shadow-sm select-none">
+                        {gift.image || '🎁'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Thông tin phần quà */}
+                <div className="p-4 pt-1 space-y-2">
+                  <div>
+                    <h3 className="font-black text-sm sm:text-base text-slate-800 line-clamp-1 group-hover:text-rose-600 transition-colors" title={gift.name}>
+                      {gift.name}
+                    </h3>
+                    
+                    {/* Giới hạn tần suất nếu có */}
+                    {gift.redemptionLimit && gift.redemptionLimit !== 'none' && (
+                      <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block mt-0.5">
+                        Tối đa 1 lần / {gift.redemptionLimit === 'week' ? 'tuần' : gift.redemptionLimit === 'month' ? 'tháng' : 'kỳ'}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Giá xu quy đổi */}
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <span className="text-xs text-slate-400 font-semibold">Giá đổi:</span>
+                    <span className="text-sm sm:text-base font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-xl border border-amber-200/80 flex items-center space-x-1">
+                      <span>🪙</span>
+                      <span>{gift.requiredCoins} xu</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Hành động: Nút Đổi quà & Nút Sửa/Xóa */}
+                <div className="p-4 pt-0 space-y-2">
+                  <div className="flex items-center space-x-1.5">
                     <button
                       onClick={() => {
                         soundFx?.playClick();
                         setEditingGift(gift);
                         setShowAddEditModal(true);
                       }}
-                      title="Chỉnh sửa phần quà này"
-                      className="p-1.5 bg-white hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors shadow-xs"
+                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center justify-center space-x-1 transition-colors"
+                      title="Chỉnh sửa phần quà"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
+                      <span>Sửa</span>
                     </button>
+
                     <button
                       onClick={() => setDeletingGiftId(gift.id)}
-                      title="Xóa phần quà này"
-                      className="p-1.5 bg-white hover:bg-rose-50 text-rose-500 hover:text-rose-700 rounded-lg border border-slate-200 transition-colors shadow-xs"
+                      className="p-2 bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-xl transition-colors"
+                      title="Xóa phần quà"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                </div>
 
-                {/* Khung Ảnh / Biểu tượng quà */}
-                <div className="w-full h-32 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden mb-3 shadow-inner relative">
-                  {gift.image && (gift.image.startsWith('data:image') || gift.image.startsWith('http')) ? (
-                    <img
-                      src={gift.image}
-                      alt={gift.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <span className="text-5xl group-hover:scale-115 transition-transform duration-300 select-none">
-                      {gift.image || '🎁'}
-                    </span>
-                  )}
-
-                  {/* Giá xu quy đổi ở góc ảnh */}
-                  <div className="absolute bottom-2 right-2 bg-amber-400 text-slate-950 font-black text-xs px-2.5 py-1 rounded-xl shadow-md border border-amber-300 flex items-center space-x-1">
-                    <span>🪙</span>
-                    <span>{gift.requiredCoins} xu</span>
-                  </div>
-                </div>
-
-                {/* Thông tin phần quà */}
-                <div className="space-y-1 mb-4 flex-1">
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${theme.badge}`}>
-                    {gift.category || 'Dụng cụ học tập'}
-                  </span>
-                  <h3 className="font-black text-sm text-slate-800 leading-snug line-clamp-2 mt-1">
-                    {gift.name}
-                  </h3>
-                </div>
-
-                {/* Nút bấm Đổi quà */}
-                <div>
+                  {/* Nút Đổi quà chính */}
                   <button
                     disabled={isOutOfStock}
                     onClick={() => {
@@ -423,28 +595,39 @@ export const GiftShopView = ({
               Chưa có phần quà nào trong danh mục
             </h3>
             <p className="text-xs text-slate-500">
-              Thầy/Cô hãy bấm nút bên dưới để tạo phần quà đầu tiên cho học sinh lớp mình nhé!
+              Thầy/Cô hãy bấm nút bên dưới để tạo phần quà đầu tiên hoặc khôi phục danh sách quà mẫu!
             </p>
           </div>
-          <button
-            onClick={() => {
-              soundFx?.playClick();
-              setEditingGift(null);
-              setShowAddEditModal(true);
-            }}
-            className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-rose-200 flex items-center space-x-2 mx-auto"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Tạo phần quà đầu tiên</span>
-          </button>
+          <div className="flex items-center justify-center space-x-3">
+            <button
+              onClick={() => {
+                soundFx?.playClick();
+                setEditingGift(null);
+                setShowAddEditModal(true);
+              }}
+              className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-200 flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>+ Tạo phần quà đầu tiên</span>
+            </button>
+
+            <button
+              onClick={handleRestorePresets}
+              className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl shadow-xs"
+            >
+              Khôi phục 6 quà mẫu
+            </button>
+          </div>
         </div>
       )}
 
-      {/* 4. BẢNG LỊCH SỬ ĐỔI QUÀ & XUẤT FILE EXCEL */}
+      {/* 5. BẢNG LỊCH SỬ ĐỔI QUÀ & XUẤT FILE EXCEL */}
       <RedemptionHistoryTable
         redemptions={redemptions}
         className={className}
         onClearHistory={handleClearHistory}
+        onUndoRedeem={handleUndoRedeem}
+        onPrintVoucher={handlePrintVoucherFromHistory}
       />
 
       {/* MODAL THÊM / SỬA PHẦN QUÀ */}
@@ -467,7 +650,16 @@ export const GiftShopView = ({
         }}
         gift={selectedGiftForRedeem}
         students={students}
+        redemptions={redemptions}
         onConfirmRedeem={handleConfirmRedeem}
+        onOpenVoucher={handleOpenVoucher}
+      />
+
+      {/* MODAL IN THẺ VOUCHER A6 */}
+      <GiftVoucherModal
+        isOpen={showVoucherModal}
+        onClose={() => setShowVoucherModal(false)}
+        voucherData={voucherData}
       />
 
       {/* MODAL XÁC NHẬN XÓA QUÀ */}
