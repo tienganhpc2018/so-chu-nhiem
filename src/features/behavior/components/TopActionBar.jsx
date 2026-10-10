@@ -30,6 +30,7 @@ export const TopActionBar = ({
   onOpenMultiCall,
   onOpenGroupTeams,
   onOpenBeeRace,
+  onOpenMarbleRace,
   onOpenTimer,
   onOpenSeatingChart,
   onResetCalled,
@@ -180,6 +181,18 @@ export const TopActionBar = ({
         >
           <Flame className="w-3.5 h-3.5 text-yellow-100" />
           <span>Bee Race (Đua Vịt Slider) 🐥</span>
+        </button>
+
+        {/* 10.5. Đua Bi Gọi Tên (Marble Race Pro 2D) 🔮 */}
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            onOpenMarbleRace();
+          }}
+          className="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-purple-600 via-fuchsia-600 to-pink-600 text-white font-extrabold text-xs shadow-md shadow-fuchsia-200 hover:scale-105 active:scale-95 transition-all"
+        >
+          <span className="text-sm">🔮</span>
+          <span>Đua Bi (Marble Race 2D) 🏁</span>
         </button>
 
         {/* 11. Bấm Giờ ⏱️ */}

@@ -17,6 +17,7 @@ import { SeatingChartModal } from './components/SeatingChartModal';
 import { DiscussionTimerModal } from './components/DiscussionTimerModal';
 import { GroupTeamsModal } from './components/GroupTeamsModal';
 import { RewardAllModal } from './components/RewardAllModal';
+import { MarbleRaceModal } from '../marble-race/MarbleRaceModal';
 
 export const BehaviorPage = ({
   currentClass,
@@ -48,6 +49,7 @@ export const BehaviorPage = ({
     multiCall: false,
     groupTeams: false,
     beeRace: false,
+    marbleRace: false,
     timer: false,
     seating: false
   });
@@ -567,6 +569,7 @@ export const BehaviorPage = ({
         onOpenMultiCall={() => openModal('multiCall')}
         onOpenGroupTeams={() => openModal('groupTeams')}
         onOpenBeeRace={() => openModal('beeRace')}
+        onOpenMarbleRace={() => openModal('marbleRace')}
         onOpenTimer={() => openModal('timer')}
         onOpenSeatingChart={() => openModal('seating')}
         onResetCalled={handleResetCalled}
@@ -839,6 +842,21 @@ export const BehaviorPage = ({
         onClose={() => closeModal('quickAddStudents')}
         currentClass={currentClass}
         onAddStudents={handleQuickAddStudents}
+      />
+
+      {/* 13. Marble Race Student Selector Pro 2D Modal */}
+      <MarbleRaceModal
+        isOpen={modalState.marbleRace}
+        onClose={() => closeModal('marbleRace')}
+        currentClass={currentClass}
+        students={students}
+        calledStudentIds={calledStudentIds}
+        onConfirmCallStudent={(studentId) => {
+          if (studentId && !calledStudentIds.includes(studentId)) {
+            setCalledStudentIds(prev => [...prev, studentId]);
+          }
+        }}
+        onUpdateStudentsList={updateStudentsState}
       />
 
     </div>
