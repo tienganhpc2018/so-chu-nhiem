@@ -23,6 +23,7 @@ export const TopActionBar = ({
   onOpenAddClass,
   onOpenAttendance,
   onOpenPointModal,
+  onOpenRewardAll,
   onOpenTetHaiHoa,
   onOpenSingleCall,
   onOpenBlindPouch,
@@ -94,6 +95,19 @@ export const TopActionBar = ({
         >
           <Award className="w-3.5 h-3.5" />
           <span>Danh Sách & Cho Điểm</span>
+        </button>
+
+        {/* 4.5 Thưởng Cả Lớp (Trừ HS Vắng) */}
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            onOpenRewardAll?.();
+          }}
+          className="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500 text-white font-extrabold text-xs shadow-md shadow-yellow-200 hover:scale-105 active:scale-95 transition-all"
+          title="Cộng điểm thi đua đồng loạt cho học sinh có mặt, loại trừ học sinh vắng"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-yellow-100 fill-yellow-100" />
+          <span>Thưởng Cả Lớp (Trừ Vắng) ⭐</span>
         </button>
 
         {/* 5. Tết (Hái hoa dân chủ) 🌸 */}

@@ -83,6 +83,12 @@ export const StudentCard = ({
           <span>{student.code || `HS${String(student.seat_row || 1).padStart(2, '0')}`}</span>
           <span>•</span>
           <span className="text-purple-600 font-extrabold">Tổ {student.team_group || 1}</span>
+          {Number(student.kttx_bonus || 0) > 0 && (
+            <>
+              <span>•</span>
+              <span className="text-blue-600 font-black">🎓 +{student.kttx_bonus} KTTX</span>
+            </>
+          )}
         </div>
       </div>
 

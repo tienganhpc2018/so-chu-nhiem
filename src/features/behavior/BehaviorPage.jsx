@@ -16,6 +16,7 @@ import { BeeRaceModal } from './components/BeeRaceModal';
 import { SeatingChartModal } from './components/SeatingChartModal';
 import { DiscussionTimerModal } from './components/DiscussionTimerModal';
 import { GroupTeamsModal } from './components/GroupTeamsModal';
+import { RewardAllModal } from './components/RewardAllModal';
 
 export const BehaviorPage = ({
   currentClass,
@@ -40,6 +41,7 @@ export const BehaviorPage = ({
     quickAddStudents: false,
     attendance: false,
     points: false,
+    rewardAll: false,
     tetHaiHoa: false,
     singleCall: false,
     blindPouch: false,
@@ -116,6 +118,85 @@ export const BehaviorPage = ({
       return st;
     });
 
+    updateStudentsState(updated);
+  };
+
+  // Direct Adjust (+ / - 1 point) when teacher clicked accidentally
+  const handleDirectAdjustPoint = (studentId, type, delta) => {
+    const updated = students.map(st => {
+      if (st.id === studentId) {
+        if (type === 'plus') {
+          return { ...st, plus_points: Math.max(0, (st.plus_points || 0) + delta) };
+        } else {
+          return { ...st, minus_points: Math.max(0, (st.minus_points || 0) + delta) };
+        }
+      }
+      return st;
+    });
+    updateStudentsState(updated);
+  };
+
+  // Reset student points to 0
+  const handleResetPoints = (studentId) => {
+    const updated = students.map(st =>
+      st.id === studentId ? { ...st, plus_points: 0, minus_points: 0 } : st
+    );
+    updateStudentsState(updated);
+  };
+
+  // Convert Reward (KTTX or Stars)
+  const handleConvertReward = (studentId, targetType, points) => {
+    const updated = students.map(st => {
+      if (st.id === studentId) {
+        const curPlus = st.plus_points || 0;
+        const remainingPlus = Math.max(0, curPlus - points);
+
+        if (targetType === 'kttx') {
+          const addKttx = Math.floor(points / 10);
+          const currentKttx = Number(st.kttx_bonus || 0);
+          return {
+            ...st,
+            plus_points: remainingPlus,
+            kttx_bonus: Math.min(2, currentKttx + addKttx)
+          };
+        } else if (targetType === 'star') {
+          const curCoins = Number(st.coins || 0);
+          return {
+            ...st,
+            plus_points: remainingPlus,
+            coins: curCoins + points
+          };
+        }
+      }
+      return st;
+    });
+    updateStudentsState(updated);
+  };
+
+  // Toggle Gender (Nam <-> Nữ)
+  const handleToggleGender = (studentId) => {
+    const updated = students.map(st => {
+      if (st.id === studentId) {
+        const isCurFemale = st.gender === 'Nữ' || st.gender === 'female';
+        return { ...st, gender: isCurFemale ? 'Nam' : 'Nữ' };
+      }
+      return st;
+    });
+    updateStudentsState(updated);
+  };
+
+  // Reward All Present Students (Exclude absent students)
+  const handleRewardAllPresentStudents = (bonusPoints = 2, reason = 'Khen thưởng cả lớp') => {
+    const updated = students.map(st => {
+      // Exclude absent students
+      if (st.status === 'Absent_Perm' || st.status === 'Absent_NoPerm') {
+        return st;
+      }
+      return {
+        ...st,
+        plus_points: (st.plus_points || 0) + bonusPoints
+      };
+    });
     updateStudentsState(updated);
   };
 
@@ -473,6 +554,7 @@ export const BehaviorPage = ({
         onOpenAddClass={() => openModal('addClass')}
         onOpenAttendance={() => openModal('attendance')}
         onOpenPointModal={() => openModal('points')}
+        onOpenRewardAll={() => openModal('rewardAll')}
         onOpenTetHaiHoa={() => openModal('tetHaiHoa')}
         onOpenSingleCall={() => openModal('singleCall')}
         onOpenBlindPouch={() => openModal('blindPouch')}
@@ -651,7 +733,20 @@ export const BehaviorPage = ({
         student={selectedStudentForPoints}
         allStudents={students}
         onApplyPointChange={handleApplyPointChange}
+        onDirectAdjustPoint={handleDirectAdjustPoint}
+        onResetPoints={handleResetPoints}
+        onConvertReward={handleConvertReward}
+        onToggleGender={handleToggleGender}
         onUpdateAvatar={handleUpdateAvatar}
+      />
+
+      {/* 3.5. Reward All Present Students Modal */}
+      <RewardAllModal
+        isOpen={modalState.rewardAll}
+        onClose={() => closeModal('rewardAll')}
+        students={students}
+        currentClass={currentClass}
+        onRewardAllPresent={handleRewardAllPresentStudents}
       />
 
       {/* 4. Tet Hai Hoa Dan Chu Modal */}
