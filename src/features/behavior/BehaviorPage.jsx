@@ -174,11 +174,17 @@ export const BehaviorPage = ({
   };
 
   // Toggle Gender (Nam <-> Nữ)
-  const handleToggleGender = (studentId) => {
+  const handleToggleGender = (studentId, specificGender) => {
     const updated = students.map(st => {
       if (st.id === studentId) {
-        const isCurFemale = st.gender === 'Nữ' || st.gender === 'female';
-        return { ...st, gender: isCurFemale ? 'Nam' : 'Nữ' };
+        let newGender;
+        if (specificGender) {
+          newGender = specificGender === 'female' || specificGender === 'Nữ' ? 'Nữ' : 'Nam';
+        } else {
+          const isCurFemale = st.gender === 'Nữ' || st.gender === 'female';
+          newGender = isCurFemale ? 'Nam' : 'Nữ';
+        }
+        return { ...st, gender: newGender };
       }
       return st;
     });

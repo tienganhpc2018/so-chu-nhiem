@@ -633,7 +633,12 @@ export const TeacherDashboard = ({
         isOpen={!!selectedStudentForPoints}
         onClose={() => setSelectedStudentForPoints(null)}
         student={selectedStudentForPoints}
+        allStudents={students}
         onConfirmPointChange={handleConfirmPointChange}
+        onUpdateAvatar={handleUpdateStudentAvatar}
+        onToggleGender={(stId, gender) => {
+          setStudents(prev => prev.map(s => s.id === stId ? { ...s, gender: gender || (s.gender === 'Nữ' ? 'Nam' : 'Nữ') } : s));
+        }}
       />
 
       <LuckyWheelModal

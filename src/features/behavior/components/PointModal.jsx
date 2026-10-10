@@ -14,7 +14,8 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Camera
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundFx } from '../../../utils/soundEffects';
@@ -38,7 +39,47 @@ const DEFAULT_MINUS_CRITERIA = [
   { id: 'm5', label: 'Mất trật tự khi xếp hàng', points: 2, icon: '⚠️' },
 ];
 
-// Pixar 3D Avatar Gallery
+// Avatar Học Sinh Việt Nam Áo Trắng Khăn Quàng
+const VN_STUDENT_AVATARS = [
+  {
+    id: 'vn-g1',
+    name: 'Nữ sinh 1',
+    gender: 'Nữ',
+    url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=250&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'vn-g2',
+    name: 'Nữ sinh 2',
+    gender: 'Nữ',
+    url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=250&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'vn-b1',
+    name: 'Nam sinh 1',
+    gender: 'Nam',
+    url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=250&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'vn-b2',
+    name: 'Nam sinh 2',
+    gender: 'Nam',
+    url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'vn-g3',
+    name: 'Nữ sinh 3',
+    gender: 'Nữ',
+    url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'vn-b3',
+    name: 'Nam sinh 3',
+    gender: 'Nam',
+    url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80'
+  }
+];
+
+// Pixar 3D Robot Avatar Gallery
 const PIXAR_AVATARS = [
   'https://api.dicebear.com/7.x/bottts/svg?seed=Felix',
   'https://api.dicebear.com/7.x/bottts/svg?seed=Luna',
@@ -125,10 +166,11 @@ export const PointModal = ({
   };
 
   // 4. Đổi giới tính
-  const handleGenderToggle = () => {
+  const handleGenderToggle = (specificGender) => {
     soundFx.playClick();
-    onToggleGender?.(currentSt.id);
-    showToast(`Đã chuyển giới tính sang ${isFemale ? 'Nam' : 'Nữ'}`);
+    onToggleGender?.(currentSt.id, specificGender);
+    const newG = specificGender || (isFemale ? 'Nam' : 'Nữ');
+    showToast(`Đã chọn giới tính: ${newG === 'female' || newG === 'Nữ' ? 'Nữ' : 'Nam'}`);
   };
 
   // 5. Quy đổi sang Điểm KTTX
@@ -221,7 +263,7 @@ export const PointModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-      <div className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl p-5 sm:p-7 border border-slate-200 flex flex-col justify-between max-h-[94vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl sm:max-w-3xl bg-white rounded-[2.5rem] shadow-2xl p-5 sm:p-7 border border-slate-200 flex flex-col justify-between max-h-[94vh] overflow-y-auto">
         
         {/* Toast Notification */}
         {notification && (
@@ -391,50 +433,53 @@ export const PointModal = ({
         )}
 
         {/* 2. Tab Navigation: Cho Điểm & Nhắc Nhở | Quy Đổi Điểm Thưởng | Đổi Avatar */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-2xl my-3 gap-1 overflow-x-auto">
+        <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl my-3">
           <button
+            type="button"
             onClick={() => {
               soundFx.playClick();
               setActiveTab('give');
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 shrink-0 ${
+            className={`py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center space-x-1 sm:space-x-1.5 ${
               activeTab === 'give'
-                ? 'bg-amber-400 text-slate-900 shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-amber-400 text-slate-950 shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            <Star className="w-3.5 h-3.5 fill-current" />
-            <span>Cho Điểm & Nhắc Nhở</span>
+            <Star className="w-3.5 h-3.5 fill-current shrink-0" />
+            <span className="text-[11px] sm:text-xs">Cho Điểm & Nhắc Nhở</span>
           </button>
 
           <button
+            type="button"
             onClick={() => {
               soundFx.playClick();
               setActiveTab('exchange');
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 shrink-0 ${
+            className={`py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center space-x-1 sm:space-x-1.5 ${
               activeTab === 'exchange'
                 ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            <GraduationCap className="w-4 h-4" />
-            <span>Quy Đổi Điểm Thưởng (KTTX / Sao)</span>
+            <GraduationCap className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[11px] sm:text-xs">Quy Đổi Điểm Thưởng (KTTX / Sao)</span>
           </button>
 
           <button
+            type="button"
             onClick={() => {
               soundFx.playClick();
               setActiveTab('avatar');
             }}
-            className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center space-x-1.5 shrink-0 ${
+            className={`py-2 px-1.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-black transition-all flex items-center justify-center space-x-1 sm:space-x-1.5 ${
               activeTab === 'avatar'
-                ? 'bg-slate-800 text-white shadow-sm'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-purple-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
             }`}
           >
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Đổi Avatar</span>
+            <ImageIcon className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-[11px] sm:text-xs">Đổi Avatar</span>
           </button>
         </div>
 
@@ -714,38 +759,137 @@ export const PointModal = ({
           </div>
         )}
 
-        {/* TAB 3: ĐỔI AVATAR 3D PIXAR */}
+        {/* TAB 3: ĐỔI AVATAR (Chuẩn theo thiết kế ảnh 2) */}
         {activeTab === 'avatar' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-in fade-in">
             
-            {/* Tải ảnh riêng */}
-            <div className="p-3 bg-purple-50 rounded-2xl border border-purple-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs font-black text-purple-900 block">Tải ảnh đại diện riêng của học sinh:</span>
-                <span className="text-[10px] text-slate-500 font-bold">Hỗ trợ định dạng JPG, PNG</span>
+            {/* 1. TẢI ẢNH THẺ / CHÂN DUNG TỪ MÁY TÍNH */}
+            <div className="border-2 border-dashed border-teal-400 bg-teal-50/50 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Camera className="w-7 h-7" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-tight">
+                    TẢI ẢNH THẺ / CHÂN DUNG TỪ MÁY TÍNH:
+                  </h4>
+                  <p className="text-[11px] sm:text-xs text-teal-800 font-bold mt-0.5">
+                    Tự do chọn file ảnh (.jpg, .png) của học sinh từ máy tính hoặc điện thoại của Thầy/Cô.
+                  </p>
+                </div>
               </div>
-              <label className="cursor-pointer px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black shadow-xs flex items-center space-x-1">
-                <Upload className="w-3.5 h-3.5" />
-                <span>Chọn ảnh</span>
+
+              <label className="cursor-pointer px-4 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-2 shrink-0 transition-all active:scale-95">
+                <Upload className="w-4 h-4" />
+                <span>Chọn File Ảnh</span>
                 <input type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
               </label>
             </div>
 
-            {/* Kho Avatar Pixar 3D */}
-            <div className="space-y-1.5">
-              <span className="text-xs font-black text-slate-700 block">Chọn từ kho Robot 3D Pixar:</span>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5">
+            {/* 2. GIỚI TÍNH HỌC SINH */}
+            <div className="border border-slate-200 rounded-3xl p-3.5 bg-white space-y-2.5 shadow-xs">
+              <div className="flex items-center justify-between text-xs font-black">
+                <span className="text-slate-800 tracking-wide uppercase">GIỚI TÍNH HỌC SINH:</span>
+                <span className={`text-[11px] font-black ${isFemale ? 'text-pink-600' : 'text-blue-600'}`}>
+                  {isFemale ? '👧 HỌC SINH NỮ' : '👦 HỌC SINH NAM'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleGenderToggle('Nam')}
+                  className={`py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all ${
+                    !isFemale
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>👦</span>
+                  <span>Học Sinh Nam</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGenderToggle('Nữ')}
+                  className={`py-3 rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center space-x-2 transition-all ${
+                    isFemale
+                      ? 'bg-pink-600 text-white shadow-md'
+                      : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>👧</span>
+                  <span>Học Sinh Nữ</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. AVATAR HỌC SINH VIỆT NAM ÁO TRẮNG KHĂN QUÀNG */}
+            <div className="space-y-2 pt-1">
+              <h5 className="text-xs font-black text-slate-900 uppercase tracking-wide">
+                AVATAR HỌC SINH VIỆT NAM ÁO TRẮNG KHĂN QUÀNG:
+              </h5>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {VN_STUDENT_AVATARS.map((av) => (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => {
+                      soundFx.playCorrect();
+                      onUpdateAvatar?.(currentSt.id, av.url);
+                      showToast(`Đã chọn avatar ${av.name}!`);
+                    }}
+                    className={`p-2 rounded-2xl border-2 transition-all flex items-center space-x-2.5 text-left transform hover:scale-102 active:scale-95 ${
+                      currentSt.avatar === av.url
+                        ? 'border-purple-600 bg-purple-50/60 shadow-sm'
+                        : 'border-slate-200 hover:border-purple-400 bg-white'
+                    }`}
+                  >
+                    <img
+                      src={av.url}
+                      alt={av.name}
+                      className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-xs shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-black text-slate-800 truncate">
+                        {av.name}
+                      </div>
+                      <span
+                        className={`inline-block text-[10px] font-extrabold px-1.5 py-0.2 rounded-md ${
+                          av.gender === 'Nữ'
+                            ? 'bg-pink-100 text-pink-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}
+                      >
+                        {av.gender}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. HOẶC CHỌN AVATAR ROBOT HOẠT HÌNH */}
+            <div className="space-y-2 pt-1">
+              <h5 className="text-xs font-black text-slate-900 uppercase tracking-wide">
+                HOẶC CHỌN AVATAR ROBOT HOẠT HÌNH:
+              </h5>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                 {PIXAR_AVATARS.map((url, i) => (
                   <button
                     key={i}
+                    type="button"
                     onClick={() => {
                       soundFx.playCorrect();
                       onUpdateAvatar?.(currentSt.id, url);
-                      showToast('Đã đổi Avatar thành công!');
+                      showToast('Đã chọn avatar Robot hoạt hình!');
                     }}
-                    className="p-1.5 rounded-2xl border-2 border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center"
+                    className={`p-1.5 rounded-2xl border-2 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center ${
+                      currentSt.avatar === url
+                        ? 'border-purple-600 bg-purple-50 shadow-sm'
+                        : 'border-slate-200 hover:border-amber-400 bg-slate-50'
+                    }`}
                   >
-                    <img src={url} alt="avatar" className="w-12 h-12 object-contain" />
+                    <img src={url} alt="robot" className="w-11 h-11 object-contain" />
                   </button>
                 ))}
               </div>
