@@ -40,11 +40,12 @@ export const MarbleCanvas = ({
   const [isPaused, setIsPaused] = useState(false);
 
   // Điều khiển UI
-  const [cameraMode, setCameraMode] = useState('leader');
+  const [cameraMode, setCameraMode] = useState('crowd'); // 'crowd' (Mặc định: Toàn đàn) | 'leader' | 'top10'
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isMusicOn, setIsMusicOn] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const cameraYRef = useRef(0); // ★ Vị trí camera làm mượt (Smooth Camera Lerp)
 
   // Khởi tạo thế giới vật lý với bề rộng 1060px
   useEffect(() => {
@@ -141,16 +142,22 @@ export const MarbleCanvas = ({
     const W = canvas.width;
     const H = canvas.height;
 
-    // Camera bám theo bi dẫn đầu
+    // ★ CAMERA THÔNG MINH BAO QUÁT TOÀN BỘ ĐÀN BI (SMART PACK CAMERA)
+    // Đảm bảo không bỏ rơi bất kỳ viên bi nào, học sinh chạy chậm hay nhanh đều thấy rõ mình trên màn hình!
     let targetCameraY = 0;
-    if (cameraMode === 'leader') {
+    if (cameraMode === 'crowd') {
+      targetCameraY = world.getCrowdCameraTargetY(H);
+    } else if (cameraMode === 'leader') {
       const leaderY = world.getLeaderY();
-      targetCameraY = Math.max(0, Math.min(world.height - H, leaderY - H * 0.42));
+      targetCameraY = Math.max(0, Math.min(world.height - H, leaderY - H * 0.45));
     } else {
       const top10 = world.marbles.filter(m => !m.finished).slice(0, 10);
       const avgY = top10.length > 0 ? top10.reduce((s, m) => s + m.y, 0) / top10.length : world.height * 0.5;
       targetCameraY = Math.max(0, Math.min(world.height - H, avgY - H * 0.45));
     }
+
+    // Làm mượt chuyển động camera (Smooth Lerp 0.058), lướt êm ái, không giật bắn
+    cameraYRef.current += (targetCameraY - cameraYRef.current) * 0.058;
 
     ctx.save();
     ctx.clearRect(0, 0, W, H);
@@ -158,7 +165,7 @@ export const MarbleCanvas = ({
     ctx.fillStyle = '#090D26';
     ctx.fillRect(0, 0, W, H);
 
-    ctx.translate(0, -targetCameraY);
+    ctx.translate(0, -cameraYRef.current);
 
     // 1. Hai đường viền biên phát sáng màu Neon Cyberpunk
     ctx.strokeStyle = '#0284C7';
@@ -791,13 +798,29 @@ export const MarbleCanvas = ({
                   type="button"
                   onClick={() => {
                     soundFx.playClick();
+                    setCameraMode('crowd');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                    cameraMode === 'crowd'
+                      ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                  title="Theo dõi bao quát toàn bộ đàn bi (ai cũng thấy mình)"
+                >
+                  Toàn đàn
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFx.playClick();
                     setCameraMode('leader');
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
                     cameraMode === 'leader'
                       ? 'bg-pink-600 text-white shadow-sm'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
+                  title="Bám theo viên bi dẫn đầu"
                 >
                   Dẫn đầu
                 </button>
@@ -807,11 +830,12 @@ export const MarbleCanvas = ({
                     soundFx.playClick();
                     setCameraMode('top10');
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
                     cameraMode === 'top10'
                       ? 'bg-pink-600 text-white shadow-sm'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
+                  title="Bám theo Top 10 viên bi phía trước"
                 >
                   Top 10
                 </button>
