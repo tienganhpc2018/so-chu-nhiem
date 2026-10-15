@@ -57,21 +57,9 @@ export const UfoStudentSprite = ({
         </div>
       )}
 
-      {/* 3. Khung ngắm đỏ khi đĩa bay khóa mục tiêu */}
+      {/* 3. Khung ngắm vàng khi đĩa bay khóa mục tiêu (Chuẩn 100% ảnh tham chiếu) */}
       {isTargeted && (
-        <div className="absolute -inset-4 border-2 border-red-500 rounded-xl animate-pulse pointer-events-none flex flex-col justify-between">
-          <div className="flex justify-between -mt-1.5 -mx-1.5">
-            <span className="w-2.5 h-2.5 border-t-2 border-l-2 border-red-500" />
-            <span className="w-2.5 h-2.5 border-t-2 border-r-2 border-red-500" />
-          </div>
-          <span className="text-[9px] font-mono font-black text-red-500 text-center bg-black/80 rounded px-1.5 -mt-5">
-            MỤC TIÊU
-          </span>
-          <div className="flex justify-between -mb-1.5 -mx-1.5">
-            <span className="w-2.5 h-2.5 border-b-2 border-l-2 border-red-500" />
-            <span className="w-2.5 h-2.5 border-b-2 border-r-2 border-red-500" />
-          </div>
-        </div>
+        <div className="absolute -inset-2.5 border-2 border-amber-400 bg-amber-400/15 rounded-lg animate-pulse pointer-events-none shadow-[0_0_15px_rgba(251,191,36,0.6)]" />
       )}
 
       {/* 4. Thân nhân vật học sinh đồng phục áo vàng viền đỏ, quần/váy đỏ */}
