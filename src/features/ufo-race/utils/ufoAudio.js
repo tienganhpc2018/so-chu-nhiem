@@ -385,28 +385,8 @@ class UfoAudioEngine {
 
 export const ufoAudio = new UfoAudioEngine();
 
-// Đọc to tên học sinh bằng giọng nói Tiếng Việt (Web Speech API)
+// Đã tắt âm thanh đọc tên Web Speech API theo yêu cầu của Thầy (do giọng đọc máy tính không tự nhiên)
 export function speakStudentSelected(studentName) {
-  if (!window.speechSynthesis || !studentName) return;
-  try {
-    window.speechSynthesis.cancel();
-    const cleanName = studentName.replace(/[^\p{L}\s]/gu, '').trim();
-    const text = `Xin chúc mừng bạn ${cleanName} đã được chọn lên bảng trả bài!`;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'vi-VN';
-    utterance.rate = 0.95;
-    utterance.pitch = 1.05;
-
-    // Tìm giọng tiếng Việt nếu có
-    const voices = window.speechSynthesis.getVoices();
-    const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VN'));
-    if (viVoice) {
-      utterance.voice = viVoice;
-    }
-
-    window.speechSynthesis.speak(utterance);
-  } catch (e) {
-    console.warn('Speech synthesis error:', e);
-  }
+  // Disabled per teacher's request
 }
 

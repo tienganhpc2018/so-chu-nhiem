@@ -3,7 +3,7 @@ import { UfoCityBackground } from './UfoCityBackground';
 import { UfoSaucer } from './UfoSaucer';
 import { UfoStudentSprite } from './UfoStudentSprite';
 import { UFO_SPEECH_QUOTES } from '../data/defaultUfoData';
-import { ufoAudio, speakStudentSelected } from '../utils/ufoAudio';
+import { ufoAudio } from '../utils/ufoAudio';
 import { getShortStudentName } from '../utils/nameHelper';
 
 export const UfoArena = ({
@@ -26,6 +26,8 @@ export const UfoArena = ({
   const animFrameRef = useRef(null);
   const isRunningRef = useRef(isRunning);
   isRunningRef.current = isRunning;
+  const studentSpritesRef = useRef(studentSprites);
+  studentSpritesRef.current = studentSprites;
 
   // Lấy kích thước container responsive
   useEffect(() => {
@@ -120,8 +122,16 @@ export const UfoArena = ({
         const width = containerSize.width || 1200;
         const centerX = width / 2;
 
-        return prev.map(item => {
+        const updated = prev.map(item => {
           if (item.isAbducted) return item;
+
+          // Khi bị tia sáng UFO khóa mục tiêu: Đứng im tại vị trí khóa, quỳ lạy run sợ, không chạy đi đâu
+          if (item.isTargeted) {
+            return {
+              ...item,
+              rotation: Math.sin(currentTime * 0.03) * 15
+            };
+          }
 
           let newX = item.x;
           let newVx = item.vx;
@@ -136,9 +146,7 @@ export const UfoArena = ({
             newX += (item.vx * 75 * dt) + gravityPull;
 
             // Góc nghiêng ngã chao đảo mạnh theo sức hút
-            if (item.isTargeted) {
-              newRotation = Math.sin(currentTime * 0.03) * 25; // Run sợ lắc lư
-            } else if (item.isFallen) {
+            if (item.isFallen) {
               newRotation = item.vx > 0 ? 70 : -70; // Ngã lăn quay ra đường
             } else {
               newRotation = (item.vx > 0 ? 30 : -30) + Math.sin(currentTime * 0.015 + item.x) * 15;
@@ -168,6 +176,9 @@ export const UfoArena = ({
             rotation: newRotation
           };
         });
+
+        studentSpritesRef.current = updated;
+        return updated;
       });
 
       animFrameRef.current = requestAnimationFrame(loop);
@@ -249,15 +260,24 @@ export const UfoArena = ({
         const firstTarget = toCapture[0];
         if (!firstTarget) return;
 
-        setTargetStudentPos({ x: firstTarget.x, y: firstTarget.y });
+        // Bắt chính xác tọa độ THỰC TẾ trực tiếp tại thời điểm này từ studentSpritesRef
+        const liveSprites = studentSpritesRef.current || [];
+        const currentTarget = liveSprites.find(s => s.student.id === firstTarget.student.id);
+        const lockX = currentTarget ? currentTarget.x : (containerSize.width / 2);
+        const lockY = currentTarget ? currentTarget.y : (containerSize.height * 0.84);
+
+        // Khóa luồng tia sáng đĩa bay thẳng vào đúng vị trí học sinh đang đứng
+        setTargetStudentPos({ x: lockX, y: lockY });
         ufoAudio.playLockOn();
 
-        // Bạn bị chọn quỳ xuống chắp tay lạy lia lịa xin tha
+        // Học sinh được chọn đứng yên quỳ lạy xin tha ngay tâm tia sáng
         setStudentSprites(prev =>
           prev.map(s => {
             if (s.student.id === firstTarget.student.id) {
               return {
                 ...s,
+                x: lockX,
+                y: lockY,
                 isTargeted: true,
                 speechQuote: 'Con xin thầy tha cho con lần này!! 🙏'
               };
@@ -269,12 +289,12 @@ export const UfoArena = ({
           })
         );
 
-        // BƯỚC 4: HÚT NHÀO LỘN BAY VÀO TRONG KHOANG ĐĨA BAY (11.5s - 14.5s)
+        // BƯỚC 4: HÚT NHÀO LỘN BAY DỌC THẲNG THEO TIA SÁNG VÀO TRONG KHOANG ĐĨA BAY (11.5s - 14.5s)
         const abductTimeout = setTimeout(() => {
           ufoAudio.playAbductWhoosh();
           ufoAudio.playFunnyScream(); // Tiếng hét thất thanh "Á á á cứu em!"
 
-          // Kéo bạn thứ nhất bay dọc thẳng vào tâm khoang đĩa bay
+          // Kéo bạn thứ nhất bay dọc thẳng vào tâm cửa khoang đĩa bay
           setStudentSprites(prev =>
             prev.map(s => {
               if (s.student.id === firstTarget.student.id) {
@@ -282,7 +302,7 @@ export const UfoArena = ({
                   ...s,
                   isTargeted: false,
                   isAbducted: true,
-                  x: containerSize.width / 2,
+                  x: containerSize.width / 2, // Đỉnh nón tia sáng (cửa đáy UFO)
                   y: 135, // Cửa khoang đáy đĩa bay
                   rotation: 720, // Nhào lộn tròn
                   scale: 0.1, // Thu nhỏ vào trong khoang
@@ -298,12 +318,17 @@ export const UfoArena = ({
           if (toCapture.length > 1) {
             const secondTarget = toCapture[1];
             setTimeout(() => {
-              setTargetStudentPos({ x: secondTarget.x, y: secondTarget.y });
+              const liveSprites2 = studentSpritesRef.current || [];
+              const currentSecond = liveSprites2.find(s => s.student.id === secondTarget.student.id);
+              const lock2X = currentSecond ? currentSecond.x : (containerSize.width / 2);
+              const lock2Y = currentSecond ? currentSecond.y : (containerSize.height * 0.84);
+
+              setTargetStudentPos({ x: lock2X, y: lock2Y });
               ufoAudio.playLockOn();
               setStudentSprites(prev =>
                 prev.map(s =>
                   s.student.id === secondTarget.student.id
-                    ? { ...s, isTargeted: true, speechQuote: 'Cứu em với thầy ơi!! 🙏' }
+                    ? { ...s, isTargeted: true, x: lock2X, y: lock2Y, speechQuote: 'Cứu em với thầy ơi!! 🙏' }
                     : s
                 )
               );
@@ -333,7 +358,7 @@ export const UfoArena = ({
             }, 800);
           }
 
-          // BƯỚC 5: KẾT THÚC, ĐỌC TÊN HỌC SINH VÀ CÔNG BỐ CHIẾN THẮNG (Khoảng 15 giây)
+          // BƯỚC 5: KẾT THÚC VÀ CÔNG BỐ CHIẾN THẮNG (Khoảng 15 giây)
           const finishTimeout = setTimeout(() => {
             setIsBeaming(false);
             setTargetStudentPos(null);
@@ -346,12 +371,7 @@ export const UfoArena = ({
                 shortName: getShortStudentName(q.student.name || q.student.full_name, students)
               }));
 
-              // Phát giọng nói tiếng Việt thông báo học sinh may mắn
-              const luckyOne = capturedFinal[0];
-              if (luckyOne) {
-                speakStudentSelected(luckyOne.shortName || luckyOne.name);
-              }
-
+              // Đã xóa giọng đọc máy tính Web Speech API theo đúng yêu cầu của Thầy
               onCompleteCapture?.(capturedFinal);
             }, 800);
           }, toCapture.length > 1 ? 2600 : 1600);
@@ -407,6 +427,7 @@ export const UfoArena = ({
         isBeaming={isBeaming}
         targetStudentPos={targetStudentPos}
         containerWidth={containerSize.width}
+        containerHeight={containerSize.height}
         countdownSeconds={countdownSeconds}
       />
 

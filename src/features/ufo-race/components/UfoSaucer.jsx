@@ -7,6 +7,7 @@ export const UfoSaucer = ({
   isBeaming = false,
   targetStudentPos = null,
   containerWidth = 1000,
+  containerHeight = 700,
   countdownSeconds = null
 }) => {
   const [lightOffset, setLightOffset] = useState(0);
@@ -34,6 +35,7 @@ export const UfoSaucer = ({
 
   const ufoCenterX = containerWidth / 2;
   const targetBeamX = targetStudentPos ? targetStudentPos.x : ufoCenterX;
+  const groundY = targetStudentPos?.y ? (targetStudentPos.y + 25) : (containerHeight * 0.85 || 650);
 
   return (
     <div className="absolute inset-0 pointer-events-none select-none z-30">
@@ -65,8 +67,8 @@ export const UfoSaucer = ({
             points={`
               ${ufoCenterX - 55}, 145
               ${ufoCenterX + 55}, 145
-              ${targetBeamX + 165}, 650
-              ${targetBeamX - 165}, 650
+              ${targetBeamX + 165}, ${groundY}
+              ${targetBeamX - 165}, ${groundY}
             `}
             fill="url(#dynamicBeamGrad)"
             filter="url(#beamSoftGlow)"
@@ -76,7 +78,7 @@ export const UfoSaucer = ({
           {/* Quầng sáng elip chiếu rọi trực tiếp trên mặt đất nơi học sinh đứng */}
           <ellipse
             cx={targetBeamX}
-            cy="635"
+            cy={groundY - 10}
             rx="160"
             ry="28"
             fill="#22d3ee"
