@@ -41,6 +41,61 @@ class UfoAudioEngine {
     }
   }
 
+  // Tiếng UFO lao xuống từ vũ trụ (UFO Descent Engine Whoosh)
+  playUfoDescent() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 2.0);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2500, this.ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(350, this.ctx.currentTime + 2.0);
+
+      gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.25 * this.volume, this.ctx.currentTime + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2.2);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 2.2);
+    } catch (e) {}
+  }
+
+  // Tiếng radar quét tìm mục tiêu (Radar Sweep Ping)
+  playRadarSweep() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(750, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.15);
+
+      gain.gain.setValueAtTime(0.12 * this.volume, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.19);
+    } catch (e) {}
+  }
+
   // Phát tiếng tia hút UFO (Tractor Beam Hum)
   playTractorBeam() {
     if (this.isMuted) return;

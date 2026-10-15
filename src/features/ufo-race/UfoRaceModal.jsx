@@ -46,7 +46,7 @@ export const UfoRaceModal = ({
           name: currentClass.name || 'Lớp hiện tại',
           students: lmsStudents.map(s => ({
             id: s.id,
-            name: s.name,
+            name: s.name || s.full_name || 'Học sinh',
             avatar: s.avatar || s.avatar_url || null
           }))
         };
