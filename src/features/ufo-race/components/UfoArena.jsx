@@ -26,6 +26,8 @@ export const UfoArena = ({
   const animFrameRef = useRef(null);
   const isRunningRef = useRef(isRunning);
   isRunningRef.current = isRunning;
+  const isUfoVisibleRef = useRef(isUfoVisible);
+  isUfoVisibleRef.current = isUfoVisible;
   const studentSpritesRef = useRef(studentSprites);
   studentSpritesRef.current = studentSprites;
 
@@ -44,7 +46,7 @@ export const UfoArena = ({
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // Khởi tạo các học sinh với tên chuẩn, vị trí và góc nghiêng tự nhiên
+  // Khởi tạo các học sinh với độ cao lơ lửng và tư thế nghiêng ngả đa dạng
   useEffect(() => {
     if (!students || students.length === 0) return;
 
@@ -52,21 +54,24 @@ export const UfoArena = ({
     const height = containerSize.height || 700;
     const roadY = height * 0.84;
 
+    const POSES = [35, -35, 75, -75, 175, -170, 45, -45, 85, 180];
     const sprites = students.map((std, idx) => {
       const x = 70 + ((idx * 37) % (width - 140));
-      const vx = (Math.random() > 0.5 ? 1 : -1) * (1.0 + Math.random() * 1.6);
+      const vx = (Math.random() > 0.5 ? 1 : -1) * (0.9 + Math.random() * 1.3);
       return {
         student: std,
         x,
-        y: roadY + (Math.random() * 20 - 10),
+        y: roadY,
         baseY: roadY,
+        floatAltitude: 80 + ((idx * 29) % 130), // Độ cao lơ lửng 80px - 210px khỏi mặt đất
+        floatPose: POSES[idx % POSES.length], // Tư thế: nghiêng, ngã nằm ngang, lộn ngược
         vx,
         isTargeted: false,
         isAbducted: false,
         isFallen: false,
         speechQuote: null,
         gender: idx % 2 === 0 ? 'male' : 'female',
-        rotation: (Math.random() * 16 - 8), // Nghiêng nhẹ tự nhiên khi chạy
+        rotation: 0,
         opacity: 1,
         scale: 1
       };
@@ -129,32 +134,40 @@ export const UfoArena = ({
           if (item.isTargeted) {
             return {
               ...item,
-              rotation: Math.sin(currentTime * 0.03) * 15
+              rotation: Math.sin(currentTime * 0.03) * 12
             };
           }
 
           let newX = item.x;
+          let newY = item.y;
           let newVx = item.vx;
           let newRotation = item.rotation;
 
-          if (isRunningRef.current) {
-            // Khi UFO bật lực hút: Cơn bão trọng lực kéo các bạn học sinh về phía tâm đĩa bay
+          if (isUfoVisibleRef.current) {
+            // KHI ĐĨA BAY XUẤT HIỆN: SỨC HÚT PHI TRỌNG LỰC NHẤC BỔNG TOÀN BỘ HS LÊN KHÔNG TRUNG LƠ LỬNG
+            const targetY = item.baseY - item.floatAltitude + Math.sin(currentTime * 0.0025 + item.x) * 6;
+            const targetRotation = item.floatPose + Math.sin(currentTime * 0.002 + item.x) * 4;
+
+            // Lực hút kéo nhẹ về phía tâm đĩa bay
             const distToCenter = centerX - item.x;
-            const gravityPull = Math.sign(distToCenter) * 35 * dt;
+            const gravityPull = Math.sign(distToCenter) * 20 * dt;
 
-            // Chạy nhanh tán loạn hoặc bị hút nghiêng ngả
-            newX += (item.vx * 75 * dt) + gravityPull;
+            // Trôi dạt chậm rãi trong trạng thái không trọng lượng
+            newX += (item.vx * 30 * dt) + gravityPull;
 
-            // Góc nghiêng ngã chao đảo mạnh theo sức hút
-            if (item.isFallen) {
-              newRotation = item.vx > 0 ? 70 : -70; // Ngã lăn quay ra đường
-            } else {
-              newRotation = (item.vx > 0 ? 30 : -30) + Math.sin(currentTime * 0.015 + item.x) * 15;
-            }
+            // Bay bổng mượt mà lên không trung
+            newY += (targetY - item.y) * Math.min(2.8 * dt, 0.2);
+            newRotation += (targetRotation - item.rotation) * Math.min(3.2 * dt, 0.2);
           } else {
-            // Bình thường: Chạy nhẹ nhàng thư thả
-            newX += item.vx * 40 * dt;
-            newRotation = Math.sin(currentTime * 0.006 + item.x) * 8;
+            // KHI CHƯA CÓ ĐĨA BAY HOẶC ĐĨA BAY BẮT XONG ĐÃ BIẾN MẤT: TRẢ TOÀN BỘ HỌC SINH VỀ MẶT ĐẤT
+            const targetY = item.baseY;
+            const targetRotation = 0; // Đứng thẳng người bình thường
+
+            newX += item.vx * 35 * dt;
+
+            // Hạ cánh êm ái trở lại mặt đất
+            newY += (targetY - item.y) * Math.min(4.5 * dt, 0.25);
+            newRotation += (targetRotation - item.rotation) * Math.min(5.0 * dt, 0.25);
           }
 
           // Chạm mép thành phố thì quay đầu
@@ -166,12 +179,10 @@ export const UfoArena = ({
             newVx = -Math.abs(newVx);
           }
 
-          const bounce = Math.sin(currentTime * 0.008 + item.x) * 3;
-
           return {
             ...item,
             x: newX,
-            y: item.baseY + bounce,
+            y: newY,
             vx: newVx,
             rotation: newRotation
           };
@@ -362,7 +373,19 @@ export const UfoArena = ({
           const finishTimeout = setTimeout(() => {
             setIsBeaming(false);
             setTargetStudentPos(null);
+            setIsUfoVisible(false); // UFO biến mất -> Học sinh hạ cánh êm dịu trở về mặt đất!
             ufoAudio.playVictory();
+
+            // Các bạn học sinh còn lại hạ cánh an toàn xuống đất và reo mừng
+            setStudentSprites(prev =>
+              prev.map(s => {
+                if (s.isAbducted) return s;
+                return {
+                  ...s,
+                  speechQuote: Math.random() > 0.5 ? 'May quá đĩa bay đi rồi!' : 'Hura đáp đất an toàn rồi!'
+                };
+              })
+            );
 
             setTimeout(() => {
               clearInterval(countTimer);
@@ -373,7 +396,7 @@ export const UfoArena = ({
 
               // Đã xóa giọng đọc máy tính Web Speech API theo đúng yêu cầu của Thầy
               onCompleteCapture?.(capturedFinal);
-            }, 800);
+            }, 1800); // Đợi 1.8s để học sinh hạ cánh hoàn toàn xuống đất rồi mới mở bảng kết quả
           }, toCapture.length > 1 ? 2600 : 1600);
 
           return () => clearTimeout(finishTimeout);

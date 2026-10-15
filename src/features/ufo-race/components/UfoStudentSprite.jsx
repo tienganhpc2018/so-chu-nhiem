@@ -29,16 +29,16 @@ export const UfoStudentSprite = ({
         left: `${x}px`,
         top: `${y}px`,
         opacity: opacity,
-        transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
+        transform: `translate(-50%, -50%) scale(${scale})`,
         transition: isAbducted
           ? 'top 1.6s cubic-bezier(0.25, 0.9, 0.35, 1), left 1.6s cubic-bezier(0.25, 0.9, 0.35, 1), transform 1.6s ease-out, opacity 1.4s ease-in'
           : 'none'
       }}
     >
-      {/* 1. Bong bóng hội thoại học đường vui nhộn */}
+      {/* 1. Bong bóng hội thoại học đường: Luôn thăng bằng nằm ngang trên đầu, KHÔNG GIẬT LẮC */}
       {speechQuote && !isAbducted && (
-        <div className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 animate-bounce">
-          <div className="relative px-3 py-1.5 rounded-2xl bg-white text-slate-900 text-[11px] font-black border-2 border-slate-900 shadow-2xl max-w-[210px] text-center leading-tight">
+        <div className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 pointer-events-none">
+          <div className="relative px-3 py-1.5 rounded-2xl bg-white text-slate-900 text-[11px] font-black border-2 border-slate-900 shadow-2xl max-w-[220px] text-center leading-tight">
             {speechQuote}
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-8 border-t-slate-900" />
             <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-3 border-x-transparent border-t-6 border-t-white" />
@@ -46,9 +46,9 @@ export const UfoStudentSprite = ({
         </div>
       )}
 
-      {/* 2. Nhãn tên học sinh viền đỏ chữ đỏ nền trắng (To rõ, không bị che khuất) */}
+      {/* 2. Nhãn tên học sinh viền đỏ chữ đỏ nền trắng: LUÔN NẰM NGANG, ĐỨNG YÊN DI CHUYỂN MƯỢT MÀ THEO HS, KHÔNG GIẬT */}
       {!isAbducted && (
-        <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap z-40">
+        <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap z-40 pointer-events-none">
           <div className="px-2.5 py-0.5 rounded-full bg-white border-2 border-red-500 shadow-md flex items-center justify-center min-w-[50px]">
             <span className="font-black text-[11px] sm:text-xs text-red-600 tracking-wide select-none drop-shadow-xs">
               {displayName}
@@ -57,22 +57,30 @@ export const UfoStudentSprite = ({
         </div>
       )}
 
-      {/* 3. Khung ngắm vàng khi đĩa bay khóa mục tiêu (Chuẩn 100% ảnh tham chiếu) */}
-      {isTargeted && (
-        <div className="absolute -inset-2.5 border-2 border-amber-400 bg-amber-400/15 rounded-lg animate-pulse pointer-events-none shadow-[0_0_15px_rgba(251,191,36,0.6)]" />
-      )}
-
-      {/* 4. Thân nhân vật học sinh đồng phục áo vàng viền đỏ, quần/váy đỏ */}
+      {/* 3. KHUNG XOAY NHÂN VẬT HỌC SINH: Nghiêng, ngã, nhào lộn, lơ lửng trong không trung */}
       <div
-        className={`relative w-12 sm:w-14 h-16 sm:h-18 flex flex-col items-center ${
-          isFacingRight ? 'scale-x-100' : '-scale-x-100'
-        }`}
+        className="relative flex flex-col items-center"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transition: isAbducted ? 'transform 1.6s ease-out' : 'transform 0.25s ease-out'
+        }}
       >
-        {/* Đầu / Khuôn mặt hoặc ảnh thật */}
-        <div className="relative w-8 h-8 rounded-full border-2 border-amber-800/40 shadow-sm overflow-hidden bg-amber-100 flex items-center justify-center">
-          {student?.avatar || student?.avatar_url ? (
-            <img
-              src={student.avatar || student.avatar_url}
+        {/* Khung ngắm vàng khi đĩa bay khóa mục tiêu */}
+        {isTargeted && (
+          <div className="absolute -inset-2.5 border-2 border-amber-400 bg-amber-400/15 rounded-lg animate-pulse pointer-events-none shadow-[0_0_15px_rgba(251,191,36,0.6)]" />
+        )}
+
+        {/* Thân nhân vật học sinh đồng phục áo vàng viền đỏ, quần/váy đỏ */}
+        <div
+          className={`relative w-12 sm:w-14 h-16 sm:h-18 flex flex-col items-center ${
+            isFacingRight ? 'scale-x-100' : '-scale-x-100'
+          }`}
+        >
+          {/* Đầu / Khuôn mặt hoặc ảnh thật */}
+          <div className="relative w-8 h-8 rounded-full border-2 border-amber-800/40 shadow-sm overflow-hidden bg-amber-100 flex items-center justify-center">
+            {student?.avatar || student?.avatar_url ? (
+              <img
+                src={student.avatar || student.avatar_url}
               alt={displayName}
               className="w-full h-full object-cover rounded-full"
             />
@@ -156,5 +164,6 @@ export const UfoStudentSprite = ({
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 };

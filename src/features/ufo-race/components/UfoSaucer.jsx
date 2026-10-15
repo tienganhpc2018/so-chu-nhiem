@@ -35,12 +35,12 @@ export const UfoSaucer = ({
 
   const ufoCenterX = containerWidth / 2;
   const targetBeamX = targetStudentPos ? targetStudentPos.x : ufoCenterX;
-  const groundY = targetStudentPos?.y ? (targetStudentPos.y + 25) : (containerHeight * 0.85 || 650);
+  const streetY = (containerHeight * 0.84) || 600;
 
   return (
     <div className="absolute inset-0 pointer-events-none select-none z-30">
       
-      {/* 1. TIA HÚT TRACTOR BEAM XOAY ĐỘNG: Luôn chiếu chuẩn xác 100% vào vị trí học sinh */}
+      {/* 1. TIA HÚT TRACTOR BEAM XOAY ĐỘNG: Luôn chiếu từ đĩa bay thẳng xuống mặt đất */}
       {isBeaming && isVisible && (
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none z-20"
@@ -62,23 +62,23 @@ export const UfoSaucer = ({
             </filter>
           </defs>
 
-          {/* Tia sáng hình nón kết nối trực tiếp từ cửa đáy đĩa bay tới vị trí chân học sinh */}
+          {/* Tia sáng hình nón kết nối trực tiếp từ cửa đáy đĩa bay bao trọn học sinh xuống tận mặt đường */}
           <polygon
             points={`
               ${ufoCenterX - 55}, 145
               ${ufoCenterX + 55}, 145
-              ${targetBeamX + 165}, ${groundY}
-              ${targetBeamX - 165}, ${groundY}
+              ${targetBeamX + 165}, ${streetY + 40}
+              ${targetBeamX - 165}, ${streetY + 40}
             `}
             fill="url(#dynamicBeamGrad)"
             filter="url(#beamSoftGlow)"
             className="transition-all duration-700 ease-out"
           />
 
-          {/* Quầng sáng elip chiếu rọi trực tiếp trên mặt đất nơi học sinh đứng */}
+          {/* Quầng sáng elip chiếu rọi trực tiếp trên mặt đường dưới chân cột sáng */}
           <ellipse
             cx={targetBeamX}
-            cy={groundY - 10}
+            cy={streetY + 15}
             rx="160"
             ry="28"
             fill="#22d3ee"
