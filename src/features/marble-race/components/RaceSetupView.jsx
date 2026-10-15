@@ -17,34 +17,57 @@ import {
   Scissors,
   Check,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Edit3,
+  BookOpen,
+  PlusCircle,
+  Save
 } from 'lucide-react';
 import { soundFx } from '../../../utils/soundEffects';
+
+// Câu hỏi mẫu mặc định — Thầy có thể đổi toàn bộ bên dưới
+const DEFAULT_QUESTIONS = [
+  { id: 'q1', question: 'What is the past tense of "go"?', options: ['goed', 'went', 'gone', 'going'], correct: 1 },
+  { id: 'q2', question: 'Choose the correct article: "___ apple a day keeps the doctor away."', options: ['A', 'An', 'The', 'No article'], correct: 1 },
+  { id: 'q3', question: 'What does "beautiful" mean in Vietnamese?', options: ['Xấu', 'Đẹp', 'Tốt', 'Xấu xa'], correct: 1 },
+];
+
 
 export const RaceSetupView = ({
   currentClass,
   students = [],
   calledStudentIds = [],
+  questions = [],
   onStartRace,
   onOpenCropModal,
   onClose,
-  onUpdateStudentsList
+  onUpdateStudentsList,
+  onUpdateQuestions
 }) => {
   // Mode: 'setup' (Ảnh 3) | 'roster' (Ảnh 1)
   const [viewMode, setViewMode] = useState('setup');
 
   // Race Config State (Chuẩn Ảnh 3)
-  const [trackLength, setTrackLength] = useState('medium'); // 'short' (20s) | 'medium' (30s) | 'long' (40s)
+  const [trackLength, setTrackLength] = useState('medium');
   const [useStudentPhotos, setUseStudentPhotos] = useState(true);
   const [restLastCalled, setRestLastCalled] = useState(true);
   const [enableQuestions, setEnableQuestions] = useState(true);
   const [absentIds, setAbsentIds] = useState(new Set());
+
+  // Cấu hình câu hỏi trắc nghiệm riêng
+  const [customQuestions, setCustomQuestions] = useState(
+    questions && questions.length > 0 ? questions : DEFAULT_QUESTIONS
+  );
+  const [showQuestionConfig, setShowQuestionConfig] = useState(false);
+  const [editingQId, setEditingQId] = useState(null); // id câu đang sửa
+  const [editingQ, setEditingQ] = useState(null);     // bản sao đang sửa
 
   // Roster Manager State (Chuẩn Ảnh 1)
   const [localStudents, setLocalStudents] = useState(students);
   const [classNameInput, setClassNameInput] = useState(currentClass?.name || 'Lớp 8C');
   const [showExcelImport, setShowExcelImport] = useState(false);
   const [excelText, setExcelText] = useState('');
+
 
   const photoCount = localStudents.filter(s => s.avatar || s.avatar_url).length;
 
@@ -67,10 +90,8 @@ export const RaceSetupView = ({
   // Khởi động cuộc đua
   const handleLaunchRace = () => {
     soundFx.playCorrect();
-    // Lọc học sinh tham gia
     let activeParticipants = localStudents.filter(s => !absentIds.has(s.id));
 
-    // Nếu bật chế độ nghỉ một lượt cho bạn vừa gọi
     if (restLastCalled && calledStudentIds.length > 0 && activeParticipants.length > 1) {
       const lastCalledId = calledStudentIds[calledStudentIds.length - 1];
       activeParticipants = activeParticipants.filter(s => s.id !== lastCalledId);
@@ -80,9 +101,55 @@ export const RaceSetupView = ({
       trackLength,
       useStudentPhotos,
       enableQuestions,
+      customQuestions: enableQuestions ? customQuestions : [],
       participants: activeParticipants
     });
   };
+
+  // Quản lý câu hỏi
+  const handleAddQuestion = () => {
+    const newQ = {
+      id: `q-${Date.now()}`,
+      question: '',
+      options: ['', '', '', ''],
+      correct: 0
+    };
+    setCustomQuestions(prev => [...prev, newQ]);
+    setEditingQId(newQ.id);
+    setEditingQ({ ...newQ });
+  };
+
+  const handleStartEditQ = (q) => {
+    setEditingQId(q.id);
+    setEditingQ({ ...q, options: [...q.options] });
+  };
+
+  const handleSaveQ = () => {
+    if (!editingQ) return;
+    setCustomQuestions(prev => prev.map(q => q.id === editingQ.id ? editingQ : q));
+    setEditingQId(null);
+    setEditingQ(null);
+    soundFx.playCorrect();
+  };
+
+  const handleDeleteQ = (id) => {
+    setCustomQuestions(prev => prev.filter(q => q.id !== id));
+    if (editingQId === id) { setEditingQId(null); setEditingQ(null); }
+    soundFx.playClick();
+  };
+
+  const handleEditQField = (field, value) => {
+    setEditingQ(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditOption = (idx, value) => {
+    setEditingQ(prev => {
+      const opts = [...prev.options];
+      opts[idx] = value;
+      return { ...prev, options: opts };
+    });
+  };
+
 
   // Xử lý thêm học sinh thủ công
   const handleAddStudent = () => {
@@ -261,31 +328,180 @@ export const RaceSetupView = ({
               </div>
 
               {/* Tùy chọn: Kết hợp câu hỏi Tiếng Anh */}
-              <div className="p-3 bg-indigo-50/70 border border-indigo-200 rounded-2xl flex items-center justify-between">
-                <div className="flex items-center space-x-2.5">
-                  <span className="text-lg">📚</span>
-                  <div>
-                    <span className="text-xs font-black text-indigo-950 block">
-                      Kết hợp mở câu hỏi trắc nghiệm Tiếng Anh:
-                    </span>
-                    <span className="text-[11px] text-indigo-700 font-bold">
-                      Khi viên bi về nhất, mở ngay 1 câu hỏi kiểm tra nhanh kiến thức.
-                    </span>
+              <div className="border border-indigo-200 rounded-2xl overflow-hidden">
+                {/* Hàng chính: bật/tắt + mở cài đặt */}
+                <div className="p-3 bg-indigo-50/70 flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <span className="text-lg">📚</span>
+                    <div>
+                      <span className="text-xs font-black text-indigo-950 block">
+                        Kết hợp mở câu hỏi trắc nghiệm Tiếng Anh:
+                      </span>
+                      <span className="text-[11px] text-indigo-700 font-bold">
+                        Khi viên bi về nhất, mở ngay 1 câu hỏi kiểm tra nhanh kiến thức.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {enableQuestions && (
+                      <button
+                        type="button"
+                        onClick={() => { soundFx.playClick(); setShowQuestionConfig(v => !v); }}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-black flex items-center space-x-1 transition-all"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Cài đặt câu hỏi ({customQuestions.length})</span>
+                        {showQuestionConfig ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      </button>
+                    )}
+                    <div
+                      onClick={() => setEnableQuestions(!enableQuestions)}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        enableQuestions ? 'bg-indigo-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                          enableQuestions ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div
-                  onClick={() => setEnableQuestions(!enableQuestions)}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                    enableQuestions ? 'bg-indigo-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <div
-                    className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                      enableQuestions ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </div>
+
+                {/* Panel cài đặt câu hỏi */}
+                {enableQuestions && showQuestionConfig && (
+                  <div className="border-t border-indigo-100 bg-white">
+                    <div className="p-3 flex items-center justify-between border-b border-indigo-50">
+                      <span className="text-xs font-black text-slate-700">
+                        Danh sách câu hỏi ({customQuestions.length} câu) — Mỗi lần về nhất rút ngẫu nhiên 1 câu
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleAddQuestion}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[11px] font-black flex items-center space-x-1 transition-all"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5" />
+                        <span>Thêm câu hỏi
+</span>
+                      </button>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                      {customQuestions.map((q, qIdx) => (
+                        <div key={q.id} className="p-3">
+                          {editingQId === q.id ? (
+                            /* Form sửa câu hỏi */
+                            <div className="space-y-2">
+                              <div className="flex items-center space-x-1.5 mb-1">
+                                <span className="text-[11px] font-black text-indigo-600 uppercase">Câu {qIdx + 1}</span>
+                                <div className="flex-1 h-px bg-indigo-100" />
+                              </div>
+                              <textarea
+                                value={editingQ.question}
+                                onChange={e => handleEditQField('question', e.target.value)}
+                                placeholder="Nhập nội dung câu hỏi Tiếng Anh..."
+                                className="w-full px-3 py-2 text-xs border border-indigo-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                                rows={2}
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                {editingQ.options.map((opt, optIdx) => (
+                                  <div key={optIdx} className="flex items-center space-x-1.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditQField('correct', optIdx)}
+                                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                        editingQ.correct === optIdx
+                                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                                          : 'border-slate-300 hover:border-emerald-400'
+                                      }`}
+                                      title="Chọn đây là đáp án đúng"
+                                    >
+                                      {editingQ.correct === optIdx && <Check className="w-3 h-3" />}
+                                    </button>
+                                    <input
+                                      value={opt}
+                                      onChange={e => handleEditOption(optIdx, e.target.value)}
+                                      placeholder={`Đáp án ${String.fromCharCode(65 + optIdx)}`}
+                                      className="flex-1 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex items-center space-x-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleSaveQ}
+                                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[11px] font-black flex items-center space-x-1"
+                                >
+                                  <Save className="w-3.5 h-3.5" />
+                                  <span>Lưu câu hỏi</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditingQId(null); setEditingQ(null); }}
+                                  className="px-3 py-1.5 text-slate-500 hover:text-slate-700 text-[11px] font-bold"
+                                >
+                                  Huỷ
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Hiển thị dạng đọc */
+                            <div className="flex items-start space-x-2">
+                              <span className="text-[11px] font-black text-indigo-400 mt-0.5 shrink-0 w-6">{qIdx + 1}.</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-slate-800 line-clamp-2">
+                                  {q.question || <span className="italic text-slate-400">Chưa có nội dung</span>}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {q.options.map((opt, optIdx) => (
+                                    <span
+                                      key={optIdx}
+                                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                        q.correct === optIdx
+                                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                                          : 'bg-slate-100 text-slate-500'
+                                      }`}
+                                    >
+                                      {String.fromCharCode(65 + optIdx)}. {opt || '...'}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditQ(q)}
+                                  className="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                  title="Sửa câu hỏi"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteQ(q.id)}
+                                  className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                  title="Xóa câu hỏi"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {customQuestions.length === 0 && (
+                        <div className="p-6 text-center text-slate-400 text-xs font-bold">
+                          Chưa có câu hỏi nào. Nhấn &ldquo;Thêm câu hỏi&rdquo; để bắt đầu.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
+
 
               {/* 3. Điểm danh: Danh sách pills màu hồng phấn (Chuẩn Ảnh 3) */}
               <div className="space-y-2 pt-2">

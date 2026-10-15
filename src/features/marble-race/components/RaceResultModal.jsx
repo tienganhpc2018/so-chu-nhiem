@@ -9,7 +9,9 @@ import {
   X,
   Sparkles,
   Award,
-  ArrowRight
+  ArrowRight,
+  Edit3,
+  BookOpen
 } from 'lucide-react';
 import { soundFx } from '../../../utils/soundEffects';
 
@@ -20,9 +22,12 @@ export const RaceResultModal = ({
   leaderboard = [],
   raceTime = 0,
   enableQuestions = true,
+  questions = [],
+  currentQuestionIndex = 0,
   onRestartRace,
   onOpenSettings,
   onOpenQuestionModal,
+  onOpenQuestionConfig,
   onRewardStudent
 }) => {
   if (!isOpen) return null;
@@ -30,6 +35,8 @@ export const RaceResultModal = ({
   const top1 = leaderboard[0] || winner;
   const top2 = leaderboard[1] || null;
   const top3 = leaderboard[2] || null;
+
+  const selectedQ = questions[currentQuestionIndex % (questions.length || 1)] || null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
@@ -46,7 +53,7 @@ export const RaceResultModal = ({
                 KẾT QUẢ CUỘC ĐUA BI — BẢNG VÀNG
               </h3>
               <p className="text-xs text-amber-100 font-bold mt-0.5">
-                Thời gian cuộc đua: <span className="font-mono font-black">{raceTime.toFixed(2)}s</span>
+                Thời gian cuộc đua: <span className="font-mono font-black">{Number(raceTime).toFixed(2)}s</span>
               </p>
             </div>
           </div>
@@ -60,10 +67,10 @@ export const RaceResultModal = ({
         </div>
 
         {/* Nội dung kết quả */}
-        <div className="p-6 sm:p-7 space-y-6 flex-1 overflow-y-auto">
+        <div className="p-6 sm:p-7 space-y-6 overflow-y-auto flex-1">
           
-          {/* Bục Vinh Quang Top 3 (Podium) */}
-          <div className="flex items-end justify-center gap-3 pt-2 pb-4">
+          {/* BỤC PODIUM VINH DANH TOP 1 - 2 - 3 */}
+          <div className="flex items-end justify-center space-x-3 sm:space-x-5 pt-3 pb-2">
             
             {/* Top 2: Bạc */}
             {top2 && (
@@ -145,31 +152,63 @@ export const RaceResultModal = ({
 
           </div>
 
-          {/* Banner Thử Thách Câu Hỏi Tiếng Anh (Nếu bật) */}
+          {/* Banner Thử Thách Câu Hỏi Tiếng Anh — CÓ NÚT CẤU HÌNH & CHỌN CÂU HỎI TÙY LÚC (Chuẩn Ảnh 2) */}
           {enableQuestions && top1 && (
-            <div className="p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 border-2 border-purple-200 rounded-3xl flex items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-lg shadow-sm">
-                  📚
+            <div className="p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 border-2 border-purple-200 rounded-3xl space-y-3 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-lg shadow-sm shrink-0">
+                    📚
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-black text-purple-950">
+                      Thử thách câu hỏi trắc nghiệm Tiếng Anh:
+                    </h4>
+                    <p className="text-[11px] text-purple-700 font-bold mt-0.5">
+                      Mời bạn <strong>{top1.name}</strong> trả lời câu hỏi để nhận thêm điểm thưởng!
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-black text-purple-950">
-                    Thử thách câu hỏi trắc nghiệm Tiếng Anh:
-                  </h4>
-                  <p className="text-[11px] text-purple-700 font-bold mt-0.5">
-                    Mời bạn <strong>{top1.name}</strong> trả lời câu hỏi để nhận thêm điểm thưởng!
-                  </p>
+
+                <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+                  {/* Nút Cấu hình / Tùy chọn câu hỏi tùy lúc */}
+                  <button
+                    type="button"
+                    onClick={onOpenQuestionConfig}
+                    className="px-3.5 py-2 bg-white border border-purple-300 hover:bg-purple-100 text-purple-700 rounded-xl text-xs font-black shadow-2xs flex items-center space-x-1.5 transition-all active:scale-95"
+                    title="Cấu hình, thêm mới hoặc chọn câu hỏi khác tùy lúc"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Cài đặt câu hỏi</span>
+                  </button>
+
+                  {/* Nút Mở câu hỏi */}
+                  <button
+                    type="button"
+                    onClick={onOpenQuestionModal}
+                    className="px-4.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all transform hover:scale-105 active:scale-95"
+                  >
+                    <span>Mở câu hỏi</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onOpenQuestionModal}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all transform hover:scale-105 active:scale-95 shrink-0"
-              >
-                <span>Mở câu hỏi</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              {/* Preview câu hỏi đang được chọn */}
+              {selectedQ && (
+                <div className="px-3 py-2 bg-white/80 border border-purple-100 rounded-xl flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span className="truncate pr-2">
+                    💡 <span className="font-black text-purple-700">Câu hỏi đã chuẩn bị:</span> &ldquo;{selectedQ.question}&rdquo;
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onOpenQuestionConfig}
+                    className="text-[11px] font-black text-purple-600 hover:text-purple-800 shrink-0 underline"
+                  >
+                    Đổi câu khác
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -202,9 +241,16 @@ export const RaceResultModal = ({
                     </span>
                   </div>
 
-                  <span className="font-mono text-[11px] text-slate-400 font-bold">
-                    {m.finishTime ? `${m.finishTime.toFixed(2)}s` : 'Chưa hoàn thành'}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    {idx === 0 && (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black">
+                        👑 Quán quân
+                      </span>
+                    )}
+                    <span className="font-mono text-slate-400 font-bold text-[11px]">
+                      {m.finishTime ? `${Number(m.finishTime).toFixed(2)}s` : '--'}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -212,22 +258,22 @@ export const RaceResultModal = ({
 
         </div>
 
-        {/* Footer Buttons */}
-        <div className="p-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80">
+        {/* Footer */}
+        <div className="p-4 sm:p-5 border-t border-slate-100 flex items-center justify-between bg-slate-50/80">
           <button
             type="button"
             onClick={onOpenSettings}
-            className="px-4 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-2xs"
+            className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-2xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-2xs"
           >
             <Settings className="w-3.5 h-3.5" />
             <span>Cài đặt lại</span>
           </button>
 
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-3">
             <button
               type="button"
               onClick={onRestartRace}
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all transform hover:scale-102 active:scale-95"
+              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all transform hover:scale-102 active:scale-95"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Đua lại ngay</span>
@@ -236,7 +282,7 @@ export const RaceResultModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black transition-all"
+              className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black transition-all"
             >
               Đóng
             </button>

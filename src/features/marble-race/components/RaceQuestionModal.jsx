@@ -8,7 +8,8 @@ import {
   ArrowRight,
   Award,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  BookOpen
 } from 'lucide-react';
 import { DEFAULT_QUESTIONS } from '../data/defaultQuestions';
 import { soundFx } from '../../../utils/soundEffects';
@@ -17,16 +18,25 @@ export const RaceQuestionModal = ({
   isOpen,
   onClose,
   winner,
+  customQuestions = [],
+  initialQuestionIndex = 0,
   onRewardStudent
 }) => {
-  const [qIndex, setQIndex] = useState(0);
+  const [qIndex, setQIndex] = useState(initialQuestionIndex);
   const [selectedOption, setSelectedOption] = useState(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [rewardClaimed, setRewardClaimed] = useState(false);
 
   if (!isOpen || !winner) return null;
 
-  const currentQ = DEFAULT_QUESTIONS[qIndex % DEFAULT_QUESTIONS.length];
+  // Ưu tiên dùng câu hỏi Thầy cấu hình, nếu trống thì dùng DEFAULT_QUESTIONS
+  const questionBank = (customQuestions && customQuestions.length > 0)
+    ? customQuestions
+    : DEFAULT_QUESTIONS;
+
+  const currentQ = questionBank[qIndex % questionBank.length];
+  // Hỗ trợ cả 2 kiểu field: 'correct' và 'correctIndex'
+  const correctIdx = currentQ.correct ?? currentQ.correctIndex ?? 0;
 
   const handleSelectOption = (idx) => {
     if (isAnswered) return;
@@ -34,11 +44,11 @@ export const RaceQuestionModal = ({
     setSelectedOption(idx);
     setIsAnswered(true);
 
-    if (idx === currentQ.correctIndex) {
+    if (idx === correctIdx) {
       soundFx.playCorrect();
       confetti({
-        particleCount: 70,
-        spread: 60,
+        particleCount: 80,
+        spread: 70,
         origin: { y: 0.6 }
       });
     } else {
@@ -48,7 +58,7 @@ export const RaceQuestionModal = ({
 
   const handleNextQuestion = () => {
     soundFx.playClick();
-    setQIndex(prev => prev + 1);
+    setQIndex(prev => (prev + 1) % questionBank.length);
     setSelectedOption(null);
     setIsAnswered(false);
     setRewardClaimed(false);
@@ -60,14 +70,14 @@ export const RaceQuestionModal = ({
     onRewardStudent?.(winner.id, 2, 'Trả lời đúng câu hỏi sau Đua Bi');
   };
 
-  const isCorrect = selectedOption === currentQ.correctIndex;
+  const isCorrect = selectedOption === correctIdx;
 
   return (
     <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
       <div className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl border border-indigo-100 flex flex-col overflow-hidden">
         
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white flex items-center justify-between shadow-md">
+        <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white flex items-center justify-between shadow-md">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xl">
               🎓
@@ -77,7 +87,7 @@ export const RaceQuestionModal = ({
                 Câu Hỏi Nhanh — {winner.name}
               </h3>
               <p className="text-xs text-indigo-100 font-bold mt-0.5">
-                Người về nhất thử thách kiểm tra kiến thức
+                Người về nhất thử thách kiểm tra kiến thức Tiếng Anh
               </p>
             </div>
           </div>
@@ -95,7 +105,7 @@ export const RaceQuestionModal = ({
           {/* Huy hiệu số thứ tự */}
           <div className="flex items-center justify-between">
             <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-black">
-              Câu {qIndex + 1}/{DEFAULT_QUESTIONS.length}
+              Câu {(qIndex % questionBank.length) + 1}/{questionBank.length}
             </span>
             <span className="text-xs font-bold text-slate-400">
               Chủ đề: Tiếng Anh THCS
@@ -111,10 +121,10 @@ export const RaceQuestionModal = ({
 
           {/* 4 Phương án */}
           <div className="space-y-2.5">
-            {currentQ.options.map((opt, idx) => {
+            {(currentQ.options || []).map((opt, idx) => {
               const letter = ['A', 'B', 'C', 'D'][idx];
               const isSelected = selectedOption === idx;
-              const isThisCorrect = idx === currentQ.correctIndex;
+              const isThisCorrect = idx === correctIdx;
 
               let btnStyle = 'border-slate-200 hover:border-indigo-400 bg-white text-slate-700';
               if (isAnswered) {
@@ -161,7 +171,7 @@ export const RaceQuestionModal = ({
               <div className="font-black mb-1">
                 {isCorrect ? '🎉 Chính xác!' : '💡 Giải thích chi tiết:'}
               </div>
-              <p>{currentQ.explanation}</p>
+              <p>{currentQ.explanation || (isCorrect ? 'Bạn đã chọn câu trả lời hoàn toàn chính xác!' : 'Hãy chú ý ôn lại ngữ pháp/từ vựng của câu này nhé!')}</p>
             </div>
           )}
         </div>
@@ -174,7 +184,7 @@ export const RaceQuestionModal = ({
             className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-black transition-all flex items-center space-x-1.5"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Câu tiếp theo</span>
+            <span>Đổi câu khác</span>
           </button>
 
           <div className="flex items-center space-x-2">

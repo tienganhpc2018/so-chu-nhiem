@@ -3,7 +3,9 @@ import { RaceSetupView } from './components/RaceSetupView';
 import { MarbleCanvas } from './components/MarbleCanvas';
 import { RaceResultModal } from './components/RaceResultModal';
 import { RaceQuestionModal } from './components/RaceQuestionModal';
+import { QuestionManagerModal } from './components/QuestionManagerModal';
 import { PhotoCropModal } from './components/PhotoCropModal';
+import { DEFAULT_QUESTIONS } from './data/defaultQuestions';
 import { soundFx } from '../../utils/soundEffects';
 
 export const MarbleRaceModal = ({
@@ -18,6 +20,10 @@ export const MarbleRaceModal = ({
   // State Machine: 'SETUP' | 'RACING' | 'RESULT'
   const [gameState, setGameState] = useState('SETUP');
   
+  // Kho câu hỏi trắc nghiệm (Thầy có thể thêm/sửa/xóa tùy lúc)
+  const [questions, setQuestions] = useState(DEFAULT_QUESTIONS);
+  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0);
+
   // Race parameters
   const [raceParams, setRaceParams] = useState({
     trackLength: 'medium',
@@ -36,12 +42,17 @@ export const MarbleRaceModal = ({
   // Modal con
   const [showCropModal, setShowCropModal] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [showQuestionManager, setShowQuestionManager] = useState(false);
 
   if (!isOpen) return null;
 
   // 1. Bắt đầu cuộc đua
   const handleStartRace = (params) => {
     setRaceParams(params);
+    // Nếu trong setup có cấu hình questions riêng
+    if (params.customQuestions && params.customQuestions.length > 0) {
+      setQuestions(params.customQuestions);
+    }
     setGameState('RACING');
   };
 
@@ -82,10 +93,12 @@ export const MarbleRaceModal = ({
           currentClass={currentClass}
           students={students}
           calledStudentIds={calledStudentIds}
+          questions={questions}
           onStartRace={handleStartRace}
           onOpenCropModal={() => setShowCropModal(true)}
           onClose={onClose}
           onUpdateStudentsList={onUpdateStudentsList}
+          onUpdateQuestions={setQuestions}
         />
       )}
 
@@ -100,7 +113,7 @@ export const MarbleRaceModal = ({
         />
       )}
 
-      {/* 3. Màn hình Kết Quả Bảng Vàng Podium */}
+      {/* 3. Màn hình Kết Quả Bảng Vàng Podium (Chuẩn Ảnh 2) */}
       {gameState === 'RESULT' && (
         <RaceResultModal
           isOpen={true}
@@ -109,16 +122,19 @@ export const MarbleRaceModal = ({
           leaderboard={raceResult.leaderboard}
           raceTime={raceResult.raceTime}
           enableQuestions={raceParams.enableQuestions}
+          questions={questions}
+          currentQuestionIndex={selectedQuestionIndex}
           onRestartRace={handleRestartRace}
           onOpenSettings={handleBackToSetup}
           onOpenQuestionModal={() => setShowQuestionModal(true)}
+          onOpenQuestionConfig={() => setShowQuestionManager(true)}
           onRewardStudent={(stId, pts, reason) => {
             soundFx.playCorrect();
           }}
         />
       )}
 
-      {/* 4. Modal Cắt Ảnh Từng Học Sinh Từ Ảnh Tập Thể (Chuẩn Ảnh 2) */}
+      {/* 4. Modal Cắt Ảnh Từng Học Sinh Từ Ảnh Tập Thể (Chuẩn Ảnh 2 ban đầu) */}
       <PhotoCropModal
         isOpen={showCropModal}
         onClose={() => setShowCropModal(false)}
@@ -127,11 +143,27 @@ export const MarbleRaceModal = ({
         onAssignStudentAvatar={handleAssignAvatar}
       />
 
-      {/* 5. Modal Câu Hỏi Trắc Nghiệm Tiếng Anh */}
+      {/* 5. Modal Cấu Hình & Tùy Chọn Câu Hỏi Tùy Lúc */}
+      <QuestionManagerModal
+        isOpen={showQuestionManager}
+        onClose={() => setShowQuestionManager(false)}
+        questions={questions}
+        currentSelectedIndex={selectedQuestionIndex}
+        onSaveQuestions={(newQList) => {
+          setQuestions(newQList);
+        }}
+        onSelectQuestionIndex={(idx) => {
+          setSelectedQuestionIndex(idx);
+        }}
+      />
+
+      {/* 6. Modal Câu Hỏi Trắc Nghiệm Tiếng Anh Khi Hỏi Học Sinh */}
       <RaceQuestionModal
         isOpen={showQuestionModal}
         onClose={() => setShowQuestionModal(false)}
         winner={raceResult.winner}
+        customQuestions={questions}
+        initialQuestionIndex={selectedQuestionIndex}
         onRewardStudent={(stId, pts, reason) => {
           soundFx.playCorrect();
         }}
