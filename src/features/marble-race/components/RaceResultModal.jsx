@@ -53,7 +53,7 @@ export const RaceResultModal = ({
                 KẾT QUẢ CUỘC ĐUA BI — BẢNG VÀNG
               </h3>
               <p className="text-xs text-amber-100 font-bold mt-0.5">
-                Thời gian cuộc đua: <span className="font-mono font-black">{Number(raceTime).toFixed(2)}s</span>
+                Thời gian về đích: <span className="font-mono font-black text-white bg-black/20 px-2 py-0.5 rounded-md">{Number(raceTime).toFixed(2)}s</span>
               </p>
             </div>
           </div>
@@ -69,13 +69,13 @@ export const RaceResultModal = ({
         {/* Nội dung kết quả */}
         <div className="p-6 sm:p-7 space-y-6 overflow-y-auto flex-1">
           
-          {/* BỤC PODIUM VINH DANH TOP 1 - 2 - 3 */}
-          <div className="flex items-end justify-center space-x-3 sm:space-x-5 pt-3 pb-2">
+          {/* BỤC PODIUM VINH DANH TOP 1 - 2 - 3 (HIỂN THỊ ĐẦY ĐỦ HỌ VÀ TÊN 100%) */}
+          <div className="flex items-end justify-center space-x-2 sm:space-x-4 pt-3 pb-2">
             
-            {/* Top 2: Bạc */}
+            {/* Top 2: Bạc (HIỂN THỊ ĐẦY ĐỦ HỌ VÀ TÊN) */}
             {top2 && (
               <div className="flex flex-col items-center">
-                <div className="w-14 h-14 rounded-full border-3 border-slate-300 p-0.5 bg-slate-100 shadow-md overflow-hidden relative mb-2">
+                <div className="w-16 h-16 rounded-full border-3 border-slate-300 p-0.5 bg-slate-100 shadow-md overflow-hidden relative mb-2">
                   {top2.avatar ? (
                     <img src={top2.avatar} alt="top2" className="w-full h-full object-cover rounded-full" />
                   ) : (
@@ -87,20 +87,23 @@ export const RaceResultModal = ({
                     2
                   </span>
                 </div>
-                <div className="text-xs font-black text-slate-800 text-center max-w-[80px] truncate">
-                  {top2.name.split(' ').pop()}
+                
+                {/* Đầy đủ họ tên Top 2 */}
+                <div className="w-28 sm:w-32 text-center text-xs font-black text-slate-800 leading-tight px-1 break-words min-h-[32px] flex items-center justify-center mb-1">
+                  {top2.name}
                 </div>
-                <div className="h-18 w-20 bg-gradient-to-t from-slate-200 to-slate-100 rounded-t-2xl flex items-center justify-center font-black text-slate-500 text-sm mt-1 shadow-inner">
+
+                <div className="h-20 w-24 bg-gradient-to-t from-slate-200 to-slate-100 rounded-t-2xl flex items-center justify-center font-black text-slate-600 text-xs sm:text-sm shadow-inner border-t-2 border-slate-300">
                   🥈 Hạng 2
                 </div>
               </div>
             )}
 
-            {/* Top 1: Vàng (Cao nhất) */}
+            {/* Top 1: Vàng (Cao nhất - HIỂN THỊ ĐẦY ĐỦ HỌ VÀ TÊN) */}
             {top1 && (
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center z-10">
                 <div className="relative mb-2">
-                  <div className="w-18 h-18 rounded-full border-4 border-amber-400 p-0.5 bg-amber-50 shadow-xl overflow-hidden">
+                  <div className="w-20 h-20 rounded-full border-4 border-amber-400 p-0.5 bg-amber-50 shadow-2xl overflow-hidden ring-4 ring-amber-200/60">
                     {top1.avatar ? (
                       <img src={top1.avatar} alt="top1" className="w-full h-full object-cover rounded-full" />
                     ) : (
@@ -109,27 +112,30 @@ export const RaceResultModal = ({
                       </div>
                     )}
                   </div>
-                  <span className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-2xl animate-bounce">
+                  <span className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-2xl animate-bounce">
                     👑
                   </span>
                   <span className="absolute -bottom-1 right-0 w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-white shadow-sm">
                     1
                   </span>
                 </div>
-                <div className="text-sm font-black text-slate-900 text-center max-w-[100px] truncate">
+
+                {/* Đầy đủ họ tên Quán quân Top 1 */}
+                <div className="w-36 sm:w-44 text-center text-sm sm:text-base font-black text-slate-900 leading-tight px-1 break-words min-h-[38px] flex items-center justify-center mb-1">
                   {top1.name}
                 </div>
-                <div className="h-26 w-24 bg-gradient-to-t from-amber-300 to-yellow-200 rounded-t-2xl flex flex-col items-center justify-center font-black text-amber-900 text-sm mt-1 shadow-md border-t-2 border-amber-400">
-                  <Trophy className="w-5 h-5 fill-current text-amber-600 mb-0.5" />
-                  <span>VỀ NHẤT</span>
+
+                <div className="h-28 w-28 sm:w-32 bg-gradient-to-t from-amber-300 to-yellow-200 rounded-t-2xl flex flex-col items-center justify-center font-black text-amber-900 text-sm mt-1 shadow-lg border-t-2 border-amber-400">
+                  <Trophy className="w-6 h-6 fill-current text-amber-600 mb-1" />
+                  <span className="tracking-wide">VỀ NHẤT</span>
                 </div>
               </div>
             )}
 
-            {/* Top 3: Đồng */}
+            {/* Top 3: Đồng (HIỂN THỊ ĐẦY ĐỦ HỌ VÀ TÊN) */}
             {top3 && (
               <div className="flex flex-col items-center">
-                <div className="w-13 h-13 rounded-full border-3 border-amber-700/50 p-0.5 bg-amber-50 shadow-md overflow-hidden relative mb-2">
+                <div className="w-15 h-15 rounded-full border-3 border-amber-700/50 p-0.5 bg-amber-50 shadow-md overflow-hidden relative mb-2">
                   {top3.avatar ? (
                     <img src={top3.avatar} alt="top3" className="w-full h-full object-cover rounded-full" />
                   ) : (
@@ -141,10 +147,13 @@ export const RaceResultModal = ({
                     3
                   </span>
                 </div>
-                <div className="text-xs font-black text-slate-800 text-center max-w-[80px] truncate">
-                  {top3.name.split(' ').pop()}
+
+                {/* Đầy đủ họ tên Top 3 */}
+                <div className="w-28 sm:w-32 text-center text-xs font-black text-slate-800 leading-tight px-1 break-words min-h-[32px] flex items-center justify-center mb-1">
+                  {top3.name}
                 </div>
-                <div className="h-14 w-20 bg-gradient-to-t from-amber-200/80 to-amber-100 rounded-t-2xl flex items-center justify-center font-black text-amber-800 text-sm mt-1 shadow-inner">
+
+                <div className="h-16 w-24 bg-gradient-to-t from-amber-200/80 to-amber-100 rounded-t-2xl flex items-center justify-center font-black text-amber-900 text-xs sm:text-sm shadow-inner border-t-2 border-amber-300">
                   🥉 Hạng 3
                 </div>
               </div>
@@ -152,7 +161,7 @@ export const RaceResultModal = ({
 
           </div>
 
-          {/* Banner Thử Thách Câu Hỏi Tiếng Anh — CÓ NÚT CẤU HÌNH & CHỌN CÂU HỎI TÙY LÚC (Chuẩn Ảnh 2) */}
+          {/* Banner Thử Thách Câu Hỏi Tiếng Anh — CÓ NÚT CẤU HÌNH & CHỌN CÂU HỎI TÙY LÚC */}
           {enableQuestions && top1 && (
             <div className="p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-pink-50 border-2 border-purple-200 rounded-3xl space-y-3 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -165,13 +174,12 @@ export const RaceResultModal = ({
                       Thử thách câu hỏi trắc nghiệm Tiếng Anh:
                     </h4>
                     <p className="text-[11px] text-purple-700 font-bold mt-0.5">
-                      Mời bạn <strong>{top1.name}</strong> trả lời câu hỏi để nhận thêm điểm thưởng!
+                      Mời bạn <strong className="text-purple-900 underline">{top1.name}</strong> trả lời câu hỏi để nhận thêm điểm thưởng!
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
-                  {/* Nút Cấu hình / Tùy chọn câu hỏi tùy lúc */}
                   <button
                     type="button"
                     onClick={onOpenQuestionConfig}
@@ -182,7 +190,6 @@ export const RaceResultModal = ({
                     <span>Cài đặt câu hỏi</span>
                   </button>
 
-                  {/* Nút Mở câu hỏi */}
                   <button
                     type="button"
                     onClick={onOpenQuestionModal}
@@ -194,7 +201,6 @@ export const RaceResultModal = ({
                 </div>
               </div>
 
-              {/* Preview câu hỏi đang được chọn */}
               {selectedQ && (
                 <div className="px-3 py-2 bg-white/80 border border-purple-100 rounded-xl flex items-center justify-between text-xs font-bold text-slate-700">
                   <span className="truncate pr-2">
@@ -212,7 +218,7 @@ export const RaceResultModal = ({
             </div>
           )}
 
-          {/* Toàn bộ bảng xếp hạng (Full Leaderboard) */}
+          {/* Toàn bộ bảng xếp hạng (ĐẦY ĐỦ HỌ VÀ TÊN 100%) */}
           <div className="space-y-2">
             <h4 className="text-xs font-black text-slate-700 uppercase tracking-wide">
               Bảng xếp hạng đầy đủ ({leaderboard.length} học sinh):
@@ -236,6 +242,7 @@ export const RaceResultModal = ({
                         {m.initials}
                       </div>
                     )}
+                    {/* Hiển thị ĐẦY ĐỦ HỌ VÀ TÊN */}
                     <span className="font-extrabold text-slate-800">
                       {m.name}
                     </span>

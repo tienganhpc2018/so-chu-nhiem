@@ -1,7 +1,7 @@
-// Động cơ mô phỏng Vật lý 2D cho Game Đua Bi (Marble Race Pro 2D) — Phiên bản Chuẩn Nâng Cấp Pro
-// 1. DỪNG HẲN đồng hồ và toàn bộ bi ngay khi có học sinh về nhất.
-// 2. Mở rộng khung đường đua (1060px), phễu rộng thoáng, không kẹt bi.
-// 3. Tốc độ cao, trọng lực mạnh, hệ thống LỘI NGƯỢC DÒNG BẤT NGỜ (Nitro Comeback Boost) cho bi phía sau.
+// Động cơ mô phỏng Vật lý 2D cho Game Đua Bi (Marble Race Pro 2D) — Phiên bản Cửa Ải Đa Tầng & Bứt Tốc Về Đích
+// 1. Hệ thống Cửa Ải: Rừng nấm nảy -> Vòng quay cánh quạt -> Cổ nút chai số 1 -> Mê cung thanh trượt -> Cửa chờ -> Cổ nút chai chậm -> Cầu phóng cao tốc về đích.
+// 2. Nhịp điệu Đua Kịch Tính: Bắt đầu nhanh -> Gom đàn bi tại cổ chai 1 -> Chen chúc chậm dần tại cổ chai 2 -> Bứt tốc thần tốc về đích.
+// 3. Đầy đủ Họ và Tên học sinh, dừng hẳn đồng hồ và bi khi cán đích.
 
 export const MARBLE_PALETTES = [
   '#F43F5E', '#EC4899', '#D946EF', '#A855F7', '#8B5CF6',
@@ -12,7 +12,7 @@ export const MARBLE_PALETTES = [
 
 export class MarblePhysicsWorld {
   constructor({
-    width = 1060,         // Khung đường đua mở rộng chuẩn màn hình
+    width = 1060,
     trackLength = 'medium',
     students = [],
     usePhotos = true,
@@ -23,8 +23,8 @@ export class MarblePhysicsWorld {
     this.usePhotos = usePhotos;
     this.timeScale = timeScale;
     this.raceTimer = 0;
-    this.isRaceFinished = false; // ★ Khi có người về nhất: DỪNG HẲN TOÀN BỘ
-    this.finalRaceTime = 0;      // Lưu chính xác thời gian về đích
+    this.isRaceFinished = false;
+    this.finalRaceTime = 0;
     this.finishedCount = 0;
     this.finishList = [];
     this.isStartGateOpen = false;
@@ -32,27 +32,30 @@ export class MarblePhysicsWorld {
     this.waitingGateOpen = false;
     this.waitingGateProgress = 0;
     this.flipperAngle = 0;
-    this.nextNitroTime = 2.0;    // Thời điểm kích hoạt Nitro tiếp theo
+    this.rotatorAngle = 0;
+    this.nextNitroTime = 2.0;
 
-    // Thiết lập độ dài thế giới theo 3 mức
+    // Chiều cao thế giới theo các mức (dài hơn để chứa trọn 7 cửa ải phong phú)
     if (trackLength === 'short') {
-      this.height = 3600;
+      this.height = 4200;
     } else if (trackLength === 'long') {
-      this.height = 6200;
+      this.height = 7200;
     } else {
-      this.height = 4800; // medium (~30s)
+      this.height = 5600; // medium (~30s đầy kịch tính)
     }
 
-    // Các mốc Y cho 7 chặng
     const H = this.height;
+    // Phân tầng 7 Cửa Ải theo trục Y
     this.stageY = {
       start: 0,
-      mushrooms: H * 0.10,
-      pinball: H * 0.28,
-      waitingGate: H * 0.46,
-      flyingBars: H * 0.60,
-      funnel: H * 0.77,
-      finish: H * 0.94
+      mushrooms: H * 0.08,    // Cửa ải 1: Rừng nấm nảy
+      rotators: H * 0.22,     // Cửa ải 2: Vòng quay cánh quạt cối xay gió
+      funnel1: H * 0.35,      // Cửa ải 3: Cổ nút chai gom bi số 1 (xóa rời rạc)
+      slopes: H * 0.47,       // Cửa ải 4: Mê cung ziczac thanh trượt & cần gạt
+      waitingGate: H * 0.63,  // Cửa ải 5: Cửa chặn nhịp đập
+      funnel2: H * 0.76,      // Cửa ải 6: Cổ nút chai chậm - chen lấn nghẹt thở
+      sprintFinish: H * 0.90, // Cửa ải 7: Cầu phóng siêu tốc về đích
+      finish: H * 0.96        // Vạch đích
     };
 
     this.initObstacles();
@@ -61,22 +64,24 @@ export class MarblePhysicsWorld {
 
   initObstacles() {
     this.bumpers = [];
+    this.rotators = [];
+    this.funnels = [];
     this.slopes = [];
     this.flippers = [];
     this.funnelWalls = [];
 
     const W = this.width;
-    const { mushrooms, pinball, waitingGate, flyingBars, funnel, finish } = this.stageY;
+    const { mushrooms, rotators, funnel1, slopes, waitingGate, funnel2, sprintFinish, finish } = this.stageY;
 
-    // Chặng 2: Vùng nấm nảy — phân bố rộng trên toàn khung 1060px
-    const pinRows = this.trackLength === 'short' ? 5 : this.trackLength === 'long' ? 9 : 7;
+    // 1. Cửa ải 1: Rừng nấm nảy dày dặn (Bumper Forest)
+    const pinRows = this.trackLength === 'short' ? 4 : this.trackLength === 'long' ? 7 : 5;
     for (let r = 0; r < pinRows; r++) {
-      const y = mushrooms + 80 + r * 100;
+      const y = mushrooms + 60 + r * 95;
       const count = (r % 2 === 0) ? 8 : 7;
       const spacing = (W - 80) / (count + 1);
       for (let c = 1; c <= count; c++) {
         this.bumpers.push({
-          x: 40 + c * spacing + (Math.sin(r * 2 + c) * 15),
+          x: 40 + c * spacing + (Math.sin(r * 2 + c) * 14),
           y: y,
           radius: 19 + (r % 2 === 0 ? 3 : -2),
           color: (r % 2 === 0) ? '#38BDF8' : '#F43F5E',
@@ -85,67 +90,83 @@ export class MarblePhysicsWorld {
       }
     }
 
-    // Chặng 3: Cần gạt Pinball — quay đều đặn tạo chướng ngại vật sinh động
-    const flipperY = pinball + 120;
-    this.flippers.push(
-      { x: W * 0.20, y: flipperY,        length: 120, angle: 0.35,  speed: 0.06 },
-      { x: W * 0.80, y: flipperY,        length: 120, angle: -0.35, speed: -0.06 },
-      { x: W * 0.50, y: flipperY + 190,  length: 140, angle: 0,     speed: 0.075 },
-      { x: W * 0.32, y: flipperY + 360,  length: 110, angle: 0.25,  speed: -0.055 },
-      { x: W * 0.68, y: flipperY + 360,  length: 110, angle: -0.25, speed: 0.055 }
+    // 2. Cửa ải 2: Cụm Vòng quay cánh quạt cối xay gió (Spinning Wheels)
+    // 3 cối xay gió quay liên tục để hất văng và đảo lộn vị trí các bi
+    const rotY = rotators + 100;
+    this.rotators.push(
+      { x: W * 0.22, y: rotY,       radius: 80, speed: 1.8,  blades: 4, color: '#F59E0B' },
+      { x: W * 0.50, y: rotY + 140, radius: 95, speed: -2.2, blades: 4, color: '#A855F7' },
+      { x: W * 0.78, y: rotY,       radius: 80, speed: 2.0,  blades: 4, color: '#EC4899' }
     );
 
-    // Chặng 5: Thanh bay dốc — độ dốc hợp lý, bi trượt nhanh xuống
-    const slopeCount = this.trackLength === 'short' ? 4 : 5;
+    // 3. Cửa ải 3: Cổ nút chai gom bi số 1 (Mid Bottleneck Funnel)
+    // Gom cả đàn bi tụ lại thành một khối, triệt tiêu khoảng cách rời rạc
+    const f1TopY = funnel1 + 30;
+    const f1NeckY = slopes - 50;
+    const neck1Width = 145; // cổ vừa phải để các bi dồn cục chen lấn
+    this.funnelWalls.push(
+      { x1: 35,                   y1: f1TopY,  x2: (W - neck1Width) / 2, y2: f1NeckY, color: '#06B6D4', thickness: 14 },
+      { x1: (W - neck1Width) / 2, y1: f1NeckY, x2: (W - neck1Width) / 2, y2: f1NeckY + 90, color: '#06B6D4', thickness: 14 },
+      { x1: W - 35,               y1: f1TopY,  x2: (W + neck1Width) / 2, y2: f1NeckY, color: '#06B6D4', thickness: 14 },
+      { x1: (W + neck1Width) / 2, y1: f1NeckY, x2: (W + neck1Width) / 2, y2: f1NeckY + 90, color: '#06B6D4', thickness: 14 }
+    );
+
+    // 4. Cửa ải 4: Mê cung ziczac thanh trượt kép & cần gạt pinball
+    const slopeBaseY = slopes + 60;
+    const slopeCount = 5;
     for (let i = 0; i < slopeCount; i++) {
-      const sy = flyingBars + 70 + i * 160;
+      const sy = slopeBaseY + i * 140;
       if (i % 2 === 0) {
         this.slopes.push({
-          x1: 45,
-          y1: sy,
-          x2: W * 0.82,
-          y2: sy + 115,
-          color: '#38BDF8',
-          thickness: 14,
-          dirX: 1,
-          dirY: 0.3
+          x1: 45, y1: sy, x2: W * 0.82, y2: sy + 105,
+          color: '#38BDF8', thickness: 14, dirX: 1, dirY: 0.35
         });
       } else {
         this.slopes.push({
-          x1: W - 45,
-          y1: sy,
-          x2: W * 0.18,
-          y2: sy + 115,
-          color: '#06B6D4',
-          thickness: 14,
-          dirX: -1,
-          dirY: 0.3
+          x1: W - 45, y1: sy, x2: W * 0.18, y2: sy + 105,
+          color: '#F43F5E', thickness: 14, dirX: -1, dirY: 0.35
         });
       }
     }
 
-    // Chặng 6: Phễu cổ chai — mở rộng cổ phễu 160px để không kẹt bi lâu, dốc trơn
-    const funnelTopY  = funnel + 30;
-    const funnelNeckY = finish - 130;
-    const neckWidth   = 160; // Tăng từ 90/110 → 160px
-    this.funnelWalls = [
-      { x1: 35,                  y1: funnelTopY,  x2: (W - neckWidth) / 2, y2: funnelNeckY, color: '#EC4899', thickness: 12 },
-      { x1: (W - neckWidth) / 2, y1: funnelNeckY, x2: (W - neckWidth) / 2, y2: finish,      color: '#EC4899', thickness: 12 },
-      { x1: W - 35,              y1: funnelTopY,  x2: (W + neckWidth) / 2, y2: funnelNeckY, color: '#EC4899', thickness: 12 },
-      { x1: (W + neckWidth) / 2, y1: funnelNeckY, x2: (W + neckWidth) / 2, y2: finish,      color: '#EC4899', thickness: 12 }
-    ];
+    // Các cần gạt Pinball đan xen
+    this.flippers.push(
+      { x: W * 0.35, y: slopeBaseY + 220, length: 110, angle: 0.3,  speed: 0.06 },
+      { x: W * 0.65, y: slopeBaseY + 440, length: 110, angle: -0.3, speed: -0.06 }
+    );
+
+    // 5. Cửa ải 6: Cổ nút chai số 2 - CHẬM VÀ NGHẸT THỞ (Slow-Mo Bottleneck)
+    // Miệng phễu thoai thoải kéo dài, cổ hẹp 130px khiến bi phải chen lấn, tốc độ chậm lại
+    const f2TopY = funnel2 + 20;
+    const f2NeckY = sprintFinish - 70;
+    const neck2Width = 130;
+    this.funnelWalls.push(
+      { x1: 35,                   y1: f2TopY,  x2: (W - neck2Width) / 2, y2: f2NeckY, color: '#EC4899', thickness: 14 },
+      { x1: (W - neck2Width) / 2, y1: f2NeckY, x2: (W - neck2Width) / 2, y2: sprintFinish, color: '#EC4899', thickness: 14 },
+      { x1: W - 35,               y1: f2TopY,  x2: (W + neck2Width) / 2, y2: f2NeckY, color: '#EC4899', thickness: 14 },
+      { x1: (W + neck2Width) / 2, y1: f2NeckY, x2: (W + neck2Width) / 2, y2: sprintFinish, color: '#EC4899', thickness: 14 }
+    );
+
+    // 6. Cửa ải 7: Máng dốc phóng siêu tốc về đích (Sprint Ramp)
+    // Máng dẫn thẳng từ cổ chai số 2 lao thẳng tới đích
+    this.sprintRamp = {
+      topY: sprintFinish,
+      bottomY: finish,
+      leftX: (W - neck2Width) / 2,
+      rightX: (W + neck2Width) / 2
+    };
   }
 
   initMarbles(students = []) {
     this.marbles = [];
     const count = students.length || 30;
-    const cols = Math.min(11, Math.ceil(Math.sqrt(count * 2.2)));
+    const cols = Math.min(10, Math.ceil(Math.sqrt(count * 2.2)));
 
     students.forEach((st, idx) => {
       const col = idx % cols;
       const row = Math.floor(idx / cols);
       const startX = (this.width / 2) - ((cols - 1) * 42 / 2) + col * 42 + (Math.random() - 0.5) * 10;
-      const startY = 80 + row * 46 + (Math.random() - 0.5) * 8;
+      const startY = 75 + row * 46 + (Math.random() - 0.5) * 8;
 
       const initials = st.full_name
         ? st.full_name.trim().split(' ').pop().substring(0, 2).toUpperCase()
@@ -168,7 +189,6 @@ export class MarblePhysicsWorld {
         rank: null,
         stuckTimer: 0,
         lastY: startY,
-        boostCooldown: 0,
         isBoosting: false,
         boostTimer: 0
       });
@@ -180,81 +200,88 @@ export class MarblePhysicsWorld {
   }
 
   update(deltaTime = 1 / 60) {
-    // ★ NẾU ĐÃ CÓ NGƯỜI VỀ NHẤT: DỪNG HẲN TOÀN BỘ MỌI THỨ!
-    if (this.isRaceFinished) {
-      return;
-    }
+    if (this.isRaceFinished) return;
 
     const dt = Math.min(deltaTime, 0.05) * this.timeScale;
     this.raceTimer += dt;
     this.flipperAngle += dt * 4.2;
+    this.rotatorAngle += dt * 3.0;
 
-    // Mở cổng xuất phát
+    // 1. Mở Cổng xuất phát
     if (this.isStartGateOpen && this.startGateProgress < 1) {
       this.startGateProgress = Math.min(1, this.startGateProgress + dt * 2.2);
     }
 
-    // Mở cửa chờ khi bi dẫn đầu gần tới
+    // 2. Mở Cửa chờ khi bi dẫn đầu gần tới
     const leaderY = Math.max(...this.marbles.map(m => m.y));
-    if (!this.waitingGateOpen && (leaderY >= this.stageY.waitingGate - 50 || this.raceTimer > 9)) {
+    if (!this.waitingGateOpen && (leaderY >= this.stageY.waitingGate - 50 || this.raceTimer > 12)) {
       this.waitingGateOpen = true;
     }
     if (this.waitingGateOpen && this.waitingGateProgress < 1) {
-      this.waitingGateProgress = Math.min(1, this.waitingGateProgress + dt * 1.8);
+      this.waitingGateProgress = Math.min(1, this.waitingGateProgress + dt * 1.6);
     }
 
-    // ★ Trọng lực tăng mạnh: 680 px/s² (giúp bi lăn nhanh, dứt khoát)
-    const gravity = 680;
-
-    // ★ HỆ THỐNG "LỘI NGƯỢC DÒNG BẤT NGỜ" (Comeback Nitro Mechanics)
-    // Cứ mỗi 1.5 - 2.5 giây, chọn 1-2 viên bi ở nửa sau đoàn đua để kích hoạt Nitro
+    // 3. Cơ chế Nitro Boost định kỳ cho nhóm phía sau (Comeback)
     if (this.raceTimer >= this.nextNitroTime && this.isStartGateOpen) {
       const unfinished = this.marbles.filter(m => !m.finished);
       if (unfinished.length >= 4) {
-        // Sắp xếp theo vị trí Y (cao = gần đích hơn)
         const sorted = [...unfinished].sort((a, b) => b.y - a.y);
-        // Chọn từ nhóm 40% cuối đoàn đua
-        const backGroupStart = Math.floor(sorted.length * 0.45);
+        const backGroupStart = Math.floor(sorted.length * 0.40);
         const candidates = sorted.slice(backGroupStart);
 
         if (candidates.length > 0) {
-          // Chọn ngẫu nhiên 1 viên bi trong nhóm sau
-          const luckyMarble = candidates[Math.floor(Math.random() * candidates.length)];
-          luckyMarble.isBoosting = true;
-          luckyMarble.boostTimer = 0.9; // Boost trong 0.9 giây
-          luckyMarble.vy += 420;        // Lực phóng cực mạnh về phía trước
-          luckyMarble.vx += (Math.random() - 0.5) * 160; // Lạng lách vượt lên
+          const lucky = candidates[Math.floor(Math.random() * candidates.length)];
+          lucky.isBoosting = true;
+          lucky.boostTimer = 0.85;
+          lucky.vy += 430;
+          lucky.vx += (Math.random() - 0.5) * 160;
         }
       }
-      this.nextNitroTime = this.raceTimer + 1.6 + Math.random() * 1.4;
+      this.nextNitroTime = this.raceTimer + 1.8 + Math.random() * 1.5;
     }
 
+    // 4. Cập nhật chuyển động từng viên bi
     for (let i = 0; i < this.marbles.length; i++) {
       const m = this.marbles[i];
       if (m.finished) continue;
 
       if (!this.isStartGateOpen) {
-        m.y = Math.min(m.y, this.stageY.start + 270);
+        m.y = Math.min(m.y, this.stageY.start + 260);
         continue;
       }
 
-      // Xử lý hiệu ứng Nitro đang diễn ra
+      // Xác định gia tốc theo từng chặng (Rhythm: Chậm ở phễu 2, Siêu nhanh ở máng về đích)
+      let currentGravity = 640;
+      let frictionX = 0.993;
+      let frictionY = 0.997;
+
+      // Đoạn Cổ nút chai số 2: TỐC ĐỘ CHẬM LẠI, CHEN LẤN HỒI HỘP
+      if (m.y >= this.stageY.funnel2 && m.y < this.stageY.sprintFinish) {
+        currentGravity = 380; // Giảm trọng lực để bi trôi chậm rãi
+        frictionX = 0.975;
+        frictionY = 0.985;
+      }
+      // Đoạn Máng phóng về đích: SIÊU TỐC ĐỘ
+      else if (m.y >= this.stageY.sprintFinish) {
+        currentGravity = 980; // Phóng như tên lửa về vạch đích
+        m.vy += 280 * dt;
+      }
+
+      // Nitro boost
       if (m.isBoosting) {
         m.boostTimer -= dt;
-        m.vy += gravity * 0.5 * dt; // Gia tốc thêm trong khi boost
-        if (m.boostTimer <= 0) {
-          m.isBoosting = false;
-        }
+        m.vy += currentGravity * 0.6 * dt;
+        if (m.boostTimer <= 0) m.isBoosting = false;
       } else {
-        m.vy += gravity * dt;
-        m.vx *= 0.994;
-        m.vy *= 0.998;
+        m.vy += currentGravity * dt;
+        m.vx *= frictionX;
+        m.vy *= frictionY;
       }
 
       m.x += m.vx * dt;
       m.y += m.vy * dt;
 
-      // Va chạm tường biên (khung rộng 1060px)
+      // Tường biên trái / phải
       const leftBound  = 35 + m.radius;
       const rightBound = this.width - 35 - m.radius;
       if (m.x < leftBound) {
@@ -265,18 +292,18 @@ export class MarblePhysicsWorld {
         m.vx = -Math.abs(m.vx) * 0.7 - 25;
       }
 
-      // Va chạm Cổng xuất phát
+      // Cổng xuất phát
       if (this.startGateProgress < 1) {
-        const gateY = this.stageY.start + 290;
+        const gateY = this.stageY.start + 280;
         if (m.y + m.radius > gateY && m.y - m.radius < gateY + 15) {
           m.y = gateY - m.radius;
           m.vy = -Math.abs(m.vy) * 0.2;
         }
       }
 
-      // Va chạm Cửa chờ
+      // Cửa chờ
       if (this.waitingGateProgress < 0.9) {
-        const waitGateY = this.stageY.waitingGate + 80;
+        const waitGateY = this.stageY.waitingGate + 70;
         if (m.y + m.radius > waitGateY && m.y - m.radius < waitGateY + 20) {
           m.y = waitGateY - m.radius;
           m.vy = -Math.abs(m.vy) * 0.3;
@@ -284,7 +311,7 @@ export class MarblePhysicsWorld {
         }
       }
 
-      // Va chạm Nấm nảy — nẩy tưng bừng tạo âm vang
+      // Va chạm Nấm nảy
       for (const b of this.bumpers) {
         const dx = m.x - b.x;
         const dy = m.y - b.y;
@@ -304,17 +331,22 @@ export class MarblePhysicsWorld {
         }
       }
 
-      // Va chạm Thanh bay dốc — trượt nhanh xuống dốc, không bị kẹt
+      // Va chạm Cụm Vòng quay cánh quạt cối xay gió
+      for (const rot of this.rotators) {
+        this.checkRotatorCollision(m, rot);
+      }
+
+      // Va chạm Mê cung thanh dốc
       for (const s of this.slopes) {
         this.checkSlopeCollision(m, s);
       }
 
-      // Va chạm Phễu cổ chai
+      // Va chạm Các phễu cổ nút chai (Funnel 1 & Funnel 2)
       for (const w of this.funnelWalls) {
-        this.checkLineCollision(m, w.x1, w.y1, w.x2, w.y2, w.thickness || 12);
+        this.checkLineCollision(m, w.x1, w.y1, w.x2, w.y2, w.thickness || 14);
       }
 
-      // ★ KIỂM TRA CÁN ĐÍCH: DỪNG HẲN KHI CÓ NGƯỜI VỀ NHẤT
+      // ★ CÁN ĐÍCH: DỪNG HẲN TOÀN BỘ KHI CÓ HỌC SINH ĐẦU TIÊN VỀ NHẤT
       if (m.y >= this.stageY.finish) {
         m.finished = true;
         this.finishedCount++;
@@ -324,24 +356,23 @@ export class MarblePhysicsWorld {
         m.vx = 0;
         m.vy = 0;
 
-        // ★ DỪNG HẲN TOÀN BỘ ĐỒNG HỒ VÀ CÁC VIÊN BI!
+        // Dừng đồng hồ & đóng băng toàn bộ bi
         this.isRaceFinished = true;
         this.finalRaceTime = this.raceTimer;
 
-        // Dừng tất cả các viên bi khác tại vị trí hiện tại
         for (const other of this.marbles) {
           other.vx = 0;
           other.vy = 0;
         }
-        break; // Thoát vòng lặp ngay
+        break;
       }
 
-      // Cơ chế chống kẹt thông minh
-      if (Math.abs(m.y - m.lastY) < 1.2) {
+      // Chống kẹt
+      if (Math.abs(m.y - m.lastY) < 1.0) {
         m.stuckTimer += dt;
         if (m.stuckTimer > 0.6) {
           m.vx += (Math.random() - 0.5) * 260;
-          m.vy += 160;
+          m.vy += 170;
           m.stuckTimer = 0;
         }
       } else {
@@ -350,7 +381,7 @@ export class MarblePhysicsWorld {
       m.lastY = m.y;
     }
 
-    // Va chạm bi-bi nếu chưa kết thúc
+    // Va chạm giữa các viên bi (chen chúc xô đẩy nhau)
     if (!this.isRaceFinished) {
       for (let i = 0; i < this.marbles.length; i++) {
         for (let j = i + 1; j < this.marbles.length; j++) {
@@ -385,16 +416,36 @@ export class MarblePhysicsWorld {
         }
       }
 
-      // Giảm hiệu ứng pulse bumpers
       for (const b of this.bumpers) {
         if (b.pulse > 0) b.pulse = Math.max(0, b.pulse - dt * 3);
       }
     }
   }
 
-  // Va chạm với thanh dốc có gia tốc trượt xuống (downhill slide)
+  // Va chạm với Vòng quay cối xay gió
+  checkRotatorCollision(m, rot) {
+    const dx = m.x - rot.x;
+    const dy = m.y - rot.y;
+    const dist = Math.hypot(dx, dy);
+
+    // Nếu bi nằm trong bán kính hoạt động của cánh quạt
+    if (dist < rot.radius + m.radius && dist > 10) {
+      const angle = this.rotatorAngle * rot.speed;
+      const numBlades = rot.blades || 4;
+
+      for (let b = 0; b < numBlades; b++) {
+        const bladeAngle = angle + (b * (Math.PI * 2 / numBlades));
+        const bx = rot.x + Math.cos(bladeAngle) * rot.radius;
+        const by = rot.y + Math.sin(bladeAngle) * rot.radius;
+
+        // Va chạm đoạn thẳng từ tâm rot tới đầu cánh quạt
+        this.checkLineCollision(m, rot.x, rot.y, bx, by, 12);
+      }
+    }
+  }
+
   checkSlopeCollision(m, s) {
-    const { x1, y1, x2, y2, thickness, dirX = 1, dirY = 0.3 } = s;
+    const { x1, y1, x2, y2, thickness, dirX = 1, dirY = 0.35 } = s;
     const dx = x2 - x1;
     const dy = y2 - y1;
     const lenSq = dx * dx + dy * dy;
@@ -418,17 +469,13 @@ export class MarblePhysicsWorld {
 
       const dot = m.vx * nx + m.vy * ny;
       if (dot < 0) {
-        // Nảy nhẹ ra khỏi mặt thanh
-        m.vx = (m.vx - 1.6 * dot * nx) * 0.88;
-        m.vy = (m.vy - 1.6 * dot * ny) * 0.88;
-        // ★ Bổ sung lực trượt dọc theo chiều dốc của thanh để bi lướt cực nhanh
-        m.vx += dirX * 180;
-        m.vy += dirY * 120;
+        m.vx = (m.vx - 1.6 * dot * nx) * 0.88 + dirX * 190;
+        m.vy = (m.vy - 1.6 * dot * ny) * 0.88 + dirY * 130;
       }
     }
   }
 
-  checkLineCollision(m, x1, y1, x2, y2, thickness = 10) {
+  checkLineCollision(m, x1, y1, x2, y2, thickness = 12) {
     const dx = x2 - x1;
     const dy = y2 - y1;
     const lenSq = dx * dx + dy * dy;

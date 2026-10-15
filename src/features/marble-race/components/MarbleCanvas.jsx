@@ -1,7 +1,6 @@
-// Màn hình Đua Bi Trực Tiếp (Marble Racing View) — Phiên bản Chuẩn Nâng Cấp Pro
-// 1. DỪNG HẲN đồng hồ và toàn bộ bi ngay khi có học sinh về nhất.
-// 2. Khung canvas mở rộng 1060px cực nét, hiển thị thoáng và bao quát máy chiếu.
-// 3. Hiệu ứng Nitro Boost rực rỡ cho bi vượt mặt lội ngược dòng.
+// Màn hình Đua Bi Trực Tiếp (Marble Racing View) — Phiên bản Cửa Ải Đa Tầng & Đầy Đủ Họ Tên
+// Vẽ chi tiết: Vòng quay cối xay gió, 2 Cổ nút chai gom bi, Máng phóng cao tốc, Cần gạt & nấm nảy.
+// Hiển thị đầy đủ họ tên học sinh, đóng băng hoàn toàn khi có người về nhất.
 
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
@@ -41,15 +40,14 @@ export const MarbleCanvas = ({
   const [isPaused, setIsPaused] = useState(false);
 
   // Điều khiển UI
-  const [cameraMode, setCameraMode] = useState('leader'); // 'leader' | 'top10'
+  const [cameraMode, setCameraMode] = useState('leader');
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isMusicOn, setIsMusicOn] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Khởi tạo thế giới vật lý với bề rộng mở rộng 1060px
+  // Khởi tạo thế giới vật lý với bề rộng 1060px
   useEffect(() => {
-    // Tải trước avatar học sinh
     participants.forEach((p) => {
       if (p.avatar && !imageCacheRef.current.has(p.avatar)) {
         const img = new Image();
@@ -59,7 +57,7 @@ export const MarbleCanvas = ({
     });
 
     const world = new MarblePhysicsWorld({
-      width: 1060, // Khung rộng 1060px thoáng đẹp
+      width: 1060,
       trackLength,
       students: participants,
       usePhotos: useStudentPhotos,
@@ -67,9 +65,8 @@ export const MarbleCanvas = ({
     });
 
     worldRef.current = world;
-    setLiveLeaderboard(world.getLiveLeaderboard().slice(0, 22));
+    setLiveLeaderboard(world.getLiveLeaderboard().slice(0, 30));
 
-    // Đếm ngược 1 giây rồi mở cổng xuất phát
     const startTimer = setTimeout(() => {
       world.openStartGate();
       soundFx.playClick();
@@ -81,7 +78,7 @@ export const MarbleCanvas = ({
     };
   }, [trackLength, useStudentPhotos, participants]);
 
-  // Cập nhật tốc độ mô phỏng
+  // Cập nhật tốc độ
   useEffect(() => {
     if (worldRef.current) {
       worldRef.current.timeScale = speedMultiplier;
@@ -101,25 +98,24 @@ export const MarbleCanvas = ({
 
       const world = worldRef.current;
       if (world && !isPaused) {
-        // Nếu chưa kết thúc -> tiếp tục cập nhật vật lý
         if (!world.isRaceFinished) {
           world.update(deltaTime);
           setRaceTime(world.raceTimer);
           setFinishedCount(world.finishedCount);
-          setLiveLeaderboard(world.getLiveLeaderboard().slice(0, 22));
+          setLiveLeaderboard(world.getLiveLeaderboard().slice(0, 30));
         }
 
-        // ★ KHI CÓ HỌC SINH VỀ NHẤT: DỪNG HẲN MỌI THỨ NGAY LẬP TỨC
+        // ★ DỪNG HẲN TOÀN BỘ KHI CÓ HỌC SINH VỀ NHẤT
         if (world.isRaceFinished || world.finishList.length > 0) {
           if (!firstWinner && world.finishList.length > 0) {
             const winner = world.finishList[0];
             setFirstWinner(winner);
             setRaceTime(world.finalRaceTime || winner.finishTime || world.raceTimer);
             setFinishedCount(1);
-            setIsPaused(true); // ★ DỪNG HẲN SIMULATION LOOP
+            setIsPaused(true);
             soundFx.playCorrect();
             confetti({
-              particleCount: 110,
+              particleCount: 120,
               spread: 90,
               origin: { y: 0.82 }
             });
@@ -127,9 +123,7 @@ export const MarbleCanvas = ({
         }
       }
 
-      // Xóa và vẽ khung hình (vẫn vẽ để giữ nguyên hiện trường đóng băng)
       drawFrame(ctx, canvas, world);
-
       animFrameRef.current = requestAnimationFrame(render);
     };
 
@@ -147,13 +141,12 @@ export const MarbleCanvas = ({
     const W = canvas.width;
     const H = canvas.height;
 
-    // Tính toán vị trí Camera cuộn theo trục Y
+    // Camera bám theo bi dẫn đầu
     let targetCameraY = 0;
     if (cameraMode === 'leader') {
       const leaderY = world.getLeaderY();
       targetCameraY = Math.max(0, Math.min(world.height - H, leaderY - H * 0.42));
     } else {
-      // Top 10 camera
       const top10 = world.marbles.filter(m => !m.finished).slice(0, 10);
       const avgY = top10.length > 0 ? top10.reduce((s, m) => s + m.y, 0) / top10.length : world.height * 0.5;
       targetCameraY = Math.max(0, Math.min(world.height - H, avgY - H * 0.45));
@@ -162,14 +155,12 @@ export const MarbleCanvas = ({
     ctx.save();
     ctx.clearRect(0, 0, W, H);
 
-    // Nền đường đua tối sang trọng (#0A0E2A)
     ctx.fillStyle = '#090D26';
     ctx.fillRect(0, 0, W, H);
 
-    // Di chuyển canvas theo Camera Y
     ctx.translate(0, -targetCameraY);
 
-    // 1. Vẽ hai đường viền biên phát sáng màu xanh Neon Cyberpunk
+    // 1. Hai đường viền biên phát sáng màu Neon Cyberpunk
     ctx.strokeStyle = '#0284C7';
     ctx.lineWidth = 6;
     ctx.shadowColor = '#00F0FF';
@@ -186,13 +177,12 @@ export const MarbleCanvas = ({
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // 2. Vẽ nhãn tên 7 chặng phát sáng nhẹ
+    // 2. Nhãn tên các cửa ải
     drawStageLabels(ctx, world);
 
-    // 3. Vẽ Chặng 1: Cổng xuất phát
+    // 3. Cửa ải 1: Cổng xuất phát & Rừng nấm nảy
     drawStartGate(ctx, world);
 
-    // 4. Vẽ Chặng 2: Nấm nảy (Pinball Bumpers)
     for (const b of world.bumpers) {
       ctx.save();
       ctx.beginPath();
@@ -202,7 +192,6 @@ export const MarbleCanvas = ({
       ctx.shadowBlur = 12 + b.pulse * 15;
       ctx.fill();
 
-      // Tâm nấm nảy màu trắng
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.radius * 0.45, 0, Math.PI * 2);
       ctx.fillStyle = '#FFFFFF';
@@ -210,7 +199,26 @@ export const MarbleCanvas = ({
       ctx.restore();
     }
 
-    // 5. Vẽ Chặng 3: Cần gạt Pinball
+    // 4. Cửa ải 2: Cụm Vòng quay cánh quạt cối xay gió
+    for (const rot of world.rotators) {
+      drawRotator(ctx, world, rot);
+    }
+
+    // 5. Cửa ải 4: Mê cung thanh trượt & Cần gạt
+    for (const s of world.slopes) {
+      ctx.save();
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = s.thickness;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = s.color;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.moveTo(s.x1, s.y1);
+      ctx.lineTo(s.x2, s.y2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     for (const f of world.flippers) {
       ctx.save();
       ctx.translate(f.x, f.y);
@@ -229,37 +237,14 @@ export const MarbleCanvas = ({
       ctx.restore();
     }
 
-    // 6. Vẽ Chặng 4: Cửa chờ (Waiting Gate)
+    // 6. Cửa ải 5: Cửa chờ
     drawWaitingGate(ctx, world);
 
-    // 7. Vẽ Chặng 5: Thanh bay dốc
-    for (const s of world.slopes) {
-      ctx.save();
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = s.thickness;
-      ctx.lineCap = 'round';
-      ctx.shadowColor = s.color;
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.moveTo(s.x1, s.y1);
-      ctx.lineTo(s.x2, s.y2);
-      ctx.stroke();
-
-      // Vạch mũi tên trượt xuôi dốc
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(s.x1, s.y1);
-      ctx.lineTo(s.x2, s.y2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // 8. Vẽ Chặng 6: Phễu cổ chai
+    // 7. Cửa ải 3 & 6: Các phễu cổ nút chai
     for (const w of world.funnelWalls) {
       ctx.save();
       ctx.strokeStyle = w.color;
-      ctx.lineWidth = w.thickness || 12;
+      ctx.lineWidth = w.thickness || 14;
       ctx.lineCap = 'round';
       ctx.shadowColor = w.color;
       ctx.shadowBlur = 14;
@@ -270,17 +255,20 @@ export const MarbleCanvas = ({
       ctx.restore();
     }
 
-    // 9. Vẽ Chặng 7: Vạch đích ca-rô
+    // 8. Cửa ải 7: Máng phóng cao tốc về đích
+    drawSprintRamp(ctx, world);
+
+    // 9. Vạch đích
     drawFinishLine(ctx, world.width, world.stageY.finish);
 
-    // 10. Vẽ tất cả các viên bi với ảnh & tên bay theo
+    // 10. Vẽ các viên bi
     for (const m of world.marbles) {
       drawMarble(ctx, m);
     }
 
     ctx.restore();
 
-    // 11. Vẽ thông báo đếm ngược xuất phát trên đỉnh
+    // Chữ đếm ngược Xuất phát
     if (world.raceTimer < 1.0) {
       ctx.save();
       ctx.font = '900 68px system-ui, -apple-system, sans-serif';
@@ -297,25 +285,105 @@ export const MarbleCanvas = ({
     }
   };
 
-  // Vẽ chữ mờ tên các chặng
+  // Vẽ Vòng quay cối xay gió
+  const drawRotator = (ctx, world, rot) => {
+    ctx.save();
+    ctx.translate(rot.x, rot.y);
+    const angle = world.rotatorAngle * rot.speed;
+    ctx.rotate(angle);
+
+    // Vòng tròn trung tâm
+    ctx.beginPath();
+    ctx.arc(0, 0, 18, 0, Math.PI * 2);
+    ctx.fillStyle = rot.color;
+    ctx.shadowColor = rot.color;
+    ctx.shadowBlur = 14;
+    ctx.fill();
+
+    // Các cánh quạt quay
+    const numBlades = rot.blades || 4;
+    for (let b = 0; b < numBlades; b++) {
+      ctx.save();
+      ctx.rotate(b * (Math.PI * 2 / numBlades));
+
+      // Cánh quạt
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowColor = rot.color;
+      ctx.shadowBlur = 10;
+      ctx.fillRect(-6, -6, rot.radius, 12);
+
+      // Điểm chốt ở đầu cánh
+      ctx.beginPath();
+      ctx.arc(rot.radius, 0, 9, 0, Math.PI * 2);
+      ctx.fillStyle = rot.color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.restore();
+  };
+
+  // Vẽ Máng phóng siêu tốc
+  const drawSprintRamp = (ctx, world) => {
+    if (!world.sprintRamp) return;
+    const { topY, bottomY, leftX, rightX } = world.sprintRamp;
+
+    ctx.save();
+    // Nền máng phóng phát sáng vàng cam rực rỡ
+    const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
+    grad.addColorStop(0, 'rgba(245, 158, 11, 0.15)');
+    grad.addColorStop(1, 'rgba(239, 68, 68, 0.35)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(leftX, topY, rightX - leftX, bottomY - topY);
+
+    // Hai viền máng phóng
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 4;
+    ctx.shadowColor = '#F59E0B';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.moveTo(leftX, topY);
+    ctx.lineTo(leftX, bottomY);
+    ctx.moveTo(rightX, topY);
+    ctx.lineTo(rightX, bottomY);
+    ctx.stroke();
+
+    // Mũi tên gia tốc hướng xuống vạch đích
+    ctx.font = '900 18px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.textAlign = 'center';
+    const midX = (leftX + rightX) / 2;
+    for (let y = topY + 40; y < bottomY - 30; y += 70) {
+      ctx.fillText('▼ ▼ BỨT TỐC VỀ ĐÍCH ▼ ▼', midX, y);
+    }
+    ctx.restore();
+  };
+
+  // Vẽ nhãn tên các cửa ải
   const drawStageLabels = (ctx, world) => {
     ctx.save();
-    ctx.font = '900 24px system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.font = '900 22px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.09)';
     ctx.textAlign = 'center';
 
-    ctx.fillText('VÙNG NẤM NẢY', world.width / 2, world.stageY.mushrooms + 30);
-    ctx.fillText('CẦN GẠT PINBALL', world.width / 2, world.stageY.pinball + 30);
-    ctx.fillText('CỬA CHỜ', world.width / 2, world.stageY.waitingGate + 30);
-    ctx.fillText('THANH BAY DỐC', world.width / 2, world.stageY.flyingBars + 30);
-    ctx.fillText('PHỄU CỔ CHAI', world.width / 2, world.stageY.funnel + 30);
+    ctx.fillText('CỬA ẢI 1: RỪNG NẤM NẢY', world.width / 2, world.stageY.mushrooms + 25);
+    ctx.fillText('CỬA ẢI 2: VÒNG QUAY CỐI XAY GIÓ', world.width / 2, world.stageY.rotators + 25);
+    ctx.fillText('CỬA ẢI 3: CỔ NÚT CHAI GOM BI', world.width / 2, world.stageY.funnel1 + 20);
+    ctx.fillText('CỬA ẢI 4: MÊ CUNG THANH TRƯỢT', world.width / 2, world.stageY.slopes + 25);
+    ctx.fillText('CỬA ẢI 5: CỬA CHẶN NHỊP', world.width / 2, world.stageY.waitingGate + 25);
+    ctx.fillText('CỬA ẢI 6: CỔ NÚT CHAI CHẬM', world.width / 2, world.stageY.funnel2 + 20);
+    ctx.fillText('CỬA ẢI 7: CẦU PHÓNG VỀ ĐÍCH', world.width / 2, world.stageY.sprintFinish - 15);
     ctx.restore();
   };
 
   // Vẽ Cổng xuất phát
   const drawStartGate = (ctx, world) => {
     ctx.save();
-    const gateY = world.stageY.start + 290;
+    const gateY = world.stageY.start + 280;
     const progress = world.startGateProgress;
 
     if (progress < 1) {
@@ -327,13 +395,11 @@ export const MarbleCanvas = ({
       const midX = world.width / 2;
       const openOffset = (world.width / 2 - 40) * progress;
 
-      // Cánh cổng trái
       ctx.beginPath();
       ctx.moveTo(35, gateY);
       ctx.lineTo(midX - openOffset, gateY);
       ctx.stroke();
 
-      // Cánh cổng phải
       ctx.beginPath();
       ctx.moveTo(world.width - 35, gateY);
       ctx.lineTo(midX + openOffset, gateY);
@@ -345,7 +411,7 @@ export const MarbleCanvas = ({
   // Vẽ Cửa chờ
   const drawWaitingGate = (ctx, world) => {
     ctx.save();
-    const gateY = world.stageY.waitingGate + 80;
+    const gateY = world.stageY.waitingGate + 70;
     const progress = world.waitingGateProgress;
 
     if (progress < 1) {
@@ -370,7 +436,7 @@ export const MarbleCanvas = ({
     ctx.restore();
   };
 
-  // Vẽ Vạch đích ca-rô
+  // Vẽ Vạch đích
   const drawFinishLine = (ctx, trackW, y) => {
     ctx.save();
     const squareSize = 16;
@@ -385,7 +451,6 @@ export const MarbleCanvas = ({
       }
     }
 
-    // Chữ "🏁 ĐÍCH"
     ctx.font = '900 22px system-ui, sans-serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.shadowColor = '#FBBF24';
@@ -395,14 +460,12 @@ export const MarbleCanvas = ({
     ctx.restore();
   };
 
-  // Vẽ viên bi tròn với ảnh học sinh & hiệu ứng Nitro Boost (Chuẩn Ảnh 4 & 5)
+  // Vẽ viên bi với ảnh & tên bay theo
   const drawMarble = (ctx, m) => {
     ctx.save();
 
-    // ★ HIỆU ỨNG NITRO BOOST: Vệt hào quang lửa vàng cam cho bi lội ngược dòng
     if (m.isBoosting) {
       ctx.save();
-      // Quầng lửa bao quanh
       ctx.beginPath();
       ctx.arc(m.x, m.y, m.radius + 8, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(249, 115, 22, 0.45)';
@@ -410,7 +473,6 @@ export const MarbleCanvas = ({
       ctx.shadowBlur = 22;
       ctx.fill();
 
-      // Đuôi lửa phóng ngược lên phía trên
       ctx.beginPath();
       ctx.moveTo(m.x - m.radius * 0.7, m.y - m.radius * 0.3);
       ctx.lineTo(m.x, m.y - m.radius - 18);
@@ -422,7 +484,6 @@ export const MarbleCanvas = ({
       ctx.restore();
     }
 
-    // Vòng phát sáng của bi
     ctx.beginPath();
     ctx.arc(m.x, m.y, m.radius + 2, 0, Math.PI * 2);
     ctx.fillStyle = m.color;
@@ -430,7 +491,6 @@ export const MarbleCanvas = ({
     ctx.shadowBlur = m.isBoosting ? 18 : 8;
     ctx.fill();
 
-    // Vùng ảnh học sinh
     ctx.beginPath();
     ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
     ctx.clip();
@@ -444,7 +504,6 @@ export const MarbleCanvas = ({
       }
     }
 
-    // Nếu không có ảnh -> vẽ màu và chữ viết tắt
     if (!drawnPhoto) {
       ctx.fillStyle = m.color;
       ctx.fillRect(m.x - m.radius, m.y - m.radius, m.radius * 2, m.radius * 2);
@@ -457,7 +516,7 @@ export const MarbleCanvas = ({
 
     ctx.restore();
 
-    // Tên học sinh hiển thị cạnh viên bi (Chuẩn Ảnh 4 & 5)
+    // Tên học sinh hiển thị cạnh viên bi
     ctx.save();
     ctx.font = '800 11px system-ui, sans-serif';
     ctx.fillStyle = m.isBoosting ? '#FDE047' : '#FFFFFF';
@@ -497,10 +556,8 @@ export const MarbleCanvas = ({
       ref={containerRef}
       className="fixed inset-0 z-50 bg-[#070A1E] flex flex-col select-none overflow-hidden"
     >
-      {/* 1. Thanh Top Banner: Thông báo số bi xuất phát & Đồng hồ (Chuẩn Ảnh 4) */}
+      {/* 1. Thanh Top Banner */}
       <div className="h-14 px-5 border-b border-purple-900/40 bg-[#0B0F2B]/90 backdrop-blur-md flex items-center justify-between text-white z-20">
-        
-        {/* Banner Xuất phát */}
         <div className="flex items-center space-x-2.5">
           <span className="text-xl">🎤</span>
           <span className="text-xs sm:text-sm font-black text-purple-200">
@@ -508,13 +565,11 @@ export const MarbleCanvas = ({
           </span>
         </div>
 
-        {/* Đồng hồ bấm giờ to & Về đích (Chuẩn Ảnh 4 & 5) */}
         <div className="flex items-center space-x-3">
-          {/* Hiển thị trạng thái đồng hồ: Khi có người về nhất thì DỪNG CỐ ĐỊNH và đổi màu xanh lá */}
           <div className={`text-xl sm:text-2xl font-mono font-black tracking-wider transition-colors ${
             firstWinner ? 'text-emerald-400' : 'text-yellow-400'
           }`}>
-            {raceTime.toFixed(2)}s
+            {Number(raceTime).toFixed(2)}s
           </div>
           {firstWinner && (
             <span className="px-2.5 py-0.5 bg-emerald-900/80 border border-emerald-500 rounded-lg text-[11px] font-black text-emerald-300 animate-pulse flex items-center space-x-1">
@@ -528,10 +583,10 @@ export const MarbleCanvas = ({
         </div>
       </div>
 
-      {/* 2. Khung Nội Dung Chính: Canvas Đường Đua Mở Rộng (Trái) & Bảng Xếp Hạng (Phải) */}
+      {/* 2. Khung Nội Dung Chính: Canvas Đường Đua & Bảng Xếp Hạng */}
       <div className="flex-1 flex overflow-hidden relative">
         
-        {/* Khu vực Canvas 2D Mở rộng 1060px */}
+        {/* Khu vực Canvas 2D */}
         <div className="flex-1 flex items-center justify-center p-2 bg-[#0B0F2B] overflow-hidden relative">
           <canvas
             ref={canvasRef}
@@ -540,12 +595,11 @@ export const MarbleCanvas = ({
             className="w-full h-full max-w-[1060px] max-h-[860px] object-contain rounded-2xl shadow-2xl"
           />
 
-          {/* Banner Người Về Nhất ở chân màn hình (Chuẩn Ảnh 5) */}
+          {/* Banner Người Về Nhất ở chân màn hình — HIỂN THỊ ĐẦY ĐỦ HỌ VÀ TÊN */}
           {firstWinner && (
-            <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 z-30 animate-in slide-in-from-bottom duration-300">
+            <div className="absolute bottom-5 left-1/2 transform -translate-x-1/2 z-30 animate-in slide-in-from-bottom duration-300 max-w-[94%]">
               <div className="px-6 py-3.5 rounded-full bg-gradient-to-r from-pink-600 via-rose-600 to-amber-500 text-white shadow-2xl border-2 border-amber-300 flex items-center space-x-4">
-                {/* Avatar Người về nhất */}
-                <div className="w-11 h-11 rounded-full border-2 border-white overflow-hidden bg-white/20 shrink-0 shadow-md">
+                <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-white/20 shrink-0 shadow-md">
                   {firstWinner.avatar ? (
                     <img src={firstWinner.avatar} alt="winner" className="w-full h-full object-cover" />
                   ) : (
@@ -555,22 +609,21 @@ export const MarbleCanvas = ({
                   )}
                 </div>
 
-                {/* Tiêu đề & Tên */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm font-black text-yellow-200 flex items-center space-x-1">
+                {/* Hiển thị ĐẦY ĐỦ HỌ VÀ TÊN học sinh quán quân */}
+                <div className="flex items-center space-x-2.5">
+                  <span className="text-sm font-black text-yellow-200 flex items-center space-x-1 shrink-0">
                     <Trophy className="w-4 h-4 fill-current inline text-yellow-300" />
-                    <span>VỀ NHẤT!</span>
+                    <span>VỀ NHẤT:</span>
                   </span>
-                  <span className="text-sm font-extrabold text-white">
+                  <span className="text-sm sm:text-base font-black text-white tracking-wide">
                     {firstWinner.name}
                   </span>
                 </div>
 
-                {/* Nút Xem kết quả */}
                 <button
                   type="button"
                   onClick={handleFinishEarly}
-                  className="px-5 py-2 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs rounded-full shadow-lg flex items-center space-x-1.5 transition-all transform hover:scale-105 active:scale-95"
+                  className="px-5 py-2 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black text-xs rounded-full shadow-lg flex items-center space-x-1.5 transition-all transform hover:scale-105 active:scale-95 shrink-0"
                 >
                   <span>Xem kết quả</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -580,40 +633,40 @@ export const MarbleCanvas = ({
           )}
         </div>
 
-        {/* Cột Bảng Xếp Hạng & Điều Khiển Phía Phải (Chuẩn Ảnh 4) */}
-        <div className="w-64 sm:w-72 border-l border-purple-900/40 bg-[#080C26] flex flex-col justify-between p-3 z-20">
+        {/* Cột Bảng Xếp Hạng — HIỂN THỊ ĐẦY ĐỦ HỌ VÀ TÊN */}
+        <div className="w-72 sm:w-80 border-l border-purple-900/40 bg-[#080C26] flex flex-col justify-between p-3 z-20">
           
-          {/* Mini-map tiến độ 7 chặng (Chuẩn Ảnh 4) */}
+          {/* Mini-map tiến độ */}
           <div className="mb-2">
             <div className="h-3.5 rounded-full overflow-hidden flex border border-purple-800/60 p-0.5 bg-purple-950/40">
-              {['#38BDF8', '#F43F5E', '#F59E0B', '#A855F7', '#06B6D4', '#EC4899', '#22C55E'].map((c, idx) => (
+              {['#38BDF8', '#F59E0B', '#06B6D4', '#EC4899', '#A855F7', '#F43F5E', '#22C55E'].map((c, idx) => (
                 <div key={idx} className="flex-1 h-full opacity-70" style={{ backgroundColor: c }} />
               ))}
             </div>
           </div>
 
-          {/* BẢNG XẾP HẠNG 2 CỘT (Chuẩn Ảnh 4) */}
+          {/* BẢNG XẾP HẠNG — HIỂN THỊ ĐẦY ĐỦ HỌ VÀ TÊN */}
           <div className="flex-1 flex flex-col min-h-0">
             <h4 className="text-xs font-black text-purple-300 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
               <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span>BẢNG XẾP HẠNG</span>
+              <span>BẢNG XẾP HẠNG ĐUA BI</span>
             </h4>
 
-            <div className="flex-1 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
-              <div className="grid grid-cols-2 gap-1.5">
-                {liveLeaderboard.map((m, idx) => {
-                  const rank = idx + 1;
-                  return (
-                    <div
-                      key={m.id}
-                      className={`p-1.5 rounded-xl border flex items-center space-x-1.5 transition-all ${
-                        rank === 1
-                          ? 'bg-amber-400/20 border-amber-400 text-yellow-300'
-                          : rank <= 3
-                          ? 'bg-purple-900/30 border-purple-700 text-purple-200'
-                          : 'bg-slate-900/40 border-slate-800 text-slate-300'
-                      }`}
-                    >
+            <div className="flex-1 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
+              {liveLeaderboard.map((m, idx) => {
+                const rank = idx + 1;
+                return (
+                  <div
+                    key={m.id}
+                    className={`p-1.5 px-2 rounded-xl border flex items-center justify-between transition-all ${
+                      rank === 1
+                        ? 'bg-amber-400/20 border-amber-400 text-yellow-300'
+                        : rank <= 3
+                        ? 'bg-purple-900/30 border-purple-700 text-purple-200'
+                        : 'bg-slate-900/40 border-slate-800 text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 min-w-0">
                       <span className="text-[11px] font-black w-4 text-center shrink-0">
                         {rank}
                       </span>
@@ -627,19 +680,25 @@ export const MarbleCanvas = ({
                           {m.initials}
                         </div>
                       )}
-                      <span className="text-[11px] font-extrabold truncate">
-                        {m.name.split(' ').pop()}
+                      {/* ĐẦY ĐỦ HỌ VÀ TÊN */}
+                      <span className="text-xs font-extrabold truncate" title={m.name}>
+                        {m.name}
                       </span>
                     </div>
-                  );
-                })}
-              </div>
+
+                    {m.finished && (
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0 pl-1">
+                        ✓ Đích
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Cụm Điều Khiển Ở Góc Dưới Bên Phải (Chuẩn Ảnh 4) */}
+          {/* Cụm Điều Khiển Ở Góc Dưới Bên Phải */}
           <div className="pt-2.5 border-t border-purple-900/40 space-y-2">
-            {/* Hàng 1: Nút Âm thanh, Nhạc, Toàn màn hình */}
             <div className="flex items-center justify-between gap-1.5">
               <button
                 type="button"
@@ -673,7 +732,6 @@ export const MarbleCanvas = ({
               </button>
             </div>
 
-            {/* Hàng 2: Tốc độ x1, x2, x3 */}
             <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
               <span>Tốc độ:</span>
               <div className="flex items-center space-x-1">
@@ -697,7 +755,6 @@ export const MarbleCanvas = ({
               </div>
             </div>
 
-            {/* Hàng 3: Chế độ Camera [Dẫn đầu] | [Top 10] */}
             <div className="flex items-center justify-between text-xs text-slate-400 font-bold">
               <span>Camera:</span>
               <div className="flex items-center space-x-1">
@@ -732,7 +789,6 @@ export const MarbleCanvas = ({
               </div>
             </div>
 
-            {/* Hàng 4: Nút KẾT THÚC / XEM KẾT QUẢ */}
             <button
               type="button"
               onClick={handleFinishEarly}
