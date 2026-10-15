@@ -408,11 +408,33 @@ export const MarbleCanvas = ({
     ctx.restore();
   };
 
-  // Vẽ Cửa chờ
+  // Vẽ Cửa chờ & Cổng Nhân Bản Bi (Multiplier Portal)
   const drawWaitingGate = (ctx, world) => {
     ctx.save();
     const gateY = world.stageY.waitingGate + 70;
     const progress = world.waitingGateProgress;
+
+    // Dải phát sáng Cổng Nhân Bản Bi X2
+    const portalY = gateY + 45;
+    ctx.save();
+    ctx.strokeStyle = '#D946EF';
+    ctx.lineWidth = 4;
+    ctx.shadowColor = '#EC4899';
+    ctx.shadowBlur = 20;
+    ctx.setLineDash([10, 6]);
+    ctx.beginPath();
+    ctx.moveTo(45, portalY);
+    ctx.lineTo(world.width - 45, portalY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = '900 17px system-ui, sans-serif';
+    ctx.fillStyle = '#F472B6';
+    ctx.shadowColor = '#EC4899';
+    ctx.shadowBlur = 12;
+    ctx.textAlign = 'center';
+    ctx.fillText('⚡ CỔNG NHÂN BẢN BI X2 — BÙNG NỔ BẤT NGỜ ⚡', world.width / 2, portalY - 12);
+    ctx.restore();
 
     if (progress < 1) {
       ctx.strokeStyle = '#A855F7';
@@ -519,12 +541,13 @@ export const MarbleCanvas = ({
     // Tên học sinh hiển thị cạnh viên bi
     ctx.save();
     ctx.font = '800 11px system-ui, sans-serif';
-    ctx.fillStyle = m.isBoosting ? '#FDE047' : '#FFFFFF';
+    ctx.fillStyle = m.isBoosting ? '#FDE047' : m.isClone ? '#A7F3D0' : '#FFFFFF';
     ctx.shadowColor = '#000000';
     ctx.shadowBlur = 5;
     ctx.textAlign = 'center';
     const shortName = m.name.split(' ').slice(-2).join(' ');
-    ctx.fillText(m.isBoosting ? `🔥 ${shortName}` : shortName, m.x, m.y - m.radius - 4);
+    const tag = m.isBoosting ? `🔥 ${shortName}` : m.isClone ? `⚡ ${shortName}` : shortName;
+    ctx.fillText(tag, m.x, m.y - m.radius - 4);
     ctx.restore();
   };
 
@@ -561,8 +584,14 @@ export const MarbleCanvas = ({
         <div className="flex items-center space-x-2.5">
           <span className="text-xl">🎤</span>
           <span className="text-xs sm:text-sm font-black text-purple-200">
-            {participants.length} viên bi đã xuất phát!
+            {worldRef.current ? worldRef.current.marbles.length : participants.length} viên bi trên đường đua
           </span>
+          {worldRef.current && worldRef.current.marbles.length > participants.length && (
+            <span className="px-2.5 py-0.5 bg-gradient-to-r from-fuchsia-600 to-pink-600 border border-fuchsia-400 rounded-lg text-[11px] font-black text-white animate-pulse shadow-md flex items-center space-x-1">
+              <span>⚡</span>
+              <span>BÙNG NỔ X2 BI!</span>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center space-x-3">
