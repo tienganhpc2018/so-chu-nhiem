@@ -105,33 +105,50 @@ export const UfoStudentSprite = ({
         </div>
 
         {/* Thân: Áo thun vàng rực rỡ với cổ đỏ */}
-        <div className="relative w-8 h-6 bg-[#facc15] rounded-t-md border-x border-b border-amber-600 flex flex-col items-center shadow-xs">
+        <div className={`relative w-8 bg-[#facc15] rounded-t-md border-x border-b border-amber-600 flex flex-col items-center shadow-xs transition-all ${
+          isTargeted ? 'h-5' : 'h-6'
+        }`}>
           <div className="w-3.5 h-1.5 bg-[#dc2626] rounded-b-sm" />
-          {/* Tay áo vung vẩy hốt hoảng khi nhào lộn */}
-          <div
-            className={`absolute -left-2 top-0.5 w-2 h-4 bg-[#facc15] rounded-l-md transition-transform ${
-              isAbducted || isTargeted ? '-rotate-45 -translate-y-1' : 'rotate-12'
-            }`}
-          />
-          <div
-            className={`absolute -right-2 top-0.5 w-2 h-4 bg-[#facc15] rounded-r-md transition-transform ${
-              isAbducted || isTargeted ? 'rotate-45 -translate-y-1' : '-rotate-12'
-            }`}
-          />
+
+          {/* TƯ THẾ QUỲ LẠY CHẮP TAY XIN THA LIA LỊA (Chuẩn yêu cầu của Thầy) */}
+          {isTargeted ? (
+            <div className="absolute -top-1 z-30 flex flex-col items-center animate-bounce">
+              <span className="text-base select-none filter drop-shadow-md">🙏</span>
+              <span className="text-[7.5px] font-black text-yellow-300 bg-red-950/90 border border-yellow-400/60 px-1 rounded-sm -mt-0.5 whitespace-nowrap shadow-sm">
+                XIN THA!!
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* Tay áo vung vẩy bình thường hoặc hốt hoảng khi nhào lộn */}
+              <div
+                className={`absolute -left-2 top-0.5 w-2 h-4 bg-[#facc15] rounded-l-md transition-transform ${
+                  isAbducted ? '-rotate-45 -translate-y-1' : 'rotate-12'
+                }`}
+              />
+              <div
+                className={`absolute -right-2 top-0.5 w-2 h-4 bg-[#facc15] rounded-r-md transition-transform ${
+                  isAbducted ? 'rotate-45 -translate-y-1' : '-rotate-12'
+                }`}
+              />
+            </>
+          )}
         </div>
 
-        {/* Chân / Quần đỏ & Giày thể thao */}
+        {/* Chân: Quỳ gối khi bị khóa mục tiêu, hoặc quần đỏ & giày thể thao */}
         <div className="flex items-center space-x-1 -mt-0.5">
           <div
-            className={`w-3 h-5 bg-[#dc2626] rounded-b-xs flex flex-col justify-end items-center transition-transform ${
-              isAbducted ? 'rotate-12' : ''
+            className={`bg-[#dc2626] rounded-b-xs flex flex-col justify-end items-center transition-all ${
+              isTargeted ? 'w-3 h-2.5 rounded-sm' :
+              isAbducted ? 'w-3 h-5 rotate-12' : 'w-3 h-5'
             }`}
           >
             <div className="w-3.5 h-1.5 bg-white border border-slate-400 rounded-full" />
           </div>
           <div
-            className={`w-3 h-5 bg-[#dc2626] rounded-b-xs flex flex-col justify-end items-center transition-transform ${
-              isAbducted ? '-rotate-12' : ''
+            className={`bg-[#dc2626] rounded-b-xs flex flex-col justify-end items-center transition-all ${
+              isTargeted ? 'w-3 h-2.5 rounded-sm' :
+              isAbducted ? 'w-3 h-5 -rotate-12' : 'w-3 h-5'
             }`}
           >
             <div className="w-3.5 h-1.5 bg-white border border-slate-400 rounded-full" />

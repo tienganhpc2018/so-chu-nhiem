@@ -4,6 +4,7 @@ import { UfoArena } from './components/UfoArena';
 import { UfoBottomBar } from './components/UfoBottomBar';
 import { UfoSettingsModal } from './components/UfoSettingsModal';
 import { UfoAbductedModal } from './components/UfoAbductedModal';
+import { UfoQuickQuizModal } from './components/UfoQuickQuizModal';
 import { PhotoCropModal } from '../marble-race/components/PhotoCropModal';
 import { getInitialUfoClasses, saveUfoClasses, getUfoSettings, saveUfoSettings } from './utils/ufoStorage';
 import { ufoAudio } from './utils/ufoAudio';
@@ -35,6 +36,8 @@ export const UfoRaceModal = ({
   const [showSettings, setShowSettings] = useState(false);
   const [showAbductedModal, setShowAbductedModal] = useState(false);
   const [showPhotoCrop, setShowPhotoCrop] = useState(false);
+  const [showQuickQuiz, setShowQuickQuiz] = useState(false);
+  const [selectedQuizStudent, setSelectedQuizStudent] = useState(null);
 
   // Đồng bộ lớp học LMS hiện tại vào game nếu có
   useEffect(() => {
@@ -87,7 +90,8 @@ export const UfoRaceModal = ({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        if (showAbductedModal) setShowAbductedModal(false);
+        if (showQuickQuiz) setShowQuickQuiz(false);
+        else if (showAbductedModal) setShowAbductedModal(false);
         else if (showSettings) setShowSettings(false);
         else if (showPhotoCrop) setShowPhotoCrop(false);
         else onClose();
@@ -97,7 +101,7 @@ export const UfoRaceModal = ({
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showAbductedModal, showSettings, showPhotoCrop, onClose]);
+  }, [isOpen, showQuickQuiz, showAbductedModal, showSettings, showPhotoCrop, onClose]);
 
   if (!isOpen) return null;
 
@@ -291,6 +295,27 @@ export const UfoRaceModal = ({
         onClose={() => setShowAbductedModal(false)}
         onPickNextRound={handlePickNextRound}
         onRestartCurrentRound={handleRestartCurrentRound}
+        onOpenQuickQuiz={(std) => {
+          setSelectedQuizStudent(std || abductedStudents[0]);
+          setShowQuickQuiz(true);
+        }}
+      />
+
+      {/* Modal Câu hỏi trắc nghiệm 30s trả bài tại chỗ */}
+      <UfoQuickQuizModal
+        isOpen={showQuickQuiz}
+        student={selectedQuizStudent || abductedStudents[0]}
+        onClose={() => setShowQuickQuiz(false)}
+        onNextRound={() => {
+          setShowQuickQuiz(false);
+          setShowAbductedModal(false);
+          setIsRunning(true);
+        }}
+        onRewardStudent={(studentId, points) => {
+          if (studentId) {
+            onConfirmCallStudent?.(studentId);
+          }
+        }}
       />
 
       {/* Modal Cắt ảnh tập thể */}

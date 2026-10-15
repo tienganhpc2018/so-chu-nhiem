@@ -3,7 +3,7 @@ import { UfoCityBackground } from './UfoCityBackground';
 import { UfoSaucer } from './UfoSaucer';
 import { UfoStudentSprite } from './UfoStudentSprite';
 import { UFO_SPEECH_QUOTES } from '../data/defaultUfoData';
-import { ufoAudio } from '../utils/ufoAudio';
+import { ufoAudio, speakStudentSelected } from '../utils/ufoAudio';
 import { getShortStudentName } from '../utils/nameHelper';
 
 export const UfoArena = ({
@@ -21,6 +21,7 @@ export const UfoArena = ({
   const [isBeaming, setIsBeaming] = useState(false);
   const [isUfoVisible, setIsUfoVisible] = useState(false);
   const [countdownSeconds, setCountdownSeconds] = useState(null);
+  const [showDustClouds, setShowDustClouds] = useState(false);
 
   const animFrameRef = useRef(null);
   const isRunningRef = useRef(isRunning);
@@ -210,6 +211,9 @@ export const UfoArena = ({
     // BƯỚC 1: ĐĨA BAY XUẤT HIỆN TỪ VŨ TRỤ (0s - 2.5s)
     setIsUfoVisible(true);
     ufoAudio.playUfoDescent();
+    setShowDustClouds(true);
+    ufoAudio.playDustBlast();
+    const dustTimer = setTimeout(() => setShowDustClouds(false), 2400);
 
     // BƯỚC 2: BẬT TIA HÚT VÀ CƠN BÃO TRỌNG LỰC NGHIÊNG NGẢ (2.5s - 8.5s)
     const beamTimeout = setTimeout(() => {
@@ -248,14 +252,14 @@ export const UfoArena = ({
         setTargetStudentPos({ x: firstTarget.x, y: firstTarget.y });
         ufoAudio.playLockOn();
 
-        // Bạn bị chọn hoảng hốt đứng run rẩy, các bạn khác tản ra né
+        // Bạn bị chọn quỳ xuống chắp tay lạy lia lịa xin tha
         setStudentSprites(prev =>
           prev.map(s => {
             if (s.student.id === firstTarget.student.id) {
               return {
                 ...s,
                 isTargeted: true,
-                speechQuote: 'Chết tui rồi, trúng tui rồi bà con ơi!!'
+                speechQuote: 'Con xin thầy tha cho con lần này!! 🙏'
               };
             }
             return {
@@ -268,8 +272,9 @@ export const UfoArena = ({
         // BƯỚC 4: HÚT NHÀO LỘN BAY VÀO TRONG KHOANG ĐĨA BAY (11.5s - 14.5s)
         const abductTimeout = setTimeout(() => {
           ufoAudio.playAbductWhoosh();
+          ufoAudio.playFunnyScream(); // Tiếng hét thất thanh "Á á á cứu em!"
 
-          // Kéo bạn thứ nhất nhào lộn 720 độ, bay lên và biến mất vào trong khoang bụng đĩa bay
+          // Kéo bạn thứ nhất bay dọc thẳng vào tâm khoang đĩa bay
           setStudentSprites(prev =>
             prev.map(s => {
               if (s.student.id === firstTarget.student.id) {
@@ -278,7 +283,7 @@ export const UfoArena = ({
                   isTargeted: false,
                   isAbducted: true,
                   x: containerSize.width / 2,
-                  y: 120, // Cửa khoang đáy đĩa bay
+                  y: 135, // Cửa khoang đáy đĩa bay
                   rotation: 720, // Nhào lộn tròn
                   scale: 0.1, // Thu nhỏ vào trong khoang
                   opacity: 0 // Biến mất hoàn toàn vào trong UFO
@@ -298,13 +303,14 @@ export const UfoArena = ({
               setStudentSprites(prev =>
                 prev.map(s =>
                   s.student.id === secondTarget.student.id
-                    ? { ...s, isTargeted: true, speechQuote: 'Tha em với!!' }
+                    ? { ...s, isTargeted: true, speechQuote: 'Cứu em với thầy ơi!! 🙏' }
                     : s
                 )
               );
 
               setTimeout(() => {
                 ufoAudio.playAbductWhoosh();
+                ufoAudio.playFunnyScream();
                 setStudentSprites(prev =>
                   prev.map(s => {
                     if (s.student.id === secondTarget.student.id) {
@@ -313,7 +319,7 @@ export const UfoArena = ({
                         isTargeted: false,
                         isAbducted: true,
                         x: containerSize.width / 2,
-                        y: 120,
+                        y: 135,
                         rotation: -720,
                         scale: 0.1,
                         opacity: 0
@@ -327,7 +333,7 @@ export const UfoArena = ({
             }, 800);
           }
 
-          // BƯỚC 5: KẾT THÚC VÀ CÔNG BỐ CHIẾN THẮNG (Khoảng 15 giây)
+          // BƯỚC 5: KẾT THÚC, ĐỌC TÊN HỌC SINH VÀ CÔNG BỐ CHIẾN THẮNG (Khoảng 15 giây)
           const finishTimeout = setTimeout(() => {
             setIsBeaming(false);
             setTargetStudentPos(null);
@@ -335,10 +341,18 @@ export const UfoArena = ({
 
             setTimeout(() => {
               clearInterval(countTimer);
-              onCompleteCapture?.(toCapture.map(q => ({
+              const capturedFinal = toCapture.map(q => ({
                 ...q.student,
                 shortName: getShortStudentName(q.student.name || q.student.full_name, students)
-              })));
+              }));
+
+              // Phát giọng nói tiếng Việt thông báo học sinh may mắn
+              const luckyOne = capturedFinal[0];
+              if (luckyOne) {
+                speakStudentSelected(luckyOne.shortName || luckyOne.name);
+              }
+
+              onCompleteCapture?.(capturedFinal);
             }, 800);
           }, toCapture.length > 1 ? 2600 : 1600);
 
@@ -368,6 +382,22 @@ export const UfoArena = ({
     >
       {/* 1. Nền thành phố & Bầu trời đêm */}
       <UfoCityBackground />
+
+      {/* Hiệu ứng khói bụi trắng bốc lên cuộn sang hai bên mặt đường khi đĩa bay sà xuống */}
+      {showDustClouds && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-4xl flex justify-between pointer-events-none z-25 px-8">
+          <div className="flex items-center space-x-2 animate-pulse opacity-85">
+            <div className="w-20 h-14 rounded-full bg-slate-200/60 blur-md transform -translate-x-6" />
+            <div className="w-28 h-16 rounded-full bg-slate-300/40 blur-lg" />
+            <div className="w-16 h-12 rounded-full bg-slate-100/70 blur-sm" />
+          </div>
+          <div className="flex items-center space-x-2 animate-pulse opacity-85">
+            <div className="w-16 h-12 rounded-full bg-slate-100/70 blur-sm" />
+            <div className="w-28 h-16 rounded-full bg-slate-300/40 blur-lg" />
+            <div className="w-20 h-14 rounded-full bg-slate-200/60 blur-md transform translate-x-6" />
+          </div>
+        </div>
+      )}
 
       {/* 2. Đĩa bay UFO xuất hiện từ trên cao, đồng hồ đếm ngược và cửa khoang */}
       <UfoSaucer

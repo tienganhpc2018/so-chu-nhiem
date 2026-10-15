@@ -181,6 +181,77 @@ class UfoAudioEngine {
     } catch (e) {}
   }
 
+  // Tiếng hét thất thanh hoạt hình vui nhộn "Á á á cứu em!" (Funny Cartoon Scream)
+  playFunnyScream() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const vibrato = this.ctx.createOscillator();
+      const vibratoGain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      // Tần số quét cao và rung lắc mạnh mô phỏng tiếng hét hoạt hình
+      osc.frequency.setValueAtTime(450, now);
+      osc.frequency.linearRampToValueAtTime(850, now + 0.25);
+      osc.frequency.exponentialRampToValueAtTime(1250, now + 0.65);
+      osc.frequency.exponentialRampToValueAtTime(320, now + 1.2);
+
+      // Bộ tạo rung vibrato
+      vibrato.frequency.setValueAtTime(18, now); // 18Hz rung giọng
+      vibratoGain.gain.setValueAtTime(80, now);
+      vibrato.connect(vibratoGain);
+      vibratoGain.connect(osc.frequency);
+
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.28 * this.volume, now + 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      vibrato.start(now);
+      osc.start(now);
+      vibrato.stop(now + 1.25);
+      osc.stop(now + 1.25);
+    } catch (e) {}
+  }
+
+  // Tiếng khói bụi bốc lên khi đĩa bay sà xuống (Dust Blast Whoosh)
+  playDustBlast() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(50, now + 1.0);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(300, now);
+
+      gain.gain.setValueAtTime(0.22 * this.volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 1.1);
+    } catch (e) {}
+  }
+
   // Tiếng bật nảy nhảy nhót hoạt hình (Funny boing)
   playBoing() {
     if (this.isMuted) return;
@@ -313,3 +384,29 @@ class UfoAudioEngine {
 }
 
 export const ufoAudio = new UfoAudioEngine();
+
+// Đọc to tên học sinh bằng giọng nói Tiếng Việt (Web Speech API)
+export function speakStudentSelected(studentName) {
+  if (!window.speechSynthesis || !studentName) return;
+  try {
+    window.speechSynthesis.cancel();
+    const cleanName = studentName.replace(/[^\p{L}\s]/gu, '').trim();
+    const text = `Xin chúc mừng bạn ${cleanName} đã được chọn lên bảng trả bài!`;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'vi-VN';
+    utterance.rate = 0.95;
+    utterance.pitch = 1.05;
+
+    // Tìm giọng tiếng Việt nếu có
+    const voices = window.speechSynthesis.getVoices();
+    const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VN'));
+    if (viVoice) {
+      utterance.voice = viVoice;
+    }
+
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.warn('Speech synthesis error:', e);
+  }
+}
+

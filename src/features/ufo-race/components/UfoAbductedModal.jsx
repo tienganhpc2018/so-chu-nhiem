@@ -6,7 +6,8 @@ export const UfoAbductedModal = ({
   abductedStudents = [],
   onClose,
   onPickNextRound,
-  onRestartCurrentRound
+  onRestartCurrentRound,
+  onOpenQuickQuiz
 }) => {
   if (!isOpen || abductedStudents.length === 0) return null;
 
@@ -80,9 +81,18 @@ export const UfoAbductedModal = ({
                 )}
 
                 {/* Câu thoại vui nhộn */}
-                <p className="text-[11px] text-slate-300 italic">
+                <p className="text-[11px] text-slate-300 italic mb-2">
                   "{std.quote || 'Dạ thưa thầy em xin trả lời bài ạ!'}"
                 </p>
+
+                {/* Nút kiểm tra 30 giây trực tiếp cho từng học sinh */}
+                <button
+                  onClick={() => onOpenQuickQuiz?.(std)}
+                  className="w-full flex items-center justify-center space-x-1.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                  <span>Hỏi bài 30 giây ⭐</span>
+                </button>
               </div>
             ))}
           </div>
@@ -90,13 +100,23 @@ export const UfoAbductedModal = ({
 
         {/* Action Footer */}
         <div className="px-6 py-4 bg-[#080d1d] border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-          <button
-            onClick={onRestartCurrentRound}
-            className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-all"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Thả về & Bắt lại</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onRestartCurrentRound}
+              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" />
+              <span>Thả về & Bắt lại</span>
+            </button>
+
+            {/* Nút Vòng quay trắc nghiệm 30s */}
+            <button
+              onClick={() => onOpenQuickQuiz?.(abductedStudents[0])}
+              className="flex items-center space-x-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/30 hover:scale-105 active:scale-95 transition-all"
+            >
+              <span>❓ Trả bài 30 giây</span>
+            </button>
+          </div>
 
           <div className="flex items-center space-x-2">
             <button
