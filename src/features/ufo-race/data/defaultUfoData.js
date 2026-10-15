@@ -1,0 +1,75 @@
+// Danh sách học sinh mẫu (40 tên chuẩn theo giao diện tham chiếu của Thầy)
+export const DEFAULT_UFO_STUDENTS = [
+  'Việt Hoàng',
+  'Trúc Mai',
+  'Hoàng Long',
+  'Đình Trọng',
+  'Hồng Nhung',
+  'Thế Anh',
+  'Nhật Linh',
+  'Quang Khải',
+  'Mai Anh',
+  'Minh Thư',
+  'Hữu Phước',
+  'Đức Huy',
+  'Quỳnh Anh',
+  'Thùy Chi',
+  'Bảo Ngọc',
+  'Minh Khang',
+  'Gia Bảo',
+  'Thảo My',
+  'Khánh An',
+  'Tiến Đạt',
+  'Kim Ngân',
+  'Diệu Huyền',
+  'Ngọc Hân',
+  'Bảo Trâm',
+  'Hoàng Bách',
+  'Minh Đức',
+  'Khắc Khoa',
+  'Thanh Thảo',
+  'Tuấn Minh',
+  'Nguyễn Bùi Gia Huy',
+  'Thùy Linh',
+  'Anh Dũng',
+  'Bảo Khánh',
+  'Khánh Linh',
+  'Văn Nam',
+  'Hải Đăng',
+  'Thanh Trúc',
+  'Gia Hưng',
+  'Hà Phương',
+  'Ngọc Ánh'
+];
+
+// Danh sách các cửa hàng thành phố chạy dọc đường đua (chuẩn 100% ảnh tham chiếu)
+export const UFO_CITY_SHOPS = [
+  { id: 'bus', name: 'XE BUÝT', color: '#0284c7', bgTint: '#e0f2fe', signColor: '#0369a1' },
+  { id: 'bookstore', name: 'NHÀ SÁCH', color: '#16a34a', bgTint: '#dcfce7', signColor: '#15803d' },
+  { id: 'comtam', name: 'CƠM TẤM', color: '#b45309', bgTint: '#fef3c7', signColor: '#92400e' },
+  { id: 'banhmi', name: 'BÁNH MÌ', color: '#ca8a04', bgTint: '#fef9c3', signColor: '#a16207' },
+  { id: 'trasua', name: 'TRÀ SỮA', color: '#0d9488', bgTint: '#ccfbf1', signColor: '#0f766e' },
+  { id: 'hottoc', name: 'HỚT TÓC', color: '#1e293b', bgTint: '#f1f5f9', signColor: '#0f172a' },
+  { id: 'buncha', name: 'BÚN CHẢ', color: '#65a30d', bgTint: '#ecfccb', signColor: '#4d7c0f' },
+  { id: 'kem', name: 'KEM', color: '#e11d48', bgTint: '#ffe4e6', signColor: '#be123c' },
+  { id: 'dienthoai', name: 'ĐIỆN THOẠI', color: '#2563eb', bgTint: '#dbeafe', signColor: '#1d4ed8' }
+];
+
+// Danh sách câu thoại hài hước học đường ngẫu nhiên xuất hiện trên đầu học sinh
+export const UFO_SPEECH_QUOTES = [
+  'Hôm nay trời đẹp ghê!',
+  'Thầy ơi em hứa mai học bài!!',
+  'Sao Hỏa lạnh lắm tha cho em đi!',
+  'Tối qua cày phim tới 2h sáng đuối ghê!',
+  'Ủa tiếng gì hút mạnh dữ vậy?! Cứu tui với!!',
+  'Hồi hộp quá, ai sẽ bị tóm?!',
+  'Em chưa kịp ăn sáng thầy ơi!',
+  'Trời ơi, em ngồi ngoan nhất lớp mà!',
+  'Đừng kéo em lên, em sợ độ cao lắm!!',
+  'Bạn bên cạnh chưa trả bài kìa đĩa bay ơi!',
+  'Cầu trời khấn phật đừng gọi trúng tên con!',
+  'Em xung phong phát biểu mà, tha em!',
+  'Tới lượt ai đây nhỉ?',
+  'Tha cho em lần này đi đĩa bay ơi!',
+  'Mẹ dặn học xong về nấu cơm!'
+];

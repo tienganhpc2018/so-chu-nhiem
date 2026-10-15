@@ -18,6 +18,7 @@ import { DiscussionTimerModal } from './components/DiscussionTimerModal';
 import { GroupTeamsModal } from './components/GroupTeamsModal';
 import { RewardAllModal } from './components/RewardAllModal';
 import { MarbleRaceModal } from '../marble-race/MarbleRaceModal';
+import { UfoRaceModal } from '../ufo-race/UfoRaceModal';
 
 export const BehaviorPage = ({
   currentClass,
@@ -50,6 +51,7 @@ export const BehaviorPage = ({
     groupTeams: false,
     beeRace: false,
     marbleRace: false,
+    ufoRace: false,
     timer: false,
     seating: false
   });
@@ -570,6 +572,7 @@ export const BehaviorPage = ({
         onOpenGroupTeams={() => openModal('groupTeams')}
         onOpenBeeRace={() => openModal('beeRace')}
         onOpenMarbleRace={() => openModal('marbleRace')}
+        onOpenUfoRace={() => openModal('ufoRace')}
         onOpenTimer={() => openModal('timer')}
         onOpenSeatingChart={() => openModal('seating')}
         onResetCalled={handleResetCalled}
@@ -857,6 +860,20 @@ export const BehaviorPage = ({
           }
         }}
         onUpdateStudentsList={updateStudentsState}
+      />
+
+      {/* 14. Đường Đua UFO - Game Gọi Tên Học Sinh Lên Bảng Trả Bài 4.0 🛸 */}
+      <UfoRaceModal
+        isOpen={modalState.ufoRace}
+        onClose={() => closeModal('ufoRace')}
+        currentClass={currentClass}
+        students={students}
+        calledStudentIds={calledStudentIds}
+        onConfirmCallStudent={(studentId) => {
+          if (studentId && !calledStudentIds.includes(studentId)) {
+            setCalledStudentIds(prev => [...prev, studentId]);
+          }
+        }}
       />
 
     </div>

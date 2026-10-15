@@ -31,6 +31,7 @@ export const TopActionBar = ({
   onOpenGroupTeams,
   onOpenBeeRace,
   onOpenMarbleRace,
+  onOpenUfoRace,
   onOpenTimer,
   onOpenSeatingChart,
   onResetCalled,
@@ -193,6 +194,19 @@ export const TopActionBar = ({
         >
           <span className="text-sm">🔮</span>
           <span>Đua Bi (Marble Race 2D) 🏁</span>
+        </button>
+
+        {/* 10.6. Đường Đua UFO (Bắt HS Trả Bài) 🛸 */}
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            onOpenUfoRace?.();
+          }}
+          className="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 text-white font-extrabold text-xs shadow-md shadow-teal-200 hover:scale-105 active:scale-95 transition-all"
+          title="Trò chơi Đường Đua UFO bắt học sinh ngẫu nhiên lên bảng trả bài"
+        >
+          <span className="text-sm">🛸</span>
+          <span>Đường Đua UFO 👽</span>
         </button>
 
         {/* 11. Bấm Giờ ⏱️ */}

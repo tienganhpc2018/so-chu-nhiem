@@ -1,0 +1,260 @@
+// ufoAudio.js - Quản lý âm thanh Web Audio API & Nhạc nền tùy chỉnh cho Game Đường Đua UFO
+
+class UfoAudioEngine {
+  constructor() {
+    this.ctx = null;
+    this.isMuted = false;
+    this.bgmOscs = [];
+    this.bgmTimer = null;
+    this.isBgmPlaying = false;
+    this.customAudio = null;
+    this.volume = 0.6;
+  }
+
+  // Khởi tạo AudioContext khi có tương tác người dùng
+  initCtx() {
+    if (!this.ctx) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+  }
+
+  setMuted(muted) {
+    this.isMuted = muted;
+    if (this.customAudio) {
+      this.customAudio.muted = muted;
+    }
+    if (muted) {
+      this.stopBgm();
+    }
+  }
+
+  setVolume(vol) {
+    this.volume = Math.max(0, Math.min(1, vol));
+    if (this.customAudio) {
+      this.customAudio.volume = this.volume;
+    }
+  }
+
+  // Phát tiếng tia hút UFO (Tractor Beam Hum)
+  playTractorBeam() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(160, this.ctx.currentTime + 1.2);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(400, this.ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 1.2);
+
+      gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.18 * this.volume, this.ctx.currentTime + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1.8);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 1.8);
+    } catch (e) {
+      // Audio fallback
+    }
+  }
+
+  // Tiếng Radar ngắm mục tiêu (Lock-on Beep)
+  playLockOn() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      [0, 0.08, 0.16].forEach((delay, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(987.77 + idx * 200, now + delay); // B5 tone
+
+        gain.gain.setValueAtTime(0.15 * this.volume, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.06);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.07);
+      });
+    } catch (e) {}
+  }
+
+  // Tiếng hút học sinh bay lên UFO (Anti-gravity Whoosh)
+  playAbductWhoosh() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.8);
+
+      gain.gain.setValueAtTime(0.2 * this.volume, this.ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.3 * this.volume, this.ctx.currentTime + 0.4);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.9);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.9);
+    } catch (e) {}
+  }
+
+  // Tiếng bật nảy nhảy nhót hoạt hình (Funny boing)
+  playBoing() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(250, this.ctx.currentTime + 0.3);
+
+      gain.gain.setValueAtTime(0.18 * this.volume, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.35);
+    } catch (e) {}
+  }
+
+  // Tiếng chiến thắng / bắt xong học sinh (Victory fanfare)
+  playVictory() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+      const now = this.ctx.currentTime;
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+
+        gain.gain.setValueAtTime(0.22 * this.volume, now + idx * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.4);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.12);
+        osc.stop(now + idx * 0.12 + 0.45);
+      });
+    } catch (e) {}
+  }
+
+  // Nhạc nền mặc định: "UFO Synth" (tổng hợp trực tiếp bằng Web Audio, không phụ thuộc file mạng)
+  playBgm(customAudioSrc = null) {
+    if (this.isMuted) return;
+
+    // Nếu người dùng tải nhạc lên: phát file tùy chỉnh
+    if (customAudioSrc) {
+      this.stopBgm();
+      try {
+        if (!this.customAudio) {
+          this.customAudio = new Audio();
+          this.customAudio.loop = true;
+        }
+        this.customAudio.src = customAudioSrc;
+        this.customAudio.volume = this.volume;
+        this.customAudio.play().catch(() => {});
+        this.isBgmPlaying = true;
+        return;
+      } catch (e) {}
+    }
+
+    // Nếu dùng nhạc mặc định UFO Synth
+    if (this.isBgmPlaying) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    this.isBgmPlaying = true;
+    const notes = [261.63, 329.63, 392.00, 523.25, 440.00, 349.23, 392.00, 329.63];
+    let noteIdx = 0;
+
+    const playNote = () => {
+      if (!this.isBgmPlaying || this.isMuted || !this.ctx) return;
+      try {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(notes[noteIdx % notes.length], this.ctx.currentTime);
+        noteIdx++;
+
+        gain.gain.setValueAtTime(0.04 * this.volume, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.28);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+      } catch (e) {}
+    };
+
+    playNote();
+    this.bgmTimer = setInterval(playNote, 320);
+  }
+
+  stopBgm() {
+    this.isBgmPlaying = false;
+    if (this.bgmTimer) {
+      clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    }
+    if (this.customAudio) {
+      try {
+        this.customAudio.pause();
+        this.customAudio.currentTime = 0;
+      } catch (e) {}
+    }
+  }
+
+  destroy() {
+    this.stopBgm();
+    if (this.ctx && this.ctx.state !== 'closed') {
+      try {
+        this.ctx.close();
+      } catch (e) {}
+      this.ctx = null;
+    }
+  }
+}
+
+export const ufoAudio = new UfoAudioEngine();
