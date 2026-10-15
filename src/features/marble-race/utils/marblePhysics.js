@@ -1,7 +1,7 @@
-// Động cơ mô phỏng Vật lý 2D cho Game Đua Bi (Marble Race Pro 2D) — Phiên bản Sinh Địa Hình Ngẫu Nhiên & Camera Toàn Đoàn Bi
-// 1. Mỗi lần bấm đua / đua lại: Bản đồ chướng ngại vật sinh NGẪU NHIÊN HOÀN TOÀN (vị trí nấm, góc quay cối xay, độ dốc thanh trượt, ngõ ngách).
-// 2. Camera Thông Minh theo dõi toàn bộ đàn bi (Smart Pack Camera), không bỏ rơi bất kỳ học sinh nào phía sau.
-// 3. Nhân bản bi X2 ở Cửa 5, dừng hẳn đồng hồ và bi khi cán đích, hiển thị đầy đủ họ tên.
+// Động cơ mô phỏng Vật lý 2D cho Game Đua Bi (Marble Race Pro 2D) — Phiên bản Camera Chuẩn Thi Đấu & Sự Cố Lật Kèo Phút 89
+// 1. CAMERA CHUẨN: Catch 100% bi lúc xuất phát (Y=0), sau đó bám sát tốp bi nhanh dẫn đầu, không bao giờ bị màn hình trống.
+// 2. SỰ CỐ PHÚT CHÓT: Trước vạch đích có chốt cản phá, bi dẫn đầu chưa chắc 100% về nhất, các bi phía sau lướt gió xông lên cướp ngôi Quán quân!
+// 3. Mỗi lần đua là một địa hình ngẫu nhiên mới lạ, không trùng lặp.
 
 export const MARBLE_PALETTES = [
   '#F43F5E', '#EC4899', '#D946EF', '#A855F7', '#8B5CF6',
@@ -35,6 +35,7 @@ export class MarblePhysicsWorld {
     this.flipperAngle = 0;
     this.rotatorAngle = 0;
     this.nextNitroTime = 2.0;
+    this.plotTwistTriggered = false; // ★ Đánh dấu sự cố phút chót trước vạch đích
 
     // Chiều cao thế giới
     if (trackLength === 'short') {
@@ -58,12 +59,11 @@ export class MarblePhysicsWorld {
       finish: H * 0.96
     };
 
-    // ★ KHỞI TẠO ĐỊA HÌNH NGẪU NHIÊN BIẾN THIÊN CHO MỖI LƯỢT ĐUA
     this.initDynamicObstacles();
     this.initMarbles(students);
   }
 
-  // ★ TẠO ĐỊA HÌNH NGẪU NHIÊN MỖI LẦN ĐUA (Procedural Dynamic Track)
+  // ★ KHỞI TẠO ĐỊA HÌNH NGẪU NHIÊN & CÁC CHƯỚNG NGẠI VẬT SỰ CỐ
   initDynamicObstacles() {
     this.bumpers = [];
     this.rotators = [];
@@ -75,7 +75,7 @@ export class MarblePhysicsWorld {
     const W = this.width;
     const { mushrooms, rotators, funnel1, slopes, waitingGate, funnel2, sprintFinish, finish } = this.stageY;
 
-    // 1. Cửa ải 1: Rừng nấm nảy biến thiên ngẫu nhiên
+    // 1. Cửa ải 1: Rừng nấm nảy ngẫu nhiên
     const pinRows = this.trackLength === 'short' ? 4 : this.trackLength === 'long' ? 7 : 5;
     for (let r = 0; r < pinRows; r++) {
       const y = mushrooms + 60 + r * (90 + Math.random() * 15);
@@ -94,9 +94,8 @@ export class MarblePhysicsWorld {
       }
     }
 
-    // 2. Cửa ải 2: Cụm Cối xay gió quay ngẫu nhiên (vị trí, tốc độ, chiều quay khác nhau)
+    // 2. Cửa ải 2: Cụm Cối xay gió quay ngẫu nhiên
     const rotBaseY = rotators + 80;
-    const numRotators = 3 + Math.floor(Math.random() * 2); // 3 đến 4 cối xay
     const positions = [
       { x: W * (0.18 + Math.random() * 0.08), y: rotBaseY + (Math.random() - 0.5) * 30 },
       { x: W * (0.46 + (Math.random() - 0.5) * 0.08), y: rotBaseY + 130 + (Math.random() - 0.5) * 30 },
@@ -106,7 +105,6 @@ export class MarblePhysicsWorld {
     positions.forEach((pos, idx) => {
       const isReverse = Math.random() > 0.5 ? 1 : -1;
       const speed = (1.5 + Math.random() * 1.2) * isReverse;
-      const blades = 4;
       const colors = ['#F59E0B', '#A855F7', '#EC4899', '#06B6D4'];
 
       this.rotators.push({
@@ -114,12 +112,12 @@ export class MarblePhysicsWorld {
         y: pos.y,
         radius: 78 + Math.floor(Math.random() * 16),
         speed: speed,
-        blades: blades,
+        blades: 4,
         color: colors[idx % colors.length]
       });
     });
 
-    // 3. Cửa ải 3: Cổ nút chai gom bi số 1 (kích thước cổ thay đổi ngẫu nhiên 135 - 155px)
+    // 3. Cửa ải 3: Cổ nút chai gom bi số 1
     const f1TopY = funnel1 + 30;
     const f1NeckY = slopes - 50;
     const neck1Width = 140 + Math.floor(Math.random() * 20);
@@ -130,10 +128,10 @@ export class MarblePhysicsWorld {
       { x1: (W + neck1Width) / 2, y1: f1NeckY, x2: (W + neck1Width) / 2, y2: f1NeckY + 90, color: '#06B6D4', thickness: 14 }
     );
 
-    // 4. Cửa ải 4: Mê cung ziczac chia nhánh ngẫu nhiên (ngõ ngách đổi mới)
+    // 4. Cửa ải 4: Mê cung ziczac chia nhánh ngẫu nhiên
     const slopeBaseY = slopes + 60;
     const slopeCount = 5;
-    const startLeft = Math.random() > 0.5; // Ngẫu nhiên hướng dốc đầu tiên
+    const startLeft = Math.random() > 0.5;
 
     for (let i = 0; i < slopeCount; i++) {
       const sy = slopeBaseY + i * (135 + (Math.random() - 0.5) * 15);
@@ -153,13 +151,12 @@ export class MarblePhysicsWorld {
       }
     }
 
-    // Các cần gạt Pinball đặt ngẫu nhiên ở các tầng dốc
     this.flippers.push(
       { x: W * (0.32 + Math.random() * 0.06), y: slopeBaseY + 210, length: 110, angle: 0.3,  speed: 0.06 },
       { x: W * (0.68 - Math.random() * 0.06), y: slopeBaseY + 430, length: 110, angle: -0.3, speed: -0.06 }
     );
 
-    // 5. Cửa ải 6: Cổ nút chai số 2 (hẹp dần để tạo sự chen lấn nghẹt thở)
+    // 5. Cửa ải 6: Cổ nút chai số 2
     const f2TopY = funnel2 + 20;
     const f2NeckY = sprintFinish - 70;
     const neck2Width = 145 + Math.floor(Math.random() * 15);
@@ -177,14 +174,21 @@ export class MarblePhysicsWorld {
       leftX: (W - neck2Width) / 2,
       rightX: (W + neck2Width) / 2
     };
+
+    // ★ 7. CHƯỚNG NGẠI VẬT SỰ CỐ PHÚT 89 (GÂY BẤT NGỜ TRƯỚC VẠCH ĐÍCH)
+    // Đặt 2 nấm cản phá ngay giữa máng về đích trước vạch ca-rô 130px
+    const trapY = finish - 130;
+    const midX = W / 2;
+    this.bumpers.push(
+      { x: midX - 32, y: trapY, radius: 15, color: '#F59E0B', pulse: 0, isPlotTrap: true },
+      { x: midX + 32, y: trapY, radius: 15, color: '#F59E0B', pulse: 0, isPlotTrap: true }
+    );
   }
 
-  // Khởi tạo các viên bi với thứ tự xuất phát xáo trộn ngẫu nhiên
   initMarbles(students = []) {
     this.marbles = [];
     const count = students.length || 30;
 
-    // Tráo ngẫu nhiên danh sách học sinh để mỗi lần đua có thứ tự vị trí xuất phát mới
     const shuffledStudents = [...students].sort(() => Math.random() - 0.5);
     const cols = Math.min(10, Math.ceil(Math.sqrt(count * 2.2)));
 
@@ -270,7 +274,28 @@ export class MarblePhysicsWorld {
 
     const newClones = [];
 
-    // 4. Cập nhật chuyển động từng viên bi
+    // ★ 4. CƠ CHẾ SỰ CỐ PHÚT CHÓT TRƯỚC VẠCH ĐÍCH (PLOT TWIST OVERTAKE)
+    // Khi có viên bi đầu tiên tiến sát vạch đích (cách vạch đích dưới 240px)
+    if (!this.plotTwistTriggered && leaderY >= this.stageY.finish - 240 && leaderY < this.stageY.finish - 40) {
+      this.plotTwistTriggered = true;
+      const unfinished = this.marbles.filter(m => !m.finished).sort((a, b) => b.y - a.y);
+
+      if (unfinished.length >= 2) {
+        // Viên bi đang dẫn đầu gặp "Sự cố văng chệch hướng"
+        const leader = unfinished[0];
+        leader.vx += (Math.random() > 0.5 ? 1 : -1) * 220; // Văng sang mép
+        leader.vy = Math.max(40, leader.vy * 0.4);        // Bị chững lại
+
+        // Viên bi hạng 2 hoặc hạng 3 ngay sau được "LƯỚT GIÓ XÔNG LÊN" (Slipstream Boost)
+        const chaser = unfinished[1];
+        chaser.isBoosting = true;
+        chaser.boostTimer = 1.0;
+        chaser.vy += 460; // Lao thẳng vào tâm đích
+        chaser.vx = (this.width / 2 - chaser.x) * 1.5; // Dẫn hướng vào giữa đích
+      }
+    }
+
+    // 5. Cập nhật chuyển động từng viên bi
     for (let i = 0; i < this.marbles.length; i++) {
       const m = this.marbles[i];
       if (m.finished) continue;
@@ -280,7 +305,7 @@ export class MarblePhysicsWorld {
         continue;
       }
 
-      // ★ TỪ CỬA 5 TRỞ ĐI: CỔNG NHÂN BẢN BI BÙNG NỔ
+      // Nhân bản bi ở Cửa 5
       if (m.y >= this.stageY.waitingGate + 75 && !m.hasCloned) {
         m.hasCloned = true;
 
@@ -309,19 +334,15 @@ export class MarblePhysicsWorld {
         newClones.push(cloneMarble);
       }
 
-      // Gia tốc chuyển động
       let currentGravity = 640;
       let frictionX = 0.993;
       let frictionY = 0.997;
 
-      // Đoạn Cổ nút chai số 2: Tốc độ chậm dần
       if (m.y >= this.stageY.funnel2 && m.y < this.stageY.sprintFinish) {
         currentGravity = 390;
         frictionX = 0.975;
         frictionY = 0.985;
-      }
-      // Đoạn Máng phóng về đích: Siêu tốc
-      else if (m.y >= this.stageY.sprintFinish) {
+      } else if (m.y >= this.stageY.sprintFinish) {
         currentGravity = 980;
         m.vy += 280 * dt;
       }
@@ -369,7 +390,7 @@ export class MarblePhysicsWorld {
         }
       }
 
-      // Va chạm Nấm nảy
+      // Va chạm Nấm nảy (kể cả bẫy trước vạch đích)
       for (const b of this.bumpers) {
         const dx = m.x - b.x;
         const dy = m.y - b.y;
@@ -382,14 +403,15 @@ export class MarblePhysicsWorld {
           m.y = b.y + ny * minDist;
           const dot = m.vx * nx + m.vy * ny;
           if (dot < 0) {
-            m.vx = (m.vx - 2 * dot * nx) * 0.95 + nx * 170;
-            m.vy = (m.vy - 2 * dot * ny) * 0.95 + ny * 170;
+            const bouncePower = b.isPlotTrap ? 210 : 170;
+            m.vx = (m.vx - 2 * dot * nx) * 0.95 + nx * bouncePower;
+            m.vy = (m.vy - 2 * dot * ny) * 0.95 + ny * bouncePower;
           }
           b.pulse = 1.0;
         }
       }
 
-      // Va chạm Vòng quay cối xay gió
+      // Va chạm Cối xay gió
       for (const rot of this.rotators) {
         this.checkRotatorCollision(m, rot);
       }
@@ -571,32 +593,29 @@ export class MarblePhysicsWorld {
     }
   }
 
-  // ★ TÍNH TOÁN VỊ TRÍ CAMERA THÔNG MINH BAO QUÁT TOÀN BỘ ĐÀN BI (SMART PACK CAMERA)
-  // Đảm bảo không bỏ rơi viên bi nào, học sinh dù chạy nhanh hay chậm đều thấy rõ mình trên màn hình!
-  getCrowdCameraTargetY(viewHeight = 860) {
+  // ★ CAMERA THI ĐẤU CHUẨN XÁC:
+  // 1. Lúc xuất phát (leaderY < viewHeight * 0.55): Cố định ở đỉnh Y = 0 để CATCH TRỌN VẸN 100% CÁC BI XUẤT PHÁT!
+  // 2. Khi đua: Bám chặt theo TỐP BI DẪN ĐẦU (Top Lead Pack). Viên bi dẫn đầu luôn nằm ở khoảng 50% - 60% màn hình,
+  //    kéo theo toàn bộ các viên bi bám đuổi ngay phía sau. KHÔNG BAO GIỜ BỊ MÀN HÌNH TRỐNG!
+  getSmartCameraTargetY(viewHeight = 860) {
     const unfinished = this.marbles.filter(m => !m.finished);
     if (unfinished.length === 0) {
-      return Math.max(0, this.stageY.finish - viewHeight * 0.6);
+      return Math.max(0, this.stageY.finish - viewHeight * 0.65);
     }
 
-    // Tọa độ của viên bi dẫn đầu xa nhất (max) và viên bi chạy sau cùng (min)
-    let minY = Infinity;
+    // Tìm viên bi dẫn đầu xa nhất
     let maxY = -Infinity;
-    let sumY = 0;
-
     for (let i = 0; i < unfinished.length; i++) {
-      const y = unfinished[i].y;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-      sumY += y;
+      if (unfinished[i].y > maxY) maxY = unfinished[i].y;
     }
 
-    const avgY = sumY / unfinished.length;
-    // Trọng tâm bao quát: 40% bi đầu, 40% bi sau, 20% trung bình toàn đàn
-    const focusY = minY * 0.40 + maxY * 0.40 + avgY * 0.20;
+    // 1. Lúc xuất phát: Giữ camera ở đỉnh Y = 0
+    if (maxY < viewHeight * 0.52) {
+      return 0;
+    }
 
-    // Đặt camera sao cho đàn bi nằm ở trung tâm màn hình
-    const targetY = focusY - viewHeight * 0.46;
+    // 2. Khi đua: Luôn khóa mục tiêu vào tốp dẫn đầu (đặt bi dẫn đầu ở 55% màn hình)
+    const targetY = maxY - viewHeight * 0.55;
     return Math.max(0, Math.min(this.height - viewHeight, targetY));
   }
 

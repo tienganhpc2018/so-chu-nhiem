@@ -40,7 +40,7 @@ export const MarbleCanvas = ({
   const [isPaused, setIsPaused] = useState(false);
 
   // Điều khiển UI
-  const [cameraMode, setCameraMode] = useState('crowd'); // 'crowd' (Mặc định: Toàn đàn) | 'leader' | 'top10'
+  const [cameraMode, setCameraMode] = useState('smart'); // 'smart' (Mặc định: Bám sát tốp đầu & catch xuất phát) | 'leader' | 'top10'
   const [speedMultiplier, setSpeedMultiplier] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [isMusicOn, setIsMusicOn] = useState(true);
@@ -142,22 +142,28 @@ export const MarbleCanvas = ({
     const W = canvas.width;
     const H = canvas.height;
 
-    // ★ CAMERA THÔNG MINH BAO QUÁT TOÀN BỘ ĐÀN BI (SMART PACK CAMERA)
-    // Đảm bảo không bỏ rơi bất kỳ viên bi nào, học sinh chạy chậm hay nhanh đều thấy rõ mình trên màn hình!
+    // ★ CAMERA CHUẨN THI ĐẤU:
+    // 1. Lúc xuất phát: Cố định Y=0 CATCH TRỌN VẸN 100% CÁC BI XUẤT PHÁT VÀ NẤM NẢY!
+    // 2. Khi đua: Bám chặt theo TỐP BI DẪN ĐẦU (Top Lead Pack). Viên bi dẫn đầu luôn nằm ở khoảng 50% - 60% màn hình,
+    //    kéo theo toàn bộ các viên bi bám đuổi ngay phía sau. TUYỆT ĐỐI KHÔNG BAO GIỜ BỊ MÀN HÌNH TRỐNG!
     let targetCameraY = 0;
-    if (cameraMode === 'crowd') {
-      targetCameraY = world.getCrowdCameraTargetY(H);
+    if (cameraMode === 'smart') {
+      targetCameraY = world.getSmartCameraTargetY(H);
     } else if (cameraMode === 'leader') {
       const leaderY = world.getLeaderY();
-      targetCameraY = Math.max(0, Math.min(world.height - H, leaderY - H * 0.45));
+      targetCameraY = Math.max(0, Math.min(world.height - H, leaderY - H * 0.55));
     } else {
       const top10 = world.marbles.filter(m => !m.finished).slice(0, 10);
       const avgY = top10.length > 0 ? top10.reduce((s, m) => s + m.y, 0) / top10.length : world.height * 0.5;
-      targetCameraY = Math.max(0, Math.min(world.height - H, avgY - H * 0.45));
+      targetCameraY = Math.max(0, Math.min(world.height - H, avgY - H * 0.50));
     }
 
-    // Làm mượt chuyển động camera (Smooth Lerp 0.058), lướt êm ái, không giật bắn
-    cameraYRef.current += (targetCameraY - cameraYRef.current) * 0.058;
+    // Làm mượt camera: ở vạch xuất phát thì giữ ở 0
+    if (targetCameraY === 0 && cameraYRef.current < 20) {
+      cameraYRef.current = 0;
+    } else {
+      cameraYRef.current += (targetCameraY - cameraYRef.current) * 0.075;
+    }
 
     ctx.save();
     ctx.clearRect(0, 0, W, H);
@@ -798,16 +804,16 @@ export const MarbleCanvas = ({
                   type="button"
                   onClick={() => {
                     soundFx.playClick();
-                    setCameraMode('crowd');
+                    setCameraMode('smart');
                   }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
-                    cameraMode === 'crowd'
+                    cameraMode === 'smart'
                       ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
-                  title="Theo dõi bao quát toàn bộ đàn bi (ai cũng thấy mình)"
+                  title="Catch toàn bộ bi xuất phát, sau đó bám sát các bi nhanh dẫn đầu"
                 >
-                  Toàn đàn
+                  Tốp đầu
                 </button>
                 <button
                   type="button"
@@ -820,9 +826,9 @@ export const MarbleCanvas = ({
                       ? 'bg-pink-600 text-white shadow-sm'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                   }`}
-                  title="Bám theo viên bi dẫn đầu"
+                  title="Bám theo viên bi dẫn đầu số 1"
                 >
-                  Dẫn đầu
+                  Bi số 1
                 </button>
                 <button
                   type="button"
