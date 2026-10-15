@@ -4,20 +4,20 @@ import { UFO_CITY_SHOPS } from '../data/defaultUfoData';
 export const UfoCityBackground = () => {
   return (
     <div className="absolute inset-0 pointer-events-none select-none overflow-hidden z-0 flex flex-col justify-between">
-      {/* 1. Bầu trời đêm sâu thẳm với ngàn sao lấp lánh */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a1128] via-[#0f1d3a] to-[#152347]" />
+      {/* 1. Bầu trời đêm sâu thẳm rộng mở để đĩa bay UFO bay lượn thoải mái */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#070d1e] via-[#0d172e] to-[#122040]" />
 
-      {/* Hiệu ứng các ngôi sao nhỏ lấp lánh */}
-      <div className="absolute inset-0 opacity-70">
-        {[...Array(35)].map((_, i) => (
+      {/* Các ngôi sao nhỏ lấp lánh trên nền trời */}
+      <div className="absolute inset-0 opacity-75">
+        {[...Array(40)].map((_, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-white animate-pulse"
             style={{
               width: `${(i % 3) + 1.5}px`,
               height: `${(i % 3) + 1.5}px`,
-              top: `${(i * 19) % 45}%`,
-              left: `${(i * 31) % 100}%`,
+              top: `${(i * 17) % 40}%`, // Sao chỉ xuất hiện ở 40% bầu trời phía trên
+              left: `${(i * 29) % 100}%`,
               animationDelay: `${(i * 0.3) % 2.5}s`,
               animationDuration: `${1.5 + (i % 2)}s`
             }}
@@ -25,11 +25,22 @@ export const UfoCityBackground = () => {
         ))}
       </div>
 
-      {/* 2. Dãy các tòa nhà & cửa hàng sầm uất (Chuẩn 100% ảnh tham chiếu của Thầy) */}
-      <div className="relative mt-auto w-full h-[68%] flex items-end justify-between px-2 sm:px-6">
+      {/* 2. Dãy các tòa nhà & cửa hàng sầm uất (Hạ thấp độ cao h-[50%] để không che khuất đĩa bay UFO) */}
+      <div className="relative mt-auto w-full h-[50%] flex items-end justify-between px-2 sm:px-6">
         {UFO_CITY_SHOPS.map((shop, index) => {
-          // Chiều cao và màu sắc từng tòa nhà
-          const heights = ['h-[84%]', 'h-[92%]', 'h-[88%]', 'h-[85%]', 'h-[95%]', 'h-[86%]', 'h-[89%]', 'h-[83%]', 'h-[87%]'];
+          // Chiều cao vừa vặn cho các tòa nhà phố, chừa trọn vẹn không gian phía trên cho UFO
+          const heights = [
+            'h-[78%]', // Xe buýt
+            'h-[86%]', // Nhà sách
+            'h-[82%]', // Cơm tấm
+            'h-[76%]', // Bánh mì
+            'h-[80%]', // Trà sữa (hạ thấp, không đội vào bụng UFO)
+            'h-[78%]', // Hớt tóc
+            'h-[84%]', // Bún chả
+            'h-[76%]', // Kem
+            'h-[82%]'  // Điện thoại
+          ];
+
           const bgColors = [
             'bg-slate-100', // Xe buýt
             'bg-amber-50',  // Nhà sách
@@ -49,11 +60,11 @@ export const UfoCityBackground = () => {
                 className={`relative flex-1 mx-1 ${heights[index % heights.length]} ${bgColors[index % bgColors.length]} rounded-t-xl border-t-4 border-x border-slate-300 shadow-xl flex flex-col justify-between`}
               >
                 {/* Các ô cửa sổ phát ánh sáng vàng ấm áp */}
-                <div className="p-2 sm:p-3 grid grid-cols-2 gap-2 sm:gap-2.5">
+                <div className="p-2 sm:p-2.5 grid grid-cols-2 gap-1.5 sm:gap-2">
                   {[...Array(6)].map((_, wIdx) => (
                     <div
                       key={wIdx}
-                      className="h-5 sm:h-8 rounded bg-amber-300/90 shadow-sm border border-amber-400/50 flex items-center justify-center"
+                      className="h-4 sm:h-6 rounded bg-amber-300/90 shadow-sm border border-amber-400/50 flex items-center justify-center"
                     >
                       <div className="w-[1px] h-full bg-amber-500/30" />
                     </div>
@@ -62,7 +73,7 @@ export const UfoCityBackground = () => {
 
                 {/* Biển hiệu cửa hàng rực rỡ ở chân tầng trệt */}
                 <div
-                  className="w-full py-2.5 sm:py-3.5 px-1 text-center font-black tracking-wider text-[11px] sm:text-xs text-white shadow-md uppercase transition-transform"
+                  className="w-full py-2 sm:py-2.5 px-1 text-center font-black tracking-wider text-[10px] sm:text-[11px] text-white shadow-md uppercase transition-transform"
                   style={{ backgroundColor: shop.color }}
                 >
                   {shop.name}
@@ -71,9 +82,9 @@ export const UfoCityBackground = () => {
 
               {/* Cây xanh dải phân cách ở giữa phố (giữa cửa hàng Bánh Mì và Trà Sữa) */}
               {index === 3 && (
-                <div className="relative w-8 sm:w-14 h-48 mx-1 flex flex-col items-center justify-end z-10">
-                  <div className="w-10 sm:w-14 h-16 sm:h-20 bg-emerald-600 rounded-full shadow-lg border-2 border-emerald-500" />
-                  <div className="w-2.5 sm:w-3.5 h-16 bg-amber-800 rounded-sm" />
+                <div className="relative w-7 sm:w-12 h-36 mx-1 flex flex-col items-center justify-end z-10">
+                  <div className="w-9 sm:w-12 h-14 sm:h-16 bg-emerald-600 rounded-full shadow-lg border-2 border-emerald-500" />
+                  <div className="w-2.5 h-12 bg-amber-800 rounded-sm" />
                 </div>
               )}
             </React.Fragment>

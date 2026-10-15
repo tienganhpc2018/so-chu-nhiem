@@ -4,6 +4,7 @@ import { UfoSaucer } from './UfoSaucer';
 import { UfoStudentSprite } from './UfoStudentSprite';
 import { UFO_SPEECH_QUOTES } from '../data/defaultUfoData';
 import { ufoAudio } from '../utils/ufoAudio';
+import { getShortStudentName } from '../utils/nameHelper';
 
 export const UfoArena = ({
   students = [],
@@ -334,7 +335,10 @@ export const UfoArena = ({
 
             setTimeout(() => {
               clearInterval(countTimer);
-              onCompleteCapture?.(toCapture.map(q => q.student));
+              onCompleteCapture?.(toCapture.map(q => ({
+                ...q.student,
+                shortName: getShortStudentName(q.student.name || q.student.full_name, students)
+              })));
             }, 800);
           }, toCapture.length > 1 ? 2600 : 1600);
 
@@ -381,6 +385,7 @@ export const UfoArena = ({
         <UfoStudentSprite
           key={item.student.id}
           student={item.student}
+          allStudents={students}
           x={item.x}
           y={item.y}
           vx={item.vx}

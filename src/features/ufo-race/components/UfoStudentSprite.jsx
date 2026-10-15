@@ -1,7 +1,9 @@
 import React from 'react';
+import { getShortStudentName } from '../utils/nameHelper';
 
 export const UfoStudentSprite = ({
   student,
+  allStudents = [],
   x,
   y,
   vx,
@@ -15,7 +17,8 @@ export const UfoStudentSprite = ({
   scale = 1
 }) => {
   const isFacingRight = vx >= 0;
-  const displayName = student?.name || student?.full_name || 'Học sinh';
+  const fullName = student?.name || student?.full_name || 'Học sinh';
+  const displayName = getShortStudentName(fullName, allStudents);
 
   return (
     <div

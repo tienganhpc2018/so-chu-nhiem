@@ -67,12 +67,17 @@ export const UfoAbductedModal = ({
                   )}
                 </div>
 
-                {/* Tên học sinh hiển thị to rõ */}
-                <div className="px-3 py-1 rounded-full bg-white border border-red-500 shadow-xs mb-2">
+                {/* Tên học sinh hiển thị to rõ theo chuẩn Chữ lót + Tên */}
+                <div className="px-3 py-1 rounded-full bg-white border-2 border-red-500 shadow-sm mb-1.5">
                   <span className="font-black text-sm text-red-600 tracking-wide">
-                    {std.name}
+                    {std.shortName || std.name || std.full_name}
                   </span>
                 </div>
+                {(std.full_name || std.name) && (std.shortName !== (std.full_name || std.name)) && (
+                  <span className="text-[10px] text-slate-400 mb-1.5 font-medium">
+                    ({std.full_name || std.name})
+                  </span>
+                )}
 
                 {/* Câu thoại vui nhộn */}
                 <p className="text-[11px] text-slate-300 italic">
