@@ -37,8 +37,8 @@ export const BlindfoldDuckModal = ({
   const [selectedMode, setSelectedMode] = useState('random_call'); // 'random_call' | 'target' | 'blind_catch'
   const [roundDuration, setRoundDuration] = useState(20); // 10s, 15s, 20s, 30s
   const [noRepeat, setNoRepeat] = useState(true); // Không lặp học sinh trong cùng buổi
-  const [showDuckNames, setShowDuckNames] = useState(false); // Mặc định ẩn tên vịt trong sân để hồi hộp
-  const [enableTts, setEnableTts] = useState(true); // Đọc to tên học sinh bằng giọng nói
+  const [showDuckNames, setShowDuckNames] = useState(true); // Mặc định hiện nhãn tên trên đầu vịt chuẩn ảnh tham chiếu
+  const [enableTts, setEnableTts] = useState(false); // Đã tắt giọng đọc theo yêu cầu Thầy
 
   // Danh sách học sinh / vịt
   const [ducks, setDucks] = useState(() => getLocalDucks(lmsStudents));

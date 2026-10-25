@@ -4,12 +4,12 @@ import { DuckSprite } from './DuckSprite';
 import { duckAudio } from '../services/duckAudio';
 
 /**
- * GIAO DIỆN & VẬT LÝ SÂN CHƠI 3D BỊT MẮT BẮT VỊT (Tối ưu theo góp ý Thầy):
- * 1. MẶT CẬU BÉ QUAY CÙNG CHIỀU VỚI HƯỚNG DI CHUYỂN (Chạy trái quay trái, chạy phải quay phải).
- * 2. ĐÔI MẮT CHIBI ^^ CƯỜI HÍP ÁNH LÊN TRÊN DẢI LỤA ĐỎ: Biểu cảm hóm hỉnh, tinh nghịch.
- * 3. ĐÀN VỊT CHẠY THEO BẦY VÒNG QUANH SÂN: Phân bổ đều khắp sân, không bị dồn cục vào góc.
- * 4. NGƯỜI CHƠI CHẠY RƯỢT ĐUỔI BẦY VỊT: Di chuyển mượt mà, sải chân sải tay bám đuổi.
- * 5. BỎ HOÀN TOÀN CÂU THOẠI TIẾNG: Không còn bong bóng thoại che khuất hay giọng đọc khó nghe.
+ * GIAO DIỆN & VẬT LÝ SÂN CHƠI 3D BỊT MẮT BẮT VỊT (CHUẨN 100% ẢNH THAM CHIẾU):
+ * - Bầu trời xanh dịu, đồi cỏ xanh nhạt với cây xanh đa diện low-poly, rặng tre và chòi đình mái đỏ
+ * - Sân cát tròn vàng kem với hàng rào gỗ có gắn các quả cầu đỏ/lồng đèn lễ hội
+ * - Thanh trạng thái đỉnh sân: "Đang đuổi theo vịt của [Tên học sinh]..."
+ * - Nhân vật CÔ GÁI bịt mắt 3D duyên dáng, áo bà ba nâu, bím tóc tết rủ nơ đỏ, nón lá tre nghiêng
+ * - ĐÀN VỊT DI CHUYỂN LIÊN TỤC KHẮP SÂN: Tản đều 360 độ, không bao giờ bị kẹt lại một góc
  */
 export const DuckArena = ({
   ducks = [],
@@ -17,7 +17,7 @@ export const DuckArena = ({
   targetDuckId = null,
   timeLeft = 20,
   roundDuration = 20,
-  showDuckNames = false,
+  showDuckNames = true,
   onCatchDuck,
   onMissCatch,
   isPaused = false
@@ -25,15 +25,15 @@ export const DuckArena = ({
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 1000, height: 620 });
 
-  // Tâm và bán kính sân đất nén (Camera hạ thấp nhìn ngang sân)
-  const arenaCenter = { x: dimensions.width / 2, y: dimensions.height / 2 + 75 };
+  // Tâm và bán kính sân cát tròn phối cảnh 3D
+  const arenaCenter = { x: dimensions.width / 2, y: dimensions.height / 2 + 50 };
   const arenaRadiusX = Math.min(dimensions.width * 0.44, 460);
-  const arenaRadiusY = Math.min(dimensions.height * 0.28, 175);
+  const arenaRadiusY = Math.min(dimensions.height * 0.31, 205);
 
-  // Người chơi bịt mắt (Dùng REF để di chuyển mượt mà không bị khựng)
+  // Cô gái bịt mắt 3D duyên dáng
   const playerRef = useRef({
     x: arenaCenter.x - 60,
-    y: arenaCenter.y + 10,
+    y: arenaCenter.y + 20,
     direction: 'right',
     isWalking: true,
     isCatching: false,
@@ -42,7 +42,7 @@ export const DuckArena = ({
 
   const [playerState, setPlayerState] = useState(playerRef.current);
 
-  // Đàn vịt 3D (20-30 con)
+  // Đàn vịt 3D (20-26 con)
   const [duckSprites, setDuckSprites] = useState([]);
   const [caughtDuckObj, setCaughtDuckObj] = useState(null);
   const [cameraZoom, setCameraZoom] = useState({ scale: 1, x: 0, y: 0 });
@@ -51,7 +51,11 @@ export const DuckArena = ({
   const patrolAngleRef = useRef(0);
   const spritesRef = useRef([]);
   const hasCaughtRef = useRef(false);
-  const panicAudioTimerRef = useRef(0);
+  const quackAudioTimerRef = useRef(0);
+
+  // Tìm tên bạn học sinh đang được đuổi theo
+  const targetDuckObj = ducks.find(d => d.id === targetDuckId) || ducks[0];
+  const targetStudentName = targetDuckObj?.name || 'học sinh';
 
   // Responsive kích thước
   useEffect(() => {
@@ -67,7 +71,7 @@ export const DuckArena = ({
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // KHỞI TẠO ĐÀN VỊT PHÂN BỔ ĐỀU VÒNG QUANH SÂN (TRÁNH DỒN CỤC VÀO GÓC)
+  // KHỞI TẠO ĐÀN VỊT TẢN ĐỀU KHẮP SÂN VÀ DI CHUYỂN LIÊN TỤC
   useEffect(() => {
     if (!ducks || ducks.length === 0) return;
 
@@ -77,7 +81,7 @@ export const DuckArena = ({
 
     playerRef.current = {
       x: arenaCenter.x - 70,
-      y: arenaCenter.y,
+      y: arenaCenter.y + 20,
       direction: 'right',
       isWalking: true,
       isCatching: false,
@@ -85,38 +89,38 @@ export const DuckArena = ({
     };
     setPlayerState({ ...playerRef.current });
 
-    // Khởi tạo từ 18 - 28 chú vịt
-    const flockTargetCount = Math.max(18, Math.min(28, ducks.length));
+    // Khởi tạo 18 - 25 chú vịt
+    const flockTargetCount = Math.max(16, Math.min(25, ducks.length));
     const cohort = [];
 
     for (let i = 0; i < flockTargetCount; i++) {
       const sourceDuck = ducks[i % ducks.length];
       cohort.push({
         ...sourceDuck,
-        instanceId: `inst_${sourceDuck.id}_${i}`,
+        instanceId: `duck_inst_${sourceDuck.id}_${i}`,
         isTarget: sourceDuck.id === targetDuckId
       });
     }
 
-    // Phân bổ đều khắp 360 độ vòng tròn sân cát
+    // Phân bổ đều khắp 360 độ mặt sân tròn (tránh tập trung vào góc)
     const initialSprites = cohort.map((item, idx) => {
       const angle = (idx / flockTargetCount) * Math.PI * 2;
-      const rRatio = 0.5 + ((idx * 3) % 4) * 0.09; // Bán kính từ 0.5 đến 0.77
+      const rRatio = 0.35 + ((idx * 5) % 6) * 0.08; // Phân bố từ tâm ra gần biên
       const x = arenaCenter.x + Math.cos(angle) * (arenaRadiusX * rRatio);
       const y = arenaCenter.y + Math.sin(angle) * (arenaRadiusY * rRatio);
 
-      const baseSpeed = 68 + (idx % 4) * 8;
-      // Hướng chạy tiếp tuyến vòng quanh sân (ngược chiều kim đồng hồ)
-      const tangentAngle = angle + Math.PI / 2;
+      const wanderAngle = Math.random() * Math.PI * 2;
+      const baseSpeed = 58 + (idx % 4) * 8;
 
       return {
         instanceId: item.instanceId,
         duck: item,
         x,
         y,
-        vx: Math.cos(tangentAngle) * baseSpeed,
-        vy: Math.sin(tangentAngle) * (baseSpeed * 0.65),
+        vx: Math.cos(wanderAngle) * baseSpeed,
+        vy: Math.sin(wanderAngle) * (baseSpeed * 0.7),
         speed: baseSpeed,
+        wanderTimer: Math.random() * 2,
         state: 'WALK',
         colorIndex: idx,
         isQuacking: false,
@@ -157,22 +161,21 @@ export const DuckArena = ({
         caughtSprite.state = 'CAUGHT';
         setCaughtDuckObj(targetToCatch);
 
-        // Đặt vị trí người chơi ngay sát chú vịt để ôm vịt trước ngực
+        // Cô gái tiến lại ôm vịt
         playerRef.current.x = caughtSprite.x;
-        playerRef.current.y = caughtSprite.y + 8;
+        playerRef.current.y = caughtSprite.y + 10;
         playerRef.current.isCatching = false;
         playerRef.current.isHoldingDuck = true;
         setPlayerState({ ...playerRef.current });
 
-        // Cận cảnh khi bắt được: Camera zoom thẳng vào khuôn mặt và tư thế ôm vịt
-        const focusX = (arenaCenter.x - caughtSprite.x) * 0.6;
-        const focusY = (arenaCenter.y - caughtSprite.y) * 0.6 + 25;
-        setCameraZoom({ scale: 1.5, x: focusX, y: focusY });
+        // Camera zoom cận cảnh ngang tầm mặt
+        const focusX = (arenaCenter.x - caughtSprite.x) * 0.55;
+        const focusY = (arenaCenter.y - caughtSprite.y) * 0.55 + 20;
+        setCameraZoom({ scale: 1.45, x: focusX, y: focusY });
       }
 
       setDuckSprites([...spritesRef.current]);
 
-      // Sau 1.4s thưởng thức cảnh ôm vịt, mở modal vinh danh
       setTimeout(() => {
         onCatchDuck?.(targetToCatch);
       }, 1400);
@@ -182,7 +185,7 @@ export const DuckArena = ({
     }
   };
 
-  // KHI HẾT THỜI GIAN: TỰ ĐỘNG BẮT ĐÚNG CHÚ VỊT MỤC TIÊU
+  // KHI HẾT THỜI GIAN: TỰ ĐỘNG BẮT ĐÚNG VỊT MỤC TIÊU
   useEffect(() => {
     if (timeLeft === 0 && !hasCaughtRef.current && !isPaused) {
       const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId);
@@ -191,7 +194,7 @@ export const DuckArena = ({
     }
   }, [timeLeft, isPaused, targetDuckId]);
 
-  // VÒNG LẶP VẬT LÝ FLOCKING & RƯỢT ĐUỔI CHUẨN (60FPS)
+  // VÒNG LẶP VẬT LÝ VỊT DI CHUYỂN LIÊN TỤC KHẮP SÂN (60FPS)
   useEffect(() => {
     let lastTime = performance.now();
 
@@ -202,46 +205,27 @@ export const DuckArena = ({
       if (!isPaused && !hasCaughtRef.current && spritesRef.current.length > 0) {
         let p = playerRef.current;
 
-        // 1. TÍNH TÂM BẦY VỊT
-        let flockCenterX = 0;
-        let flockCenterY = 0;
-        let activeCount = 0;
-
-        spritesRef.current.forEach(s => {
-          if (!s.isCaught) {
-            flockCenterX += s.x;
-            flockCenterY += s.y;
-            activeCount++;
-          }
-        });
-
-        if (activeCount > 0) {
-          flockCenterX /= activeCount;
-          flockCenterY /= activeCount;
-        }
-
-        // 2. NGƯỜI CHƠI BỊT MẮT RƯỢT ĐUỔI (MẶT VÀ THÂN LUÔN HƯỚNG CÙNG CHIỀU CHẠY)
-        const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId);
-        const targetX = targetSprite ? targetSprite.x : flockCenterX;
-        const targetY = targetSprite ? targetSprite.y : flockCenterY;
+        // 1. CÔ GÁI RƯỢT ĐUỔI VỊT MỤC TIÊU (MẶT VÀ THÂN CÙNG HƯỚNG CHẠY)
+        const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId) || spritesRef.current[0];
+        const targetX = targetSprite ? targetSprite.x : arenaCenter.x;
+        const targetY = targetSprite ? targetSprite.y : arenaCenter.y;
 
         const toTargetX = targetX - p.x;
         const toTargetY = targetY - p.y;
         const distToTarget = Math.hypot(toTargetX, toTargetY) || 1;
 
-        patrolAngleRef.current += 3.6 * dt;
-        const huntSpeed = 138 * dt;
+        patrolAngleRef.current += 3.5 * dt;
+        const huntSpeed = 125 * dt;
 
         p.x += (toTargetX / distToTarget) * huntSpeed + Math.cos(patrolAngleRef.current) * 1.5;
         p.y += (toTargetY / distToTarget) * (huntSpeed * 0.65) + Math.sin(patrolAngleRef.current) * 1.2;
 
-        // Cập nhật hướng quay mặt cùng chiều với hướng di chuyển
         if (Math.abs(toTargetX) > 2) {
           p.direction = toTargetX >= 0 ? 'right' : 'left';
         }
         p.isWalking = true;
 
-        // Giới hạn người chơi trong sân
+        // Giữ cô gái trong sân
         const normPx = (p.x - arenaCenter.x) / (arenaRadiusX * 0.82);
         const normPy = (p.y - arenaCenter.y) / (arenaRadiusY * 0.82);
         const distNormP = Math.hypot(normPx, normPy);
@@ -252,84 +236,74 @@ export const DuckArena = ({
 
         setPlayerState({ ...p });
 
-        // 3. VẬT LÝ BẦY VỊT (FLOCKING CHẠY VÒNG QUANH SÂN, KHÔNG BỊ DỒN VÀO GÓC)
+        // 2. VỊT DI CHUYỂN LIÊN TỤC KHẮP SÂN (WANDERING & SEPARATION & FLEE)
         let anyPanic = false;
 
         spritesRef.current.forEach((sprite, i) => {
           if (sprite.isCaught) return;
 
-          // A. Lực chạy vòng quanh sân (Orbit Tangent - ngược chiều kim đồng hồ)
-          const angle = Math.atan2(sprite.y - arenaCenter.y, sprite.x - arenaCenter.x);
-          const orbitSpeed = sprite.state === 'PANIC' ? 140 : 72;
-          const tangVx = -Math.sin(angle) * orbitSpeed;
-          const tangVy = Math.cos(angle) * (orbitSpeed * 0.65);
+          // A. Định kỳ đổi hướng lang thang tự nhiên (Wandering liên tục)
+          sprite.wanderTimer -= dt;
+          if (sprite.wanderTimer <= 0) {
+            sprite.wanderTimer = 1.2 + Math.random() * 1.8;
+            const wanderAngle = Math.random() * Math.PI * 2;
+            const speed = sprite.state === 'PANIC' ? 120 : sprite.speed;
+            sprite.vx = Math.cos(wanderAngle) * speed;
+            sprite.vy = Math.sin(wanderAngle) * (speed * 0.65);
+          }
 
-          // B. Lực né tránh người chơi khi lại gần
+          // B. Lực né tránh cô gái khi đến gần
           const distToPlayer = Math.hypot(sprite.x - p.x, sprite.y - p.y);
-          let fleeVx = 0;
-          let fleeVy = 0;
-
-          if (distToPlayer < 155) {
+          if (distToPlayer < 140) {
             sprite.state = 'PANIC';
             anyPanic = true;
-            // Đẩy dạt ra xa người chơi
-            const awayX = (sprite.x - p.x) / (distToPlayer || 1);
-            const awayY = (sprite.y - p.y) / (distToPlayer || 1);
-            fleeVx = awayX * 165;
-            fleeVy = awayY * 115;
+            // Đẩy dạt ra xa cô gái
+            const fleeAngle = Math.atan2(sprite.y - p.y, sprite.x - p.x);
+            sprite.vx = Math.cos(fleeAngle) * 130;
+            sprite.vy = Math.sin(fleeAngle) * 90;
           } else {
             sprite.state = 'WALK';
           }
 
-          // C. Lực tách nhau (Separation - giữ cự ly thoải mái, không dồn thành một đống)
-          let sepVx = 0;
-          let sepVy = 0;
+          // C. Lực tách nhau (Separation - vịt tản đều không dồn cục)
           for (let j = 0; j < spritesRef.current.length; j++) {
             if (i !== j && !spritesRef.current[j].isCaught) {
               const other = spritesRef.current[j];
               const dx = sprite.x - other.x;
               const dy = sprite.y - other.y;
               const d = Math.hypot(dx, dy);
-              if (d < 44 && d > 0) {
-                const push = ((44 - d) / d) * 60;
-                sepVx += dx * push;
-                sepVy += dy * push;
+              if (d < 50 && d > 0) {
+                const push = ((50 - d) / d) * 35 * dt;
+                sprite.x += dx * push;
+                sprite.y += dy * push;
               }
             }
           }
 
-          // D. Lực kéo nhẹ về tâm bầy (Cohesion)
-          const cohVx = (flockCenterX - sprite.x) * 0.25;
-          const cohVy = (flockCenterY - sprite.y) * 0.25;
-
-          // Tổng hợp gia tốc
-          const targetVx = tangVx + fleeVx + sepVx + cohVx;
-          const targetVy = tangVy + fleeVy + sepVy + cohVy;
-
-          // Làm mượt vận tốc (Smoothing interpolation)
-          sprite.vx += (targetVx - sprite.vx) * 3.5 * dt;
-          sprite.vy += (targetVy - sprite.vy) * 3.5 * dt;
-
-          // Cập nhật tọa độ
+          // Cập nhật vị trí di chuyển
           sprite.x += sprite.vx * dt;
           sprite.y += sprite.vy * dt;
 
-          // E. Giữ vịt luôn chạy trong hàng rào tre
-          const normX = (sprite.x - arenaCenter.x) / (arenaRadiusX * 0.86);
-          const normY = (sprite.y - arenaCenter.y) / (arenaRadiusY * 0.86);
+          // D. Giữ vịt trong hàng rào tre (Uốn lượn mềm mại khi chạm biên, KHÔNG KẸT)
+          const normX = (sprite.x - arenaCenter.x) / (arenaRadiusX * 0.85);
+          const normY = (sprite.y - arenaCenter.y) / (arenaRadiusY * 0.85);
           const dNorm = Math.hypot(normX, normY);
 
           if (dNorm > 1) {
-            sprite.x = arenaCenter.x + (normX / dNorm) * (arenaRadiusX * 0.86);
-            sprite.y = arenaCenter.y + (normY / dNorm) * (arenaRadiusY * 0.86);
-            sprite.vx *= -0.4;
-            sprite.vy *= -0.4;
+            sprite.x = arenaCenter.x + (normX / dNorm) * (arenaRadiusX * 0.85);
+            sprite.y = arenaCenter.y + (normY / dNorm) * (arenaRadiusY * 0.85);
+            // Rẽ hướng vào trong tâm sân
+            const toCenterX = arenaCenter.x - sprite.x;
+            const toCenterY = arenaCenter.y - sprite.y;
+            const toCenterAngle = Math.atan2(toCenterY, toCenterX);
+            sprite.vx = Math.cos(toCenterAngle) * sprite.speed;
+            sprite.vy = Math.sin(toCenterAngle) * (sprite.speed * 0.65);
           }
         });
 
-        // Âm thanh vịt nhao nhao khi hoảng loạn
-        if (anyPanic && currentTime - panicAudioTimerRef.current > 1600) {
-          panicAudioTimerRef.current = currentTime;
+        // Âm thanh nhao nhao khi đàn vịt hoảng loạn
+        if (anyPanic && currentTime - quackAudioTimerRef.current > 1800) {
+          quackAudioTimerRef.current = currentTime;
           duckAudio.playFlockPanic();
         }
 
@@ -345,15 +319,14 @@ export const DuckArena = ({
     };
   }, [isPaused, arenaCenter.x, arenaCenter.y, arenaRadiusX, arenaRadiusY, targetDuckId]);
 
-  // HÀNG RÀO TRE BAO QUANH SÂN
+  // CỌC RÀO TRE VÀ LỒNG ĐÈN ĐỎ LỄ HỘI (Chuẩn ảnh tham chiếu)
   const fencePosts = [];
-  const postCount = 28;
+  const postCount = 26;
   for (let i = 0; i < postCount; i++) {
     const angle = (i / postCount) * Math.PI * 2;
-    if (angle > Math.PI * 0.44 && angle < Math.PI * 0.56) continue;
     const px = arenaCenter.x + Math.cos(angle) * arenaRadiusX;
     const py = arenaCenter.y + Math.sin(angle) * arenaRadiusY;
-    fencePosts.push({ x: px, y: py, angle });
+    fencePosts.push({ x: px, y: py, angle, hasLantern: i % 3 === 0 });
   }
 
   const allNames = ducks.map(d => d.name || '');
@@ -362,9 +335,24 @@ export const DuckArena = ({
     <div
       ref={containerRef}
       onClick={() => triggerCatch()}
-      className="relative w-full h-full overflow-hidden bg-gradient-to-b from-[#1b3a1a] via-[#2d5526] to-[#122611] select-none cursor-pointer"
+      className="relative w-full h-full overflow-hidden select-none cursor-pointer"
+      style={{
+        background: 'linear-gradient(to bottom, #bbf2f6 0%, #d8f8fa 38%, #dcfce7 42%, #d2f49c 100%)'
+      }}
     >
-      {/* Container áp dụng hiệu ứng Camera Zoom ngang tầm mắt */}
+      {/* ============================================================== */}
+      {/* 1. THANH TRẠNG THÁI ĐỈNH SÂN: ĐANG ĐUỔI THEO VỊT CỦA... (Chuẩn ảnh) */}
+      {/* ============================================================== */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div className="px-5 py-2 rounded-full bg-[#1b4d3e]/85 backdrop-blur-md text-white border-2 border-white/40 shadow-xl flex items-center space-x-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-xs sm:text-sm font-black tracking-wide">
+            Đang đuổi theo vịt của {targetStudentName}...
+          </span>
+        </div>
+      </div>
+
+      {/* Container áp dụng hiệu ứng Camera 3D */}
       <div
         className="relative w-full h-full transition-transform duration-700 ease-out"
         style={{
@@ -373,163 +361,154 @@ export const DuckArena = ({
         }}
       >
         {/* ============================================================== */}
-        {/* 1. CHÒI ĐÌNH MÁI ĐỎ HẬU CẢNH NGANG MẮT */}
+        {/* 2. HẬU CẢNH: CHÒI ĐÌNH MÁI ĐỎ, RẶNG TRE & CÂY XANH LOW-POLY */}
         {/* ============================================================== */}
-        <div className="absolute top-2 inset-x-0 h-52 pointer-events-none flex flex-col items-center z-5">
-          <div className="relative mt-2 flex flex-col items-center">
-            <div className="w-56 sm:w-80 h-14 sm:h-16 bg-gradient-to-b from-[#dc2626] to-[#991b1b] rounded-t-3xl shadow-2xl border-b-4 border-[#7f1d1d]" />
-            <div className="absolute -left-6 top-0 w-10 h-10 border-t-5 border-l-5 border-[#b91c1c] rounded-tl-full transform -rotate-15" />
-            <div className="absolute -right-6 top-0 w-10 h-10 border-t-5 border-r-5 border-[#b91c1c] rounded-tr-full transform rotate-15" />
-          </div>
-          <div className="relative w-52 sm:w-72 h-16 bg-[#3f2212]/40 flex justify-between items-end px-3 border-b-2 border-[#543018]">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="w-4 h-16 bg-[#5c351b] rounded-t-xs border-r border-[#3a200f]" />
-            ))}
-          </div>
-        </div>
-
-        {/* DÂY CỜ HỘI NGŨ SẮC */}
-        <div className="absolute top-16 sm:top-18 inset-x-4 sm:inset-x-12 pointer-events-none z-15 flex justify-between items-center opacity-90">
-          {['#2563eb', '#eab308', '#dc2626', '#facc15', '#16a34a', '#ea580c', '#eab308', '#2563eb', '#dc2626', '#16a34a'].map((c, i) => (
+        {/* Rặng tre xanh cao vút phía sau bên trái */}
+        <div className="absolute top-8 left-16 sm:left-40 pointer-events-none z-6 flex items-end space-x-1.5 opacity-90">
+          {[140, 160, 180, 150, 170, 165].map((h, i) => (
             <div key={i} className="flex flex-col items-center">
-              <div
-                className="w-0 h-0 border-x-[12px] sm:border-x-[15px] border-x-transparent border-t-[22px] sm:border-t-[28px] filter drop-shadow-xs"
-                style={{ borderTopColor: c }}
-              />
+              <div className="w-2.5 bg-[#4ade80] rounded-t-full border-r border-[#22c55e]" style={{ height: `${h}px` }} />
             </div>
           ))}
         </div>
 
-        {/* Bù nhìn rơm góc trái */}
-        <div className="absolute top-20 left-2 sm:left-10 pointer-events-none z-10 hidden sm:flex flex-col items-center">
-          <div className="w-0 h-0 border-x-[20px] border-x-transparent border-b-[15px] border-b-[#dfbe84]" />
-          <div className="w-8 h-8 rounded-full bg-[#fcd34d] border border-amber-600 flex items-center justify-center text-xs -mt-1">
-            🌾
+        {/* Chòi đình mái ngói đỏ 4 cột tròn đỏ đậm (Chuẩn ảnh tham chiếu) */}
+        <div className="absolute top-12 inset-x-0 pointer-events-none flex flex-col items-center z-7">
+          {/* Mái ngói đỏ tam giác dẹt */}
+          <div className="relative flex flex-col items-center">
+            <div
+              className="w-72 sm:w-96 h-14 sm:h-18 bg-gradient-to-b from-[#ef4444] to-[#b91c1c] shadow-2xl border-b-4 border-[#7f1d1d]"
+              style={{ clipPath: 'polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%)' }}
+            />
           </div>
-          <div className="w-12 h-12 bg-[#b45309]/80 rounded-t-md -mt-1 border border-amber-800" />
-          <div className="w-16 h-10 bg-gradient-to-b from-[#fcd34d] to-[#d97706] rounded-md border border-amber-700 shadow-md flex items-center justify-center text-[9px] font-black text-amber-950 mt-1">
-            RƠM
+
+          {/* Dây cờ hội ngũ sắc giăng dưới mái */}
+          <div className="w-64 sm:w-80 flex justify-between -mt-1 px-4">
+            {['#2563eb', '#eab308', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#eab308'].map((c, i) => (
+              <div
+                key={i}
+                className="w-0 h-0 border-x-[8px] sm:border-x-[11px] border-x-transparent border-t-[14px] sm:border-t-[18px]"
+                style={{ borderTopColor: c }}
+              />
+            ))}
+          </div>
+
+          {/* 4 Cột trụ đình màu đỏ đậm & Bục gỗ vàng kem */}
+          <div className="relative w-64 sm:w-80 h-16 sm:h-20 bg-[#e7d1a2] flex justify-between items-end px-6 border-b-4 border-[#c8a96d] shadow-md">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="w-5 h-16 sm:h-20 bg-[#991b1b] rounded-t-sm border-r-2 border-[#7f1d1d] shadow-sm" />
+            ))}
           </div>
         </div>
 
-        {/* Chum vại sành góc phải */}
-        <div className="absolute top-24 right-2 sm:right-12 pointer-events-none z-10 hidden sm:flex items-end space-x-2">
-          <div className="w-18 h-16 bg-gradient-to-b from-[#fcd34d] to-[#b45309] rounded-t-full border border-amber-800 shadow-lg" />
-          <div className="w-12 h-14 bg-gradient-to-r from-[#78350f] via-[#9a3412] to-[#78350f] rounded-full border-2 border-[#451a03] shadow-xl" />
+        {/* Cây xanh đa diện Low-Poly bên trái và bên phải (Chuẩn ảnh) */}
+        <div className="absolute top-10 left-4 sm:left-12 pointer-events-none z-8 flex flex-col items-center">
+          {/* Tán cây hình khối đa diện */}
+          <div
+            className="w-20 sm:w-28 h-20 sm:h-28 bg-[#4ade80] shadow-lg border-2 border-[#22c55e]"
+            style={{ clipPath: 'polygon(50% 0%, 90% 25%, 100% 70%, 75% 100%, 25% 100%, 0% 70%, 10% 25%)' }}
+          />
+          {/* Thân cây nâu */}
+          <div className="w-6 h-12 bg-[#78350f] rounded-b-md -mt-2" />
+        </div>
+
+        <div className="absolute top-10 right-4 sm:right-12 pointer-events-none z-8 flex flex-col items-center">
+          <div
+            className="w-20 sm:w-28 h-20 sm:h-28 bg-[#22c55e] shadow-lg border-2 border-[#16a34a]"
+            style={{ clipPath: 'polygon(50% 0%, 90% 25%, 100% 70%, 75% 100%, 25% 100%, 0% 70%, 10% 25%)' }}
+          />
+          <div className="w-6 h-12 bg-[#78350f] rounded-b-md -mt-2" />
         </div>
 
         {/* ============================================================== */}
-        {/* 2. SÂN ĐẤT NÉN VÀ HÀNG RÀO TRE */}
+        {/* 3. SÂN CÁT TRÒN 3D VÀ HÀNG RÀO TRE CÓ QUẢ CẦU ĐỎ LỄ HỘI */}
         {/* ============================================================== */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
           style={{ width: `${dimensions.width}px`, height: `${dimensions.height}px` }}
         >
           <defs>
-            <radialGradient id="arenaSandGrad3D" cx="50%" cy="40%" r="60%">
-              <stop offset="0%" stopColor="#edd8b6" />
-              <stop offset="65%" stopColor="#dfbf8e" />
-              <stop offset="90%" stopColor="#cca26d" />
-              <stop offset="100%" stopColor="#a37841" />
+            {/* Màu cát vàng kem ấm áp mịn màng (Chuẩn ảnh tham chiếu) */}
+            <radialGradient id="sandYardGrad" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stopColor="#fffbeb" />
+              <stop offset="60%" stopColor="#fef08a" />
+              <stop offset="90%" stopColor="#fde047" />
+              <stop offset="100%" stopColor="#eab308" />
             </radialGradient>
-            <filter id="arenaShadow3D">
-              <feDropShadow dx="0" dy="24" stdDeviation="28" floodColor="#1b3612" floodOpacity="0.88" />
+            <filter id="yardShadow">
+              <feDropShadow dx="0" dy="16" stdDeviation="20" floodColor="#4d7c0f" floodOpacity="0.45" />
             </filter>
           </defs>
 
-          {/* Mặt sân cát elip */}
+          {/* Mặt sân cát tròn vàng kem */}
           <ellipse
             cx={arenaCenter.x}
             cy={arenaCenter.y}
             rx={arenaRadiusX}
             ry={arenaRadiusY}
-            fill="url(#arenaSandGrad3D)"
-            stroke="#b88f57"
-            strokeWidth="7"
-            filter="url(#arenaShadow3D)"
+            fill="url(#sandYardGrad)"
+            stroke="#ca8a04"
+            strokeWidth="5"
+            filter="url(#yardShadow)"
           />
 
-          {/* Vạch cát mòn */}
+          {/* Đường nan gỗ rào trên & dưới */}
           <ellipse
             cx={arenaCenter.x}
-            cy={arenaCenter.y}
-            rx={arenaRadiusX * 0.88}
-            ry={arenaRadiusY * 0.88}
-            fill="none"
-            stroke="#f2e2ca"
-            strokeWidth="3.5"
-            strokeDasharray="18 10"
-            opacity="0.65"
-          />
-
-          {/* Hàng rào tre 2 tầng */}
-          <ellipse
-            cx={arenaCenter.x}
-            cy={arenaCenter.y - 18}
+            cy={arenaCenter.y - 16}
             rx={arenaRadiusX}
             ry={arenaRadiusY}
             fill="none"
-            stroke="#c99f5d"
-            strokeWidth="6.5"
-            opacity="0.95"
+            stroke="#92400e"
+            strokeWidth="5"
+            opacity="0.9"
           />
           <ellipse
             cx={arenaCenter.x}
-            cy={arenaCenter.y - 4}
+            cy={arenaCenter.y - 3}
             rx={arenaRadiusX}
             ry={arenaRadiusY}
             fill="none"
-            stroke="#b08341"
-            strokeWidth="6.5"
-            opacity="0.95"
+            stroke="#78350f"
+            strokeWidth="5"
+            opacity="0.9"
           />
 
-          {/* Cọc rào dựng đứng */}
+          {/* Cọc rào gỗ đứng & CÁC QUẢ CẦU ĐỎ LỄ HỘI (Chuẩn 100% Ảnh) */}
           {fencePosts.map((post, idx) => (
             <g key={idx}>
+              {/* Thân cọc gỗ */}
               <rect
-                x={post.x - 5}
-                y={post.y - 34}
-                width="10"
-                height="34"
-                rx="3"
-                fill="#5a341a"
-                stroke="#3a200e"
-                strokeWidth="1.5"
+                x={post.x - 4}
+                y={post.y - 30}
+                width="8"
+                height="30"
+                rx="2"
+                fill="#78350f"
+                stroke="#451a03"
+                strokeWidth="1.2"
               />
-              <ellipse cx={post.x} cy={post.y - 34} rx="5" ry="2" fill="#784725" />
-              <ellipse cx={post.x} cy={post.y - 18} rx="6" ry="2.5" fill="#dfbe84" />
-              <ellipse cx={post.x} cy={post.y - 4} rx="6" ry="2.5" fill="#dfbe84" />
+              {/* Quả cầu đỏ tròn có núm vàng trên đỉnh cọc (Chuẩn ảnh) */}
+              {post.hasLantern && (
+                <g>
+                  <circle cx={post.x} cy={post.y - 35} r="7" fill="#ef4444" stroke="#b91c1c" strokeWidth="1" />
+                  <circle cx={post.x - 2} cy={post.y - 37} r="2" fill="#ffffff" opacity="0.6" />
+                  <circle cx={post.x} cy={post.y - 42} r="1.5" fill="#facc15" />
+                </g>
+              )}
             </g>
           ))}
-
-          {/* Cổng rào gỗ */}
-          <g>
-            <rect
-              x={arenaCenter.x - 30}
-              y={arenaCenter.y + arenaRadiusY - 28}
-              width="26"
-              height="28"
-              rx="2"
-              fill="#855027"
-              stroke="#45240c"
-              strokeWidth="2"
-            />
-            <rect
-              x={arenaCenter.x + 4}
-              y={arenaCenter.y + arenaRadiusY - 28}
-              width="26"
-              height="28"
-              rx="2"
-              fill="#855027"
-              stroke="#45240c"
-              strokeWidth="2"
-            />
-          </g>
         </svg>
 
+        {/* Các mảnh ruy băng / giấy ngũ sắc rải rác trên cát (Chuẩn ảnh) */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute w-4 h-6 bg-purple-400 rounded-xs transform rotate-12 opacity-80" style={{ left: `${arenaCenter.x - 80}px`, top: `${arenaCenter.y + 40}px` }} />
+          <div className="absolute w-5 h-4 bg-pink-400 rounded-xs transform -rotate-25 opacity-80" style={{ left: `${arenaCenter.x - 180}px`, top: `${arenaCenter.y - 30}px` }} />
+          <div className="absolute w-4 h-5 bg-amber-400 rounded-xs transform rotate-45 opacity-80" style={{ left: `${arenaCenter.x + 140}px`, top: `${arenaCenter.y + 20}px` }} />
+        </div>
+
         {/* ============================================================== */}
-        {/* 3. ĐÀN VỊT 3D CHẠY THEO BẦY VÒNG QUANH SÂN (FLOCKING) */}
+        {/* 4. ĐÀN VỊT 3D CHẠY LIÊN TỤC KHẮP SÂN (CHUẨN ẢNH THAM CHIẾU) */}
         {/* ============================================================== */}
         {duckSprites.map(sprite => (
           <DuckSprite
@@ -544,13 +523,13 @@ export const DuckArena = ({
             isQuacking={sprite.isQuacking}
             isCaught={sprite.isCaught}
             isTarget={sprite.isTarget}
-            showName={showDuckNames || mode === 'target'}
+            showName={showDuckNames}
             allNames={allNames}
           />
         ))}
 
         {/* ============================================================== */}
-        {/* 4. CẬU BÉ BỊT MẮT 3D: MẶT HƯỚNG CÙNG CHIỀU CHẠY, MẮT CHIBI ^^ */}
+        {/* 5. CÔ GÁI BỊT MẮT 3D HOẠT HÌNH DUYÊN DÁNG (CHUẨN ẢNH THAM CHIẾU) */}
         {/* ============================================================== */}
         <DuckPlayerSprite
           x={playerState.x}
@@ -563,7 +542,7 @@ export const DuckArena = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 5. NÚT BẮT VỊT TO NỔI BẬT DƯỚI ĐÁY SÂN */}
+      {/* 6. NÚT BẮT VỊT DƯỚI ĐÁY SÂN */}
       {/* ============================================================== */}
       {!hasCaughtRef.current && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex items-center space-x-3">
