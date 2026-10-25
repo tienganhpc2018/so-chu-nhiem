@@ -23,6 +23,7 @@ import { Auth } from './pages/Auth';
 import { BehaviorPage } from './features/behavior/BehaviorPage';
 import { AssessmentPage } from './features/assessment/AssessmentPage';
 import { FilmReelView } from './features/film-reel/FilmReelView';
+import { BlindfoldDuckModal } from './features/blindfold-duck/BlindfoldDuckModal';
 
 const MainLayout = () => {
   const { user, profile, loading } = useAuth();
@@ -247,6 +248,7 @@ const MainLayout = () => {
     stats: { title: 'Thống kê Thi đua', subtitle: 'Báo cáo tổng kết thi đua các tổ' },
     data: { title: 'Quản lý Dữ liệu', subtitle: 'Sao lưu, khôi phục và xuất file Excel' },
     settings: { title: 'Cài đặt hệ thống', subtitle: 'Thiết lập thông tin giáo viên và quy tắc lớp học' },
+    duckgame: { title: 'Bịt Mắt Bắt Vịt - Trò Chơi Dân Gian', subtitle: 'Trò chơi học tiếng Anh tương tác & rèn luyện thính giác không gian' },
   };
 
   const currentTabInfo = tabTitleMap[activeTab] || tabTitleMap.home;
@@ -554,7 +556,18 @@ const MainLayout = () => {
             />
           )}
 
-          {activeTab !== 'home' && activeTab !== 'behavior' && activeTab !== 'assessment' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'luckywheel' && activeTab !== 'filmstrip' && activeTab !== 'filmreel' && activeTab !== 'noisemeter' && activeTab !== 'timer' && activeTab !== 'links' && activeTab !== 'settings' && (
+          {activeTab === 'duckgame' && (
+            <div className="relative w-full h-[82vh] rounded-3xl overflow-hidden shadow-2xl border-2 border-amber-400">
+              <BlindfoldDuckModal
+                isOpen={true}
+                onClose={() => setActiveTab('behavior')}
+                currentClass={currentClass}
+                students={students}
+              />
+            </div>
+          )}
+
+          {activeTab !== 'home' && activeTab !== 'behavior' && activeTab !== 'assessment' && activeTab !== 'seating' && activeTab !== 'classes' && activeTab !== 'students' && activeTab !== 'leaderboard' && activeTab !== 'stats' && activeTab !== 'timetable' && activeTab !== 'rewards' && activeTab !== 'luckywheel' && activeTab !== 'filmstrip' && activeTab !== 'filmreel' && activeTab !== 'noisemeter' && activeTab !== 'timer' && activeTab !== 'links' && activeTab !== 'settings' && activeTab !== 'duckgame' && (
             <TeacherDashboard
               classes={classes}
               currentClass={currentClass}

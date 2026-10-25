@@ -19,6 +19,7 @@ import { GroupTeamsModal } from './components/GroupTeamsModal';
 import { RewardAllModal } from './components/RewardAllModal';
 import { MarbleRaceModal } from '../marble-race/MarbleRaceModal';
 import { UfoRaceModal } from '../ufo-race/UfoRaceModal';
+import { BlindfoldDuckModal } from '../blindfold-duck/BlindfoldDuckModal';
 
 export const BehaviorPage = ({
   currentClass,
@@ -52,6 +53,7 @@ export const BehaviorPage = ({
     beeRace: false,
     marbleRace: false,
     ufoRace: false,
+    blindfoldDuck: false,
     timer: false,
     seating: false
   });
@@ -573,6 +575,7 @@ export const BehaviorPage = ({
         onOpenBeeRace={() => openModal('beeRace')}
         onOpenMarbleRace={() => openModal('marbleRace')}
         onOpenUfoRace={() => openModal('ufoRace')}
+        onOpenBlindfoldDuck={() => openModal('blindfoldDuck')}
         onOpenTimer={() => openModal('timer')}
         onOpenSeatingChart={() => openModal('seating')}
         onResetCalled={handleResetCalled}
@@ -874,6 +877,14 @@ export const BehaviorPage = ({
             setCalledStudentIds(prev => [...prev, studentId]);
           }
         }}
+      />
+
+      {/* 15. Bịt Mắt Bắt Vịt - Trò Chơi Dân Gian Học Tiếng Anh 🦆 */}
+      <BlindfoldDuckModal
+        isOpen={modalState.blindfoldDuck}
+        onClose={() => closeModal('blindfoldDuck')}
+        currentClass={currentClass}
+        students={students}
       />
 
     </div>

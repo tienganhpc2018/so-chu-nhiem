@@ -32,6 +32,7 @@ export const TopActionBar = ({
   onOpenBeeRace,
   onOpenMarbleRace,
   onOpenUfoRace,
+  onOpenBlindfoldDuck,
   onOpenTimer,
   onOpenSeatingChart,
   onResetCalled,
@@ -207,6 +208,19 @@ export const TopActionBar = ({
         >
           <span className="text-sm">🛸</span>
           <span>Đường Đua UFO 👽</span>
+        </button>
+
+        {/* 10.7. Bịt Mắt Bắt Vịt (Trò Chơi Dân Gian Học Tiếng Anh) 🦆 */}
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            onOpenBlindfoldDuck?.();
+          }}
+          className="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 text-white font-extrabold text-xs shadow-md shadow-amber-200 hover:scale-105 active:scale-95 transition-all"
+          title="Trò chơi dân gian Bịt Mắt Bắt Vịt học tiếng Anh & gọi tên học sinh"
+        >
+          <span className="text-sm">🦆</span>
+          <span>Bịt Mắt Bắt Vịt 🌾</span>
         </button>
 
         {/* 11. Bấm Giờ ⏱️ */}

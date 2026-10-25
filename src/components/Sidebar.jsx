@@ -22,7 +22,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PhoneCall,
-  ClipboardCheck
+  ClipboardCheck,
+  Gamepad2
 } from 'lucide-react';
 
 export const Sidebar = ({ activeTab, onTabChange, studentCount = 18, teacherProfile = null }) => {
@@ -49,6 +50,7 @@ export const Sidebar = ({ activeTab, onTabChange, studentCount = 18, teacherProf
     {
       title: 'CÔNG CỤ TIỆN ÍCH',
       items: [
+        { id: 'duckgame', label: 'Bịt Mắt Bắt Vịt', icon: Gamepad2, badge: 'HOT 🦆', badgeColor: 'bg-amber-100 text-amber-700 font-black' },
         { id: 'timetable', label: 'Thời khóa biểu', icon: Calendar },
         { id: 'rewards', label: 'Đổi quà', icon: Gift, badge: 'HOT', badgeColor: 'bg-coral-100 text-coral-600 font-bold' },
         { id: 'luckywheel', label: 'Vòng quay', icon: Sparkles, badge: 'HOT', badgeColor: 'bg-amber-100 text-amber-700 font-bold' },
