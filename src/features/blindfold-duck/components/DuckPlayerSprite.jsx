@@ -1,146 +1,226 @@
 import React from 'react';
 
 /**
- * Sprite Người Bịt Mắt Bắt Vịt chuẩn phong cách Dân Gian Việt Nam theo Ảnh 2
- * - Nón lá tre truyền thống
- * - Dải khăn lụa đỏ bịt mắt bay phất phới phía sau
- * - Trang phục bà ba nâu, thắt lưng vải trắng
- * - Tư thế chạy lao người về phía trước, 2 tay vươn ra chộp bắt vịt
- * - Vệt bụi đất hoạt hình khi bước chạy
+ * Sprite Cậu Bé Bịt Mắt Bắt Vịt chuẩn 100% theo Ảnh Concept 3D:
+ * - Nón lá tre vàng ấm, chóp nhọn, nan nón tròn
+ * - Khăn lụa đỏ thắm bịt mắt với dải nơ đỏ bay phấp phới phía sau
+ * - Bộ bà ba nâu mộc mạc, thắt lưng vải trắng buộc nơ
+ * - Quần lửng nâu, chân trần sải bước chạy về phía trước
+ * - Hai tay vươn dài ra trước với 5 ngón xòe rộng tư thế chộp bắt vịt
+ * - Các vệt gió chuyển động hoạt hình (( quanh chân và tay
+ * - Má hồng, miệng cười tập trung
  */
 export const DuckPlayerSprite = ({
   x = 0,
   y = 0,
-  direction = 'right', // 'left' | 'right' | 'up' | 'down'
+  direction = 'right', // 'left' | 'right'
   isCatching = false,
-  isWalking = true,
-  playerName = 'Bạn (Người Bịt Mắt)'
+  isWalking = true
 }) => {
   const isFacingLeft = direction === 'left';
 
   return (
     <div
-      className="absolute pointer-events-none select-none z-30 transition-transform duration-100 ease-out"
+      className="absolute pointer-events-none select-none z-30 transition-transform duration-75 ease-out"
       style={{
         left: `${x}px`,
         top: `${y}px`,
         transform: `translate(-50%, -85%) ${isFacingLeft ? 'scaleX(-1)' : 'scaleX(1)'}`
       }}
     >
-      {/* 1. Nhãn tên người chơi luôn nằm ngang chuẩn */}
+      {/* 1. Bóng đổ tiếp xúc mặt đất dưới chân (Contact Shadow) */}
       <div
-        className="absolute -top-12 left-1/2 whitespace-nowrap z-50 pointer-events-none"
-        style={{ transform: `translateX(-50%) ${isFacingLeft ? 'scaleX(-1)' : 'scaleX(1)'}` }}
-      >
-        <div className="px-3 py-0.5 rounded-full bg-slate-900/90 text-amber-300 border border-amber-400 shadow-lg flex items-center space-x-1.5 backdrop-blur-xs">
-          <span className="text-xs">🙈</span>
-          <span className="font-black text-xs tracking-wide">{playerName}</span>
-        </div>
+        className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-20 h-7 rounded-full bg-[#3d2613]/35 filter blur-xs pointer-events-none"
+      />
+
+      {/* 2. Các vệt gió hoạt hình (( quanh bước chạy (Chuẩn hình ảnh) */}
+      <div className="absolute -left-6 bottom-4 pointer-events-none select-none opacity-80">
+        <svg width="28" height="24" viewBox="0 0 28 24" fill="none">
+          <path d="M4 6C8 9 14 10 20 8" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
+          <path d="M2 14C7 16 13 17 18 15" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity="0.75" />
+          <path d="M6 21C10 22 15 22 19 20" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+        </svg>
       </div>
 
-      {/* 2. Toàn bộ cơ thể người chơi theo phong cách 3D hoạt hình dân gian (Ảnh 2) */}
-      <div className="relative w-20 h-24 flex flex-col items-center">
-        {/* NÓN LÁ DÂN GIAN VIỆT NAM (Đội trên đầu) */}
-        <div className="relative z-30 -mb-2 filter drop-shadow-md">
-          {/* Hình nón lá */}
-          <div className="w-0 h-0 border-x-[28px] border-x-transparent border-b-[20px] border-b-[#d7ba89] transform rotate-[-3deg]" />
-          {/* Các nan tre viền nón */}
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 w-8 h-[1px] bg-[#bfa26f] opacity-80" />
-          <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-12 h-[1px] bg-[#bfa26f] opacity-80" />
-          {/* Chóp nón */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-1 bg-[#a6824b] rounded-t-full" />
-        </div>
+      {/* 3. Vệt gió phía trên mũ và trước tay chộp */}
+      <div className="absolute -top-3 left-6 pointer-events-none select-none opacity-85">
+        <svg width="22" height="12" viewBox="0 0 22 12" fill="none">
+          <path d="M2 10C8 3 16 3 20 8" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      </div>
 
-        {/* ĐẦU & KHĂN LỤA ĐỎ BỊT MẮT RỘNG */}
-        <div className="relative z-20 w-11 h-11 rounded-full bg-[#fbd38d] border border-[#d69e2e] shadow-sm flex items-center justify-center -mt-1">
-          {/* Tóc đen hai bên */}
-          <div className="absolute top-0 w-full h-3 bg-slate-900 rounded-t-full" />
+      {/* 4. Hình ảnh cậu bé 3D phong cách hoạt hình dân gian */}
+      <div
+        className={`relative w-28 h-28 flex flex-col items-center transition-transform ${
+          isCatching ? 'scale-105' : ''
+        }`}
+      >
+        <svg
+          width="112"
+          height="112"
+          viewBox="0 0 112 112"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="filter drop-shadow-md"
+        >
+          <defs>
+            {/* Gradient cho Nón Lá */}
+            <linearGradient id="hatGrad" x1="56" y1="12" x2="56" y2="48" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#f3dfb2" />
+              <stop offset="45%" stopColor="#dfbe84" />
+              <stop offset="100%" stopColor="#ba975a" />
+            </linearGradient>
+            {/* Gradient da người */}
+            <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffdfc4" />
+              <stop offset="100%" stopColor="#f3be98" />
+            </linearGradient>
+            {/* Khăn đỏ bịt mắt */}
+            <linearGradient id="redSilkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ef4444" />
+              <stop offset="50%" stopColor="#dc2626" />
+              <stop offset="100%" stopColor="#991b1b" />
+            </linearGradient>
+            {/* Áo bà ba nâu */}
+            <linearGradient id="shirtGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#8c6239" />
+              <stop offset="100%" stopColor="#674421" />
+            </linearGradient>
+            {/* Quần lửng nâu sẫm */}
+            <linearGradient id="pantsGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#4a3118" />
+              <stop offset="100%" stopColor="#32200f" />
+            </linearGradient>
+          </defs>
 
-          {/* DẢI KHĂN LỤA ĐỎ BỊT MẮT BẢN TO (Chuẩn 100% Ảnh 2) */}
-          <div className="absolute top-2.5 -left-1.5 w-14 h-4 bg-gradient-to-r from-red-600 via-rose-500 to-red-600 rounded-xs shadow-md z-30 flex items-center justify-center">
-            {/* Vạt nơ lụa đỏ bay phất phới phía sau đầu */}
-            <div className="absolute -left-3.5 top-0.5 w-4 h-2.5 bg-red-700 rounded-sm transform -rotate-15 shadow-xs animate-pulse" />
-            <div className="absolute -left-5 top-1.5 w-3.5 h-2 bg-red-800 rounded-sm transform rotate-10 shadow-xs" />
-            {/* Chữ BỊT MẮT vàng nhỏ xíu */}
-            <span className="text-[7.5px] font-black text-amber-200 tracking-tighter">BỊT MẮT</span>
-          </div>
+          {/* DẢI LỤA ĐỎ PHÍA SAU ĐẦU (NƠ KHĂN BAY TRONG GIÓ) */}
+          <g className="animate-pulse" opacity="0.95">
+            <path
+              d="M34 46C24 45 16 48 10 54C14 55 22 52 28 50Z"
+              fill="url(#redSilkGrad)"
+              filter="drop-shadow(0 1px 2px rgba(0,0,0,0.3))"
+            />
+            <path
+              d="M32 48C25 50 18 56 14 63C19 62 25 57 29 53Z"
+              fill="#b91c1c"
+            />
+          </g>
 
-          {/* Mũi & Miệng cười tập trung */}
-          <div className="absolute bottom-2 left-6 w-2 h-1.5 bg-amber-800/80 rounded-full" />
-          <div className="absolute bottom-1 left-5 w-3 h-1 bg-rose-600 rounded-b-full" />
-        </div>
+          {/* CHÂN SAU (CHÂN PHẢI BƯỚC ĐẨY ĐÀ BAREFOOT) */}
+          <g transform={isWalking ? "rotate(-12 36 82)" : "rotate(-5 36 82)"}>
+            {/* Ống quần sau */}
+            <path d="M38 68L28 78L36 82L44 71Z" fill="url(#pantsGrad)" />
+            {/* Bắp chân & Bàn chân trần sau chạm cát */}
+            <path d="M28 78L22 84C20 86 21 89 25 89L32 87L36 82Z" fill="url(#skinGrad)" />
+            <circle cx="21" cy="87" r="2" fill="#e79c6d" opacity="0.6" />
+          </g>
 
-        {/* THÂN ÁO BÀ BA NÂU & THẮT LƯNG VẢI TRẮNG (Chuẩn 100% Ảnh 2) */}
-        <div className="relative z-10 w-12 h-9 bg-[#6b4c35] rounded-t-md border-t border-[#8c6547] flex flex-col items-center shadow-md">
-          {/* Cổ áo & vạt áo chéo */}
-          <div className="w-4 h-2 bg-[#4a3323] rounded-b-sm" />
+          {/* THÂN MÌNH ÁO BÀ BA NÂU (Nghiêng người về phía trước) */}
+          <path
+            d="M42 54C42 54 48 50 58 52C66 53 72 58 70 68L44 72C40 66 40 58 42 54Z"
+            fill="url(#shirtGrad)"
+            stroke="#533719"
+            strokeWidth="1"
+          />
 
-          {/* ĐAI LƯNG VẢI TRẮNG BUỘC GỌN PHÍA SAU LƯNG (Theo Ảnh 2) */}
-          <div className="absolute bottom-0 w-full h-2.5 bg-[#f1f5f9] border-y border-slate-300 flex items-center justify-start pl-1">
-            {/* Dải nơ trắng buông rủ */}
-            <div className="w-1.5 h-3 bg-slate-200 rounded-b-xs transform rotate-12 shadow-xs" />
-          </div>
+          {/* CỔ ÁO & VẠT ÁO */}
+          <path d="M54 52L56 59L61 53" stroke="#422912" strokeWidth="1.5" strokeLinecap="round" />
 
-          {/* CÁNH TAY ÁO BÀ BA NÂU VƯƠN VỀ PHÍA TRƯỚC VỒ BẮT VỊT */}
-          {/* Tay phải (xa hơn) */}
-          <div
-            className={`absolute -right-3 top-2 w-7 h-3.5 bg-[#5e3f28] rounded-full transform rotate-[-15deg] shadow-sm origin-left transition-all ${
-              isCatching ? 'scale-x-125 rotate-[-5deg]' : ''
-            }`}
-          >
-            {/* Bàn tay da giơ 5 ngón vồ bắt */}
-            <div className="absolute -right-2 -top-0.5 w-3.5 h-4 bg-[#fbd38d] rounded-md border border-[#d69e2e] flex items-center justify-center">
-              <span className="text-[10px] select-none">✋</span>
-            </div>
-          </div>
+          {/* THẮT LƯNG VẢI TRẮNG BUỘC GỌN (Chuẩn ảnh concept) */}
+          <path
+            d="M44 68C48 67 60 67 68 69L67 73C59 71 47 71 43 72Z"
+            fill="#f8fafc"
+            stroke="#cbd5e1"
+            strokeWidth="1"
+          />
+          {/* Nơ thắt lưng trắng rủ xuống */}
+          <path
+            d="M46 70C43 74 41 80 43 83C45 81 48 76 48 71Z"
+            fill="#e2e8f0"
+          />
 
-          {/* Tay trái (gần hơn) */}
-          <div
-            className={`absolute -right-1 top-4 w-8 h-4 bg-[#6b4c35] rounded-full transform rotate-[-25deg] shadow-md origin-left z-20 transition-all ${
-              isCatching ? 'scale-x-130 rotate-[-10deg]' : ''
-            }`}
-          >
-            {/* Bàn tay da giơ 5 ngón vồ bắt */}
-            <div className="absolute -right-2.5 -top-0.5 w-4 h-4.5 bg-[#fbd38d] rounded-md border border-[#d69e2e] flex items-center justify-center">
-              <span className="text-[11px] select-none">✋</span>
-            </div>
-          </div>
-        </div>
+          {/* CHÂN TRƯỚC (CHÂN TRÁI BƯỚC VỀ TRƯỚC BAREFOOT) */}
+          <g transform={isWalking ? "rotate(10 56 74)" : "rotate(0 56 74)"}>
+            {/* Ống quần trước */}
+            <path d="M50 70L58 84L68 83L62 70Z" fill="url(#pantsGrad)" />
+            {/* Bắp chân & Bàn chân trần sải bước */}
+            <path d="M58 84L60 94C60 97 64 98 70 98C73 98 75 96 73 93L67 84Z" fill="url(#skinGrad)" />
+            {/* Ngón chân trần */}
+            <circle cx="72" cy="96" r="2.2" fill="#f4a261" />
+            <circle cx="68" cy="97" r="1.8" fill="#f4a261" />
+          </g>
 
-        {/* QUẦN NÂU XẮN GẤU & 2 CHÂN CHẠY LAO VỀ PHÍA TRƯỚC (Chuẩn Ảnh 2) */}
-        <div className="relative w-12 h-6 flex justify-center items-start -mt-0.5 z-10">
-          {/* Chân sau (bước sải đẩy đà) */}
-          <div
-            className={`absolute left-1 top-0 w-4 h-6 bg-[#4a3323] rounded-sm transform rotate-[-35deg] origin-top transition-transform ${
-              isWalking ? 'rotate-[-45deg]' : ''
-            }`}
-          >
-            {/* Gấu quần xắn */}
-            <div className="absolute bottom-1 w-full h-1 bg-[#6b4c35]" />
-            {/* Bàn chân trần chạm đất */}
-            <div className="absolute -bottom-1 -left-1 w-4 h-2 bg-[#fbd38d] rounded-full" />
-          </div>
+          {/* ĐẦU CẬU BÉ VÀ KHUÔN MẶT */}
+          <circle cx="56" cy="44" r="14" fill="url(#skinGrad)" />
 
-          {/* Chân trước (khuỵu gối bước tới) */}
-          <div
-            className={`absolute right-2 top-0 w-4 h-6 bg-[#5e3f28] rounded-sm transform rotate-[25deg] origin-top transition-transform ${
-              isWalking ? 'rotate-[35deg]' : ''
-            }`}
-          >
-            {/* Gấu quần xắn */}
-            <div className="absolute bottom-1 w-full h-1 bg-[#6b4c35]" />
-            {/* Bàn chân trần lao tới */}
-            <div className="absolute -bottom-1 -right-1 w-4 h-2 bg-[#fbd38d] rounded-full" />
-          </div>
-        </div>
+          {/* Má hồng phúng phính & Miệng cười */}
+          <ellipse cx="64" cy="48" rx="3.5" ry="2" fill="#fb7185" opacity="0.75" />
+          <path
+            d="M62 51C64 54 67 53 68 51"
+            stroke="#9f1239"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
 
-        {/* VỆT BỤI ĐẤT PHÍA SAU CHÂN (Tạo cảm giác đang chạy hăng say) */}
-        {isWalking && (
-          <div className="absolute -bottom-1 -left-3 flex items-center space-x-1 opacity-70 pointer-events-none">
-            <div className="w-2.5 h-1.5 bg-[#d7ba89] rounded-full animate-ping" />
-            <div className="w-3.5 h-2 bg-[#c49a5b] rounded-full blur-[0.5px]" />
-          </div>
-        )}
+          {/* KHĂN LỤA ĐỎ BỊT MẮT BẢN DÀY (Chuẩn 100% Ảnh tham chiếu) */}
+          <path
+            d="M42 39C46 38 64 39 70 42C70 45 68 48 66 49C60 47 46 46 41 47C39 44 40 41 42 39Z"
+            fill="url(#redSilkGrad)"
+            stroke="#7f1d1d"
+            strokeWidth="0.8"
+            filter="drop-shadow(0 2px 3px rgba(0,0,0,0.25))"
+          />
+          {/* Nếp gấp dải khăn đỏ */}
+          <path d="M46 42C53 41 62 42 67 44" stroke="#fca5a5" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+
+          {/* CÁNH TAY SAU (TAY TRÁI VƯƠN RA CHỘP BẮT VỊT) */}
+          <g className={isCatching ? "transform translate-x-2" : ""}>
+            <path
+              d="M58 55C66 54 78 52 86 52C88 52 90 54 89 56C87 59 78 62 68 62Z"
+              fill="#744a25"
+            />
+            {/* Bàn tay 5 ngón xòe ra chộp bắt */}
+            <path
+              d="M86 51C90 49 96 49 98 52C99 54 96 56 94 57C96 58 98 60 97 62C95 63 92 61 90 60C91 62 90 64 88 64C86 64 85 61 85 58Z"
+              fill="url(#skinGrad)"
+              stroke="#d97706"
+              strokeWidth="0.5"
+            />
+          </g>
+
+          {/* CÁNH TAY TRƯỚC (TAY PHẢI VƯƠN DÀI XÒE NGÓN BẮT) */}
+          <g className={isCatching ? "transform translate-x-3" : ""}>
+            <path
+              d="M60 58C68 58 82 56 90 57C92 57 93 60 91 62C88 66 77 68 66 66Z"
+              fill="url(#shirtGrad)"
+            />
+            {/* Bàn tay 5 ngón trước xòe ra */}
+            <path
+              d="M89 56C93 54 100 54 102 57C103 59 99 61 97 62C100 63 102 65 101 67C99 68 95 66 93 65C94 67 93 69 91 69C88 69 87 66 87 63Z"
+              fill="url(#skinGrad)"
+              stroke="#d97706"
+              strokeWidth="0.6"
+            />
+          </g>
+
+          {/* NÓN LÁ TRE DÂN GIAN VIỆT NAM (ĐỘI CHÉO TRÊN ĐẦU) */}
+          <g transform="rotate(-6 56 30)">
+            {/* Khối nón tam giác 3D */}
+            <path
+              d="M56 12L24 40C24 40 40 45 56 45C72 45 88 40 88 40L56 12Z"
+              fill="url(#hatGrad)"
+              stroke="#a16207"
+              strokeWidth="1.2"
+              filter="drop-shadow(0 4px 6px rgba(0,0,0,0.3))"
+            />
+            {/* Các vành nan nón tre tròn đồng tâm */}
+            <path d="M48 20C52 21 60 21 64 20" stroke="#78350f" strokeWidth="1" strokeLinecap="round" opacity="0.65" />
+            <path d="M40 28C48 30 64 30 72 28" stroke="#78350f" strokeWidth="1" strokeLinecap="round" opacity="0.65" />
+            <path d="M32 35C44 38 68 38 80 35" stroke="#78350f" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
+            {/* Chóp nón lá */}
+            <circle cx="56" cy="12" r="2.5" fill="#78350f" />
+          </g>
+        </svg>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Maximize, Minimize, Volume2, VolumeX, Pause, Play, Trophy, Settings, RotateCcw } from 'lucide-react';
+import { X, Maximize, Minimize, Volume2, VolumeX, Pause, Play, Trophy, Settings, RotateCcw, Users } from 'lucide-react';
 import { DuckLobbyScreen } from './components/DuckLobbyScreen';
 import { DuckArena } from './components/DuckArena';
 import { DuckQuestionModal } from './components/DuckQuestionModal';
@@ -32,6 +32,9 @@ export const BlindfoldDuckModal = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
+  // Danh sách các học sinh đã được gọi trả bài trong buổi
+  const [caughtDuckIds, setCaughtDuckIds] = useState([]);
+
   // Tiến trình thi đấu
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(1);
@@ -58,6 +61,7 @@ export const BlindfoldDuckModal = ({
       setVictoryData(null);
       setIsPaused(false);
       setTimeLeft(roundDuration);
+      setCaughtDuckIds([]);
     } else {
       duckAudio.destroy();
     }
@@ -84,7 +88,6 @@ export const BlindfoldDuckModal = ({
           return 0; // Hết giờ -> DuckArena sẽ tự động tóm 1 vịt để học sinh trả bài
         }
         if (prev <= 6) {
-          // Âm thanh tích tắc hồi hộp trong những giây cuối
           duckAudio.playTickTock(prev <= 3);
         }
         return prev - 1;
@@ -93,6 +96,13 @@ export const BlindfoldDuckModal = ({
 
     return () => clearInterval(timer);
   }, [gameStage, isPaused, activeQuestion]);
+
+  // LỰA CHỌN 9 VỊT CHO SÂN CHƠI HIỆN TẠI (Ưu tiên các bạn chưa trả bài)
+  const availableDucks = ducks.filter(d => !caughtDuckIds.includes(d.id));
+  const activeDucks = (availableDucks.length >= 9
+    ? availableDucks.slice(0, 9)
+    : [...availableDucks, ...ducks.filter(d => caughtDuckIds.includes(d.id))].slice(0, 9)
+  );
 
   // Bắt đầu chơi
   const handleStartGame = () => {
@@ -104,11 +114,11 @@ export const BlindfoldDuckModal = ({
     setTimeLeft(roundDuration);
     setActiveQuestion(null);
     setVictoryData(null);
+    setCaughtDuckIds([]);
 
-    // Nếu ở chế độ Target: chọn ngẫu nhiên 1 bạn làm mục tiêu
-    if (selectedMode === 'target' && ducks.length > 0) {
-      const randIdx = Math.floor(Math.random() * ducks.length);
-      setTargetDuck(ducks[randIdx]);
+    if (selectedMode === 'target' && activeDucks.length > 0) {
+      const randIdx = Math.floor(Math.random() * activeDucks.length);
+      setTargetDuck(activeDucks[randIdx]);
     } else {
       setTargetDuck(null);
     }
@@ -120,12 +130,13 @@ export const BlindfoldDuckModal = ({
   // Xử lý khi bắt được vịt (tự bắt hoặc hết giờ tự tóm)
   const handleCatchDuck = (duck) => {
     setDucksCaughtCount(prev => prev + 1);
+    setCaughtDuckIds(prev => [...prev, duck.id]);
 
     // Chế độ 3: Tìm đúng học sinh
     if (selectedMode === 'target') {
       if (targetDuck && duck.id === targetDuck.id) {
         setScore(s => s + 30);
-        const remaining = ducks.filter(d => d.id !== duck.id);
+        const remaining = activeDucks.filter(d => d.id !== duck.id);
         if (remaining.length > 0) {
           setTargetDuck(remaining[Math.floor(Math.random() * remaining.length)]);
         }
@@ -212,7 +223,7 @@ export const BlindfoldDuckModal = ({
         {/* THANH ĐIỀU KHIỂN TRÊN CÙNG KHI ĐANG CHƠI */}
         {gameStage === 'playing' && (
           <div className="h-14 bg-slate-900/90 backdrop-blur-md border-b border-amber-500/30 px-4 sm:px-6 flex items-center justify-between z-40 shrink-0 text-white select-none">
-            {/* Điểm & Combo */}
+            {/* Điểm & Số bạn đã trả bài */}
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/20 border border-amber-400/40">
                 <span className="text-sm">⭐</span>
@@ -226,12 +237,11 @@ export const BlindfoldDuckModal = ({
                 </div>
               )}
 
-              {targetDuck && (
-                <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-red-600/30 border border-red-500/50 text-red-300 font-bold text-xs">
-                  <span>🎯 Tìm:</span>
-                  <span className="font-black text-white">{targetDuck.name}</span>
-                </div>
-              )}
+              {/* Thông tin lớp học */}
+              <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-black/40 border border-white/10 text-xs font-bold text-amber-200">
+                <Users className="w-3.5 h-3.5 text-amber-400" />
+                <span>Đã trả bài: {caughtDuckIds.length}/{ducks.length}</span>
+              </div>
             </div>
 
             {/* ĐỒNG HỒ ĐẾM NGƯỢC (20S HOẶC 30S) & SỐ VỊT BẮT */}
@@ -264,7 +274,7 @@ export const BlindfoldDuckModal = ({
 
               <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-black/40 border border-white/10 text-xs font-black">
                 <span>🦆</span>
-                <span>{ducksCaughtCount} vịt</span>
+                <span>{ducksCaughtCount} lượt</span>
               </div>
             </div>
 
@@ -339,7 +349,7 @@ export const BlindfoldDuckModal = ({
           ) : (
             <>
               <DuckArena
-                ducks={ducks}
+                ducks={activeDucks}
                 mode={selectedMode}
                 difficulty={selectedDifficulty}
                 targetDuckId={targetDuck?.id}
