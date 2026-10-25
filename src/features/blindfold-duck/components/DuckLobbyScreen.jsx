@@ -12,6 +12,8 @@ export const DuckLobbyScreen = ({
   onToggleShowDuckNames,
   enableTts = false,
   onToggleTts,
+  characterType = 'girl',
+  onSelectCharacter,
   onStartGame,
   onOpenRules,
   onOpenLeaderboard,
@@ -188,6 +190,31 @@ export const DuckLobbyScreen = ({
           <div className="flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-xs font-bold text-amber-200">
             <span>⏱️ {roundDuration}s / lượt</span>
           </div>
+        </div>
+
+        {/* 4B. CHỌN NHÂN VẬT BỊT MẮT (CÔ BÉ / CẬU BÉ / THẦY GIÁO) */}
+        <div className="flex items-center space-x-2 mb-6 p-1.5 rounded-2xl bg-black/40 border border-amber-400/30 backdrop-blur-md">
+          <span className="text-[11px] font-black text-amber-300 uppercase tracking-wider px-2">
+            Người bịt mắt:
+          </span>
+          {[
+            { id: 'girl', label: 'Cô Bé Bà Ba', icon: '👧' },
+            { id: 'boy', label: 'Cậu Bé Nhanh Nhẹn', icon: '👦' },
+            { id: 'teacher', label: 'Thầy Giáo Vui Tính', icon: '🧑‍🏫' }
+          ].map(c => (
+            <button
+              key={c.id}
+              onClick={() => onSelectCharacter?.(c.id)}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                characterType === c.id
+                  ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md scale-105 ring-2 ring-yellow-400'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <span className="text-sm">{c.icon}</span>
+              <span>{c.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* 5. NÚT LỚN: BẮT ĐẦU BẮT VỊT (WORKFLOW NHANH CỦA THẦY) */}

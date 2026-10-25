@@ -39,6 +39,7 @@ export const BlindfoldDuckModal = ({
   const [noRepeat, setNoRepeat] = useState(true); // Không lặp học sinh trong cùng buổi
   const [showDuckNames, setShowDuckNames] = useState(true); // Mặc định hiện nhãn tên trên đầu vịt chuẩn ảnh tham chiếu
   const [enableTts, setEnableTts] = useState(false); // Đã tắt giọng đọc theo yêu cầu Thầy
+  const [characterType, setCharacterType] = useState('girl'); // 'girl' | 'boy' | 'teacher'
 
   // Danh sách học sinh / vịt
   const [ducks, setDucks] = useState(() => getLocalDucks(lmsStudents));
@@ -122,8 +123,11 @@ export const BlindfoldDuckModal = ({
     if (selectedMode === 'random_call' || selectedMode === 'target') {
       setGameStage('picking');
     } else {
-      // Chế độ "blind_catch": vào thẳng sân đàn vịt chạy, bắt xong mới lật mở tên
-      setTargetStudent(null);
+      // Chế độ "blind_catch": chọn ngẫu nhiên 1 bạn chưa được gọi từ danh sách
+      const pool = noRepeat ? ducks.filter(d => !calledStudentIds.includes(d.id)) : ducks;
+      const validPool = pool.length > 0 ? pool : ducks;
+      const randPick = validPool[Math.floor(Math.random() * validPool.length)];
+      setTargetStudent(randPick);
       setGameStage('playing');
     }
   };
@@ -137,7 +141,7 @@ export const BlindfoldDuckModal = ({
 
   // KHI BẮT ĐƯỢC CHÚ VỊT TRONG SÂN
   const handleCatchDuck = (caughtDuck) => {
-    const finalStudent = targetStudent || caughtDuck;
+    const finalStudent = (selectedMode === 'blind_catch' ? (caughtDuck || targetStudent) : (targetStudent || caughtDuck));
     setCaughtStudent(finalStudent);
     setRoundsPlayed(r => r + 1);
     setScore(s => s + 10);
@@ -331,6 +335,8 @@ export const BlindfoldDuckModal = ({
               onToggleShowDuckNames={() => setShowDuckNames(!showDuckNames)}
               enableTts={enableTts}
               onToggleTts={() => setEnableTts(!enableTts)}
+              characterType={characterType}
+              onSelectCharacter={setCharacterType}
               onStartGame={handleStartRound}
               onOpenRules={() => setShowRules(true)}
               onOpenLeaderboard={() => setShowLeaderboard(true)}
@@ -361,6 +367,7 @@ export const BlindfoldDuckModal = ({
               ducks={ducks}
               mode={selectedMode}
               targetDuckId={targetStudent?.id}
+              characterType={characterType}
               timeLeft={timeLeft}
               roundDuration={roundDuration}
               showDuckNames={showDuckNames}

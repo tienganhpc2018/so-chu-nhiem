@@ -15,6 +15,7 @@ export const DuckArena = ({
   ducks = [],
   mode = 'random_call',
   targetDuckId = null,
+  characterType = 'girl',
   timeLeft = 20,
   roundDuration = 20,
   showDuckNames = true,
@@ -24,13 +25,22 @@ export const DuckArena = ({
 }) => {
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 1000, height: 620 });
+  const [activeCharacter, setActiveCharacter] = useState(characterType || 'girl');
+
+  // Cập nhật khi prop thay đổi
+  useEffect(() => {
+    if (characterType) setActiveCharacter(characterType);
+  }, [characterType]);
+
+  // Helper so sánh ID an toàn (hỗ trợ cả string và number từ Supabase)
+  const isMatchDuck = (a, b) => a != null && b != null && String(a) === String(b);
 
   // Tâm và bán kính sân cát tròn phối cảnh 3D
   const arenaCenter = { x: dimensions.width / 2, y: dimensions.height / 2 + 50 };
   const arenaRadiusX = Math.min(dimensions.width * 0.44, 460);
   const arenaRadiusY = Math.min(dimensions.height * 0.31, 205);
 
-  // Cô gái bịt mắt 3D duyên dáng
+  // Người bịt mắt 3D hoạt hình
   const playerRef = useRef({
     x: arenaCenter.x - 60,
     y: arenaCenter.y + 20,
@@ -42,7 +52,7 @@ export const DuckArena = ({
 
   const [playerState, setPlayerState] = useState(playerRef.current);
 
-  // Đàn vịt 3D (20-26 con)
+  // Đàn vịt 3D (18-26 con)
   const [duckSprites, setDuckSprites] = useState([]);
   const [caughtDuckObj, setCaughtDuckObj] = useState(null);
   const [cameraZoom, setCameraZoom] = useState({ scale: 1, x: 0, y: 0 });
@@ -53,9 +63,9 @@ export const DuckArena = ({
   const hasCaughtRef = useRef(false);
   const quackAudioTimerRef = useRef(0);
 
-  // Tìm tên bạn học sinh đang được đuổi theo
-  const targetDuckObj = ducks.find(d => d.id === targetDuckId) || ducks[0];
-  const targetStudentName = targetDuckObj?.name || 'học sinh';
+  // Tìm tên bạn học sinh đang được đuổi theo (Không bao giờ gán cứng ducks[0])
+  const targetDuckObj = ducks.find(d => isMatchDuck(d.id, targetDuckId)) || null;
+  const targetStudentName = targetDuckObj?.name || targetDuckObj?.full_name || (mode === 'blind_catch' ? 'một chú vịt bí ẩn' : 'học sinh');
 
   // Responsive kích thước
   useEffect(() => {
@@ -89,22 +99,37 @@ export const DuckArena = ({
     };
     setPlayerState({ ...playerRef.current });
 
-    // Khởi tạo 18 - 25 chú vịt
-    const flockTargetCount = Math.max(16, Math.min(25, ducks.length));
-    const cohort = [];
+    // 1. Chú vịt mục tiêu (BẮT BUỘC CÓ MẶT NẾU ĐÃ CHỌN TÊN ĐỂ TRÁNH LỖI MẶC ĐỊNH BẠN ĐẦU TIÊN)
+    const targetDuck = ducks.find(d => isMatchDuck(d.id, targetDuckId));
 
-    for (let i = 0; i < flockTargetCount; i++) {
-      const sourceDuck = ducks[i % ducks.length];
-      cohort.push({
-        ...sourceDuck,
-        instanceId: `duck_inst_${sourceDuck.id}_${i}`,
-        isTarget: sourceDuck.id === targetDuckId
-      });
+    // 2. Trộn ngẫu nhiên danh sách các bạn học sinh còn lại
+    const remainingDucks = ducks
+      .filter(d => !targetDuck || !isMatchDuck(d.id, targetDuck.id))
+      .sort(() => Math.random() - 0.5);
+
+    // 3. Đàn vịt khoảng 16 - 26 con
+    const flockTargetCount = Math.max(16, Math.min(26, ducks.length));
+    const finalDuckList = [];
+    if (targetDuck) {
+      finalDuckList.push(targetDuck);
     }
+
+    for (let i = 0; finalDuckList.length < flockTargetCount && remainingDucks.length > 0; i++) {
+      finalDuckList.push(remainingDucks[i % remainingDucks.length]);
+    }
+
+    // Trộn ngẫu nhiên hoàn toàn thứ tự trong đàn
+    finalDuckList.sort(() => Math.random() - 0.5);
+
+    const cohort = finalDuckList.map((item, idx) => ({
+      ...item,
+      instanceId: `duck_inst_${item.id}_${idx}_${Date.now()}`,
+      isTarget: isMatchDuck(item.id, targetDuckId)
+    }));
 
     // Phân bổ đều khắp 360 độ mặt sân tròn (tránh tập trung vào góc)
     const initialSprites = cohort.map((item, idx) => {
-      const angle = (idx / flockTargetCount) * Math.PI * 2;
+      const angle = (idx / cohort.length) * Math.PI * 2;
       const rRatio = 0.35 + ((idx * 5) % 6) * 0.08; // Phân bố từ tâm ra gần biên
       const x = arenaCenter.x + Math.cos(angle) * (arenaRadiusX * rRatio);
       const y = arenaCenter.y + Math.sin(angle) * (arenaRadiusY * rRatio);
@@ -134,17 +159,30 @@ export const DuckArena = ({
     patrolAngleRef.current = 0;
   }, [ducks, targetDuckId, dimensions.width, dimensions.height]);
 
-  // HÀNH ĐỘNG BẮT VỊT
+  // HÀNH ĐỘNG BẮT VỊT (TỰ NHẬN DIỆN VỊT MỤC TIÊU HOẶC CHỌN THẬT SỰ NGẪU NHIÊN)
   const triggerCatch = (forcedDuck = null) => {
     if (hasCaughtRef.current) return;
 
     let targetToCatch = forcedDuck;
     if (!targetToCatch) {
       if (mode === 'random_call' && targetDuckId) {
-        const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId);
-        targetToCatch = targetSprite ? targetSprite.duck : (spritesRef.current[0]?.duck || ducks[0]);
-      } else {
-        targetToCatch = spritesRef.current[0]?.duck || ducks[0];
+        const targetSprite = spritesRef.current.find(s => isMatchDuck(s.duck.id, targetDuckId));
+        if (targetSprite) {
+          targetToCatch = targetSprite.duck;
+        }
+      }
+
+      // Nếu chưa có target hoặc chế độ bắt tự do / blind_catch:
+      // Bốc NGẪU NHIÊN 1 chú vịt chưa bị bắt trong sân (KHÔNG BAO GIỜ MẶC ĐỊNH NGUYỄN QUYỀN ANH)
+      if (!targetToCatch) {
+        const uncaughtSprites = spritesRef.current.filter(s => !s.isCaught);
+        if (uncaughtSprites.length > 0) {
+          const randIdx = Math.floor(Math.random() * uncaughtSprites.length);
+          targetToCatch = uncaughtSprites[randIdx].duck;
+        } else if (ducks.length > 0) {
+          const randIdx = Math.floor(Math.random() * ducks.length);
+          targetToCatch = ducks[randIdx];
+        }
       }
     }
 
@@ -185,12 +223,24 @@ export const DuckArena = ({
     }
   };
 
-  // KHI HẾT THỜI GIAN: TỰ ĐỘNG BẮT ĐÚNG VỊT MỤC TIÊU
+  // KHI HẾT THỜI GIAN: TỰ ĐỘNG BẮT ĐÚNG VỊT MỤC TIÊU HOẶC 1 CHÚ VỊT NGẪU NHIÊN
   useEffect(() => {
     if (timeLeft === 0 && !hasCaughtRef.current && !isPaused) {
-      const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId);
-      const chosen = targetSprite ? targetSprite.duck : (spritesRef.current[0]?.duck || ducks[0]);
-      triggerCatch(chosen);
+      let targetSprite = null;
+      if (targetDuckId) {
+        targetSprite = spritesRef.current.find(s => isMatchDuck(s.duck.id, targetDuckId));
+      }
+      if (targetSprite) {
+        triggerCatch(targetSprite.duck);
+      } else {
+        const activeSprites = spritesRef.current.filter(s => !s.isCaught);
+        if (activeSprites.length > 0) {
+          const randIdx = Math.floor(Math.random() * activeSprites.length);
+          triggerCatch(activeSprites[randIdx].duck);
+        } else {
+          triggerCatch();
+        }
+      }
     }
   }, [timeLeft, isPaused, targetDuckId]);
 
@@ -205,8 +255,16 @@ export const DuckArena = ({
       if (!isPaused && !hasCaughtRef.current && spritesRef.current.length > 0) {
         let p = playerRef.current;
 
-        // 1. CÔ GÁI RƯỢT ĐUỔI VỊT MỤC TIÊU (MẶT VÀ THÂN CÙNG HƯỚNG CHẠY)
-        const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId) || spritesRef.current[0];
+        // 1. NGƯỜI BỊT MẮT RƯỢT ĐUỔI VỊT MỤC TIÊU (MẶT VÀ THÂN CÙNG HƯỚNG CHẠY)
+        let targetSprite = null;
+        if (targetDuckId) {
+          targetSprite = spritesRef.current.find(s => isMatchDuck(s.duck.id, targetDuckId));
+        }
+        if (!targetSprite && spritesRef.current.length > 0) {
+          const cycleIdx = Math.abs(Math.floor(currentTime / 3500)) % spritesRef.current.length;
+          targetSprite = spritesRef.current[cycleIdx];
+        }
+
         const targetX = targetSprite ? targetSprite.x : arenaCenter.x;
         const targetY = targetSprite ? targetSprite.y : arenaCenter.y;
 
@@ -225,7 +283,7 @@ export const DuckArena = ({
         }
         p.isWalking = true;
 
-        // Giữ cô gái trong sân
+        // Giữ người chơi trong sân
         const normPx = (p.x - arenaCenter.x) / (arenaRadiusX * 0.82);
         const normPy = (p.y - arenaCenter.y) / (arenaRadiusY * 0.82);
         const distNormP = Math.hypot(normPx, normPy);
@@ -252,15 +310,16 @@ export const DuckArena = ({
             sprite.vy = Math.sin(wanderAngle) * (speed * 0.65);
           }
 
-          // B. Lực né tránh cô gái khi đến gần
+          // B. Lực né tránh người bắt khi đến gần (vòng cung trượt né, tránh kẹt góc rào)
           const distToPlayer = Math.hypot(sprite.x - p.x, sprite.y - p.y);
           if (distToPlayer < 140) {
             sprite.state = 'PANIC';
             anyPanic = true;
-            // Đẩy dạt ra xa cô gái
+            // Đẩy dạt ra xa + lượn vòng cung vuông góc để thoát
             const fleeAngle = Math.atan2(sprite.y - p.y, sprite.x - p.x);
-            sprite.vx = Math.cos(fleeAngle) * 130;
-            sprite.vy = Math.sin(fleeAngle) * 90;
+            const tangentOffset = (i % 2 === 0 ? 0.65 : -0.65);
+            sprite.vx = Math.cos(fleeAngle + tangentOffset) * 135;
+            sprite.vy = Math.sin(fleeAngle + tangentOffset) * 90;
           } else {
             sprite.state = 'WALK';
           }
@@ -347,9 +406,40 @@ export const DuckArena = ({
         <div className="px-5 py-2 rounded-full bg-[#1b4d3e]/85 backdrop-blur-md text-white border-2 border-white/40 shadow-xl flex items-center space-x-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
           <span className="text-xs sm:text-sm font-black tracking-wide">
-            Đang đuổi theo vịt của {targetStudentName}...
+            {mode === 'blind_catch'
+              ? '🎯 Đang bịt mắt tìm bắt một chú vịt bí ẩn...'
+              : `Đang đuổi theo vịt của ${targetStudentName}...`}
           </span>
         </div>
+      </div>
+
+      {/* ============================================================== */}
+      {/* 1B. NÚT ĐỔI 3 NHÂN VẬT BỊT MẮT: CÔ BÉ / CẬU BÉ / THẦY GIÁO */}
+      {/* ============================================================== */}
+      <div className="absolute top-3 right-3 sm:right-5 z-50 pointer-events-auto flex items-center space-x-1 p-1 rounded-2xl bg-black/60 backdrop-blur-md border border-amber-400/50 shadow-xl">
+        <span className="text-[10px] font-black text-amber-200 pl-2 pr-1 hidden md:inline">Nhân vật:</span>
+        {[
+          { id: 'girl', label: 'Cô Bé', icon: '👧' },
+          { id: 'boy', label: 'Cậu Bé', icon: '👦' },
+          { id: 'teacher', label: 'Thầy Giáo', icon: '🧑‍🏫' }
+        ].map(char => (
+          <button
+            key={char.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveCharacter(char.id);
+            }}
+            className={`flex items-center space-x-1 px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
+              activeCharacter === char.id
+                ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md scale-105 ring-2 ring-yellow-400'
+                : 'text-white/80 hover:text-white hover:bg-white/10'
+            }`}
+            title={`Chuyển người bịt mắt thành ${char.label}`}
+          >
+            <span className="text-sm">{char.icon}</span>
+            <span>{char.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Container áp dụng hiệu ứng Camera 3D */}
@@ -529,12 +619,13 @@ export const DuckArena = ({
         ))}
 
         {/* ============================================================== */}
-        {/* 5. CÔ GÁI BỊT MẮT 3D HOẠT HÌNH DUYÊN DÁNG (CHUẨN ẢNH THAM CHIẾU) */}
+        {/* 5. NGƯỜI BỊT MẮT 3D HOẠT HÌNH (CÔ BÉ / CẬU BÉ / THẦY GIÁO) */}
         {/* ============================================================== */}
         <DuckPlayerSprite
           x={playerState.x}
           y={playerState.y}
           direction={playerState.direction}
+          characterType={activeCharacter}
           isWalking={playerState.isWalking}
           isCatching={playerState.isCatching}
           isHoldingDuck={playerState.isHoldingDuck}
