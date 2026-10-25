@@ -22,6 +22,7 @@ import {
 import confetti from 'canvas-confetti';
 import { soundFx } from '../../../utils/soundEffects';
 import { AvatarCropModal } from '../../../components/AvatarCropModal';
+import { CameraCaptureModal } from '../../../components/CameraCaptureModal';
 
 const DEFAULT_PLUS_CRITERIA = [
   { id: 'p1', label: 'Phát biểu xây dựng bài', points: 2, icon: '🙋‍♂️' },
@@ -120,8 +121,9 @@ export const PointModal = ({
   const [exchangeAmount, setExchangeAmount] = useState(10);
   const [notification, setNotification] = useState(null);
 
-  // Avatar Cropper Modal state
+  // Avatar Cropper & Camera Modal states
   const [showCropModal, setShowCropModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const [cropImageSrc, setCropImageSrc] = useState(null);
 
   // New criteria form state
@@ -262,6 +264,13 @@ export const PointModal = ({
       reader.readAsDataURL(file);
       e.target.value = ''; // Reset input để có thể chọn lại file
     }
+  };
+
+  // Nhận ảnh vừa chụp từ Camera / Webcam -> Mở ngay Avatar Cropper với AI Face Detection
+  const handleCapturedFromCamera = (dataUrl) => {
+    setShowCameraModal(false);
+    setCropImageSrc(dataUrl);
+    setShowCropModal(true);
   };
 
   // Mở công cụ căn chỉnh khuôn mặt cho ảnh hiện tại của học sinh
@@ -803,24 +812,39 @@ export const PointModal = ({
               </div>
 
               <div className="flex flex-wrap items-center gap-2 shrink-0">
-                {/* Nút Căn chỉnh khuôn mặt nếu học sinh đã có ảnh đại diện */}
+                {/* 1. Nút Chụp Ảnh Trực Tiếp Bằng Webcam / Camera */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFx.playClick();
+                    setShowCameraModal(true);
+                  }}
+                  className="px-3.5 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all active:scale-95"
+                  title="Bật webcam hoặc camera điện thoại chụp ngay tại lớp"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Chụp Camera</span>
+                </button>
+
+                {/* 2. Nút Tải file từ máy tính */}
+                <label className="cursor-pointer px-3.5 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-1.5 shrink-0 transition-all active:scale-95">
+                  <Upload className="w-4 h-4" />
+                  <span>Tải Từ Máy</span>
+                  <input type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
+                </label>
+
+                {/* 3. Nút Căn chỉnh lại khuôn mặt nếu học sinh đã có ảnh */}
                 {currentSt.avatar && !currentSt.avatar.includes('dicebear') && (
                   <button
                     type="button"
                     onClick={handleOpenReCrop}
-                    className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all active:scale-95"
+                    className="px-3 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all active:scale-95"
                     title="Mở công cụ di chuyển và căn đúng khuôn mặt"
                   >
                     <Crop className="w-4 h-4" />
-                    <span>Căn Chỉnh Khuôn Mặt</span>
+                    <span>Căn Chỉnh Mặt</span>
                   </button>
                 )}
-
-                <label className="cursor-pointer px-4 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-2 shrink-0 transition-all active:scale-95">
-                  <Upload className="w-4 h-4" />
-                  <span>Chọn File Ảnh</span>
-                  <input type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
-                </label>
               </div>
             </div>
 
@@ -958,6 +982,14 @@ export const PointModal = ({
         imageSrc={cropImageSrc}
         studentName={currentSt?.full_name || currentSt?.name}
         onSaveAvatar={handleSaveCroppedAvatar}
+      />
+
+      {/* MODAL CHỤP ẢNH TRỰC TIẾP TỪ CAMERA / WEBCAM */}
+      <CameraCaptureModal
+        isOpen={showCameraModal}
+        onClose={() => setShowCameraModal(false)}
+        studentName={currentSt?.full_name || currentSt?.name}
+        onCaptureImage={handleCapturedFromCamera}
       />
     </div>
   );

@@ -87,7 +87,7 @@ export const StudentCard = ({
             ✏️
           </div>
         </div>
-        <h4 className="text-xs font-extrabold text-slate-800 line-clamp-1 group-hover:text-purple-700 transition-colors">
+        <h4 className="text-xs font-extrabold text-slate-800 line-clamp-2 min-h-[2rem] flex items-center justify-center text-center group-hover:text-purple-700 transition-colors break-words">
           {student.full_name}
         </h4>
       </div>
