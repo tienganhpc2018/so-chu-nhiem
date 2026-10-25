@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Maximize, Minimize, Volume2, VolumeX, Pause, Play, Trophy, Settings } from 'lucide-react';
+import { X, Maximize, Minimize, Volume2, VolumeX, Pause, Play, Trophy, Settings, RotateCcw } from 'lucide-react';
 import { DuckLobbyScreen } from './components/DuckLobbyScreen';
 import { DuckArena } from './components/DuckArena';
 import { DuckQuestionModal } from './components/DuckQuestionModal';
@@ -25,6 +25,7 @@ export const BlindfoldDuckModal = ({
   // Cấu hình
   const [selectedMode, setSelectedMode] = useState('quiz');
   const [selectedDifficulty, setSelectedDifficulty] = useState('easy');
+  const [roundDuration, setRoundDuration] = useState(20); // Mặc định 20 giây (hoặc 30 giây)
   const [ducks, setDucks] = useState(() => getLocalDucks(lmsStudents));
   const [questions, setQuestions] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -37,7 +38,7 @@ export const BlindfoldDuckModal = ({
   const [comboMax, setComboMax] = useState(1);
   const [ducksCaughtCount, setDucksCaughtCount] = useState(0);
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(20);
   const [targetDuck, setTargetDuck] = useState(null);
 
   // Modal phụ
@@ -56,6 +57,7 @@ export const BlindfoldDuckModal = ({
       setGameStage('lobby');
       setVictoryData(null);
       setIsPaused(false);
+      setTimeLeft(roundDuration);
     } else {
       duckAudio.destroy();
     }
@@ -71,27 +73,26 @@ export const BlindfoldDuckModal = ({
     }
   }, [gameStage, isMuted, isPaused]);
 
-  // Bộ đếm giờ chơi
+  // Bộ đếm ngược thời gian vòng chơi (20s hoặc 30s)
   useEffect(() => {
     if (gameStage !== 'playing' || isPaused || activeQuestion) return;
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
-        if (selectedMode === 'time_trial') {
-          if (prev <= 1) {
-            clearInterval(timer);
-            handleFinishGame();
-            return 0;
-          }
-          return prev - 1;
-        } else {
-          return prev + 1; // Stopwatch đếm xuôi
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0; // Hết giờ -> DuckArena sẽ tự động tóm 1 vịt để học sinh trả bài
         }
+        if (prev <= 6) {
+          // Âm thanh tích tắc hồi hộp trong những giây cuối
+          duckAudio.playTickTock(prev <= 3);
+        }
+        return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameStage, isPaused, activeQuestion, selectedMode]);
+  }, [gameStage, isPaused, activeQuestion]);
 
   // Bắt đầu chơi
   const handleStartGame = () => {
@@ -100,7 +101,7 @@ export const BlindfoldDuckModal = ({
     setComboMax(1);
     setDucksCaughtCount(0);
     setCorrectAnswersCount(0);
-    setTimeLeft(selectedMode === 'time_trial' ? 60 : 0);
+    setTimeLeft(roundDuration);
     setActiveQuestion(null);
     setVictoryData(null);
 
@@ -116,16 +117,14 @@ export const BlindfoldDuckModal = ({
     duckAudio.playCountdown();
   };
 
-  // Xử lý khi bắt được vịt
+  // Xử lý khi bắt được vịt (tự bắt hoặc hết giờ tự tóm)
   const handleCatchDuck = (duck) => {
     setDucksCaughtCount(prev => prev + 1);
 
     // Chế độ 3: Tìm đúng học sinh
     if (selectedMode === 'target') {
       if (targetDuck && duck.id === targetDuck.id) {
-        // Bắt đúng mục tiêu!
         setScore(s => s + 30);
-        // Chọn mục tiêu tiếp theo
         const remaining = ducks.filter(d => d.id !== duck.id);
         if (remaining.length > 0) {
           setTargetDuck(remaining[Math.floor(Math.random() * remaining.length)]);
@@ -136,33 +135,42 @@ export const BlindfoldDuckModal = ({
       }
     }
 
-    // Chế độ 2: Bắt Vịt Học Tiếng Anh -> Mở câu hỏi
-    if (selectedMode === 'quiz' && questions.length > 0) {
-      const randQ = questions[Math.floor(Math.random() * questions.length)];
-      setActiveQuestion({ question: randQ, duckName: duck.name });
-    } else {
-      // Chế độ tự do
-      setScore(s => s + 10);
-    }
+    // Luôn mở câu hỏi trả bài cho học sinh bị bắt
+    let currentQ = questions.length > 0
+      ? questions[Math.floor(Math.random() * questions.length)]
+      : {
+          id: 'q_default',
+          question: `Mời bạn ${duck.name} trả lời câu hỏi bài cũ của Thầy trên lớp:`,
+          option_a: 'Đã thuộc bài và chuẩn bị chu đáo',
+          option_b: 'Cần ôn tập thêm một chút',
+          option_c: 'Trả lời đúng 1 phần',
+          option_d: 'Xung phong giải bài tập khó',
+          correct_answer: 'A',
+          explanation: 'Thầy đánh giá phần trả bài của học sinh và ghi nhận điểm số.',
+          points: 10
+        };
+
+    setActiveQuestion({ question: currentQ, duckName: duck.name });
   };
 
-  // Xử lý trả lời câu hỏi
+  // Xử lý khi hoàn tất trả bài
   const handleAnswerQuestion = ({ isCorrect, points }) => {
     if (isCorrect) {
-      setScore(s => s + points);
+      setScore(s => s + (points || 10));
       setCorrectAnswersCount(c => c + 1);
       const nextCombo = combo + 1;
       setCombo(nextCombo);
       if (nextCombo > comboMax) setComboMax(nextCombo);
     } else {
-      setCombo(1); // Mất combo
+      setCombo(1);
     }
     setActiveQuestion(null);
+    // Bắt đầu vòng 20s/30s tiếp theo cho bạn khác
+    setTimeLeft(roundDuration);
   };
 
   // Kết thúc lượt chơi
   const handleFinishGame = async () => {
-    const finalDuration = selectedMode === 'time_trial' ? 60 : Math.max(1, timeLeft);
     const sessionItem = {
       playerName: currentClass ? `HS ${currentClass.name}` : 'Học sinh',
       classId: currentClass?.id,
@@ -173,7 +181,7 @@ export const BlindfoldDuckModal = ({
       correctAnswers: correctAnswersCount,
       totalQuestions: ducksCaughtCount,
       comboMax,
-      durationSeconds: finalDuration
+      durationSeconds: roundDuration
     };
 
     await saveGameSession(sessionItem);
@@ -226,16 +234,37 @@ export const BlindfoldDuckModal = ({
               )}
             </div>
 
-            {/* Thời gian & Số vịt bắt */}
+            {/* ĐỒNG HỒ ĐẾM NGƯỢC (20S HOẶC 30S) & SỐ VỊT BẮT */}
             <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-black/40 border border-white/10 text-xs font-black">
-                <span>⏱️</span>
-                <span>{selectedMode === 'time_trial' ? `${timeLeft}s` : `${timeLeft}s`}</span>
+              <div
+                className={`flex items-center space-x-1.5 px-3.5 py-1 rounded-xl border text-xs sm:text-sm font-black transition-all ${
+                  timeLeft <= 5
+                    ? 'bg-red-600/90 border-yellow-300 text-yellow-200 shadow-lg shadow-red-500/50 animate-pulse scale-105'
+                    : 'bg-black/50 border-amber-400/50 text-amber-200'
+                }`}
+                title="Thời gian rượt đuổi bắt vịt trả bài"
+              >
+                <span className="text-base">⏱️</span>
+                <span>{timeLeft}s</span>
               </div>
+
+              {/* Nút đổi nhanh 20s / 30s ngay trên thanh trạng thái */}
+              <button
+                onClick={() => {
+                  const nextTime = roundDuration === 20 ? 30 : 20;
+                  setRoundDuration(nextTime);
+                  setTimeLeft(nextTime);
+                }}
+                className="hidden md:flex items-center space-x-1 px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-[11px] font-black text-amber-300 transition-all active:scale-95"
+                title="Chuyển đổi thời gian vòng chơi"
+              >
+                <span>Chế độ: {roundDuration}s</span>
+                <RotateCcw className="w-3 h-3 ml-0.5" />
+              </button>
 
               <div className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-black/40 border border-white/10 text-xs font-black">
                 <span>🦆</span>
-                <span>{ducksCaughtCount}</span>
+                <span>{ducksCaughtCount} vịt</span>
               </div>
             </div>
 
@@ -293,6 +322,11 @@ export const BlindfoldDuckModal = ({
               onSelectMode={setSelectedMode}
               selectedDifficulty={selectedDifficulty}
               onSelectDifficulty={setSelectedDifficulty}
+              roundDuration={roundDuration}
+              onSelectRoundDuration={(d) => {
+                setRoundDuration(d);
+                setTimeLeft(d);
+              }}
               onStartGame={handleStartGame}
               onOpenRules={() => setShowRules(true)}
               onOpenLeaderboard={() => setShowLeaderboard(true)}
@@ -309,6 +343,8 @@ export const BlindfoldDuckModal = ({
                 mode={selectedMode}
                 difficulty={selectedDifficulty}
                 targetDuckId={targetDuck?.id}
+                timeLeft={timeLeft}
+                roundDuration={roundDuration}
                 onCatchDuck={handleCatchDuck}
                 onMissCatch={() => {}}
                 isPaused={isPaused}

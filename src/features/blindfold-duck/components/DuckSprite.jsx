@@ -1,10 +1,13 @@
 import React from 'react';
+import { getShortStudentName } from '../data/defaultDuckData';
 
 /**
  * Sprite Chú Vịt Hoạt Hình Trắng Muốt chuẩn 100% theo Ảnh 2
  * - Chú vịt con lông trắng tinh, mỏ cam, má hồng xinh xắn
  * - Đôi cánh vỗ tung tăng khi chạy trốn
  * - Nhãn tên học sinh dạng viên thuốc trắng viền xanh dương chữ xanh đậm (như [Trang], [Duy], [Minh])
+ * - Tự động rút gọn "Chữ lót + Tên" để không chồng đè khi lớp đông học sinh
+ * - Sóng âm thanh tỏa ra khi cất tiếng quạc quạc
  * - Bạn Quang đeo kính tròn trí thức 👓
  * - Bong bóng hội thoại học đường (Thầy ơi em đây này!, Hụt rồi!, Em chưa học bài đâu!)
  */
@@ -14,14 +17,17 @@ export const DuckSprite = ({
   y = 0,
   vx = 1,
   speechQuote = null,
+  isQuacking = false,
   isCaught = false,
   isTarget = false,
-  isBlurMode = false
+  isBlurMode = false,
+  allNames = []
 }) => {
   const isFacingRight = vx >= 0;
-  const name = duck?.name || 'Vịt';
-  const hasGlasses = name.toLowerCase().includes('quang');
-  const isSweating = name.toLowerCase().includes('diệp') || isTarget;
+  const fullName = duck?.name || 'Vịt';
+  const displayName = duck?.shortName || getShortStudentName(fullName, allNames);
+  const hasGlasses = fullName.toLowerCase().includes('quang');
+  const isSweating = fullName.toLowerCase().includes('diệp') || isTarget;
 
   return (
     <div
@@ -38,7 +44,7 @@ export const DuckSprite = ({
       {/* 1. BONG BÓNG LỜI THOẠI HỌC ĐƯỜNG TRẮNG VIỀN XANH/ĐEN (Chuẩn 100% Ảnh 2) */}
       {speechQuote && (
         <div className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 pointer-events-none">
-          <div className="relative px-3 py-1 rounded-2xl bg-white text-slate-900 text-[11px] font-black border-2 border-slate-900 shadow-xl max-w-[210px] text-center leading-tight">
+          <div className="relative px-2.5 py-1 rounded-2xl bg-white text-slate-900 text-[11px] font-black border-2 border-slate-900 shadow-xl max-w-[210px] text-center leading-tight">
             <span>{speechQuote}</span>
             {/* Đuôi bong bóng thoại */}
             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-6 border-t-slate-900" />
@@ -47,24 +53,34 @@ export const DuckSprite = ({
         </div>
       )}
 
-      {/* 2. NHÃN TÊN HỌC SINH CHỮ XANH VIỀN XANH NỀN TRẮNG (Chuẩn 100% Ảnh 2) */}
+      {/* 2. NHÃN TÊN HỌC SINH RÚT GỌN (CHỮ LÓT + TÊN) CHỮ XANH VIỀN XANH NỀN TRẮNG (Chuẩn 100% Ảnh 2) */}
       <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap z-40">
         <div
-          className={`px-3 py-0.5 rounded-full border-2 shadow-md flex items-center space-x-1 ${
+          className={`px-2.5 py-0.5 rounded-full border-2 shadow-md flex items-center space-x-1 ${
             isTarget
               ? 'bg-red-600 text-yellow-200 border-yellow-300 animate-pulse font-black scale-105'
+              : isQuacking
+              ? 'bg-amber-100 text-[#1d4ed8] border-amber-400 font-black text-xs scale-105 shadow-amber-300'
               : 'bg-white text-[#1d4ed8] border-[#2563eb] font-black text-xs'
           }`}
         >
-          <span>{name}</span>
+          <span>{displayName}</span>
+          {isQuacking && <span className="text-[10px]">🔊</span>}
           {isTarget && <span className="text-[9px] bg-yellow-400 text-red-900 px-1 rounded-xs">MỤC TIÊU!</span>}
         </div>
       </div>
 
+      {/* SÓNG ÂM THANH KHI VỊT KÊU CẠP CẠP (Sound Waves Ripple) */}
+      {isQuacking && (
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 pointer-events-none z-10 flex items-center justify-center">
+          <div className="w-14 h-7 rounded-full border-2 border-amber-400 opacity-80 animate-ping" />
+        </div>
+      )}
+
       {/* 3. HIỆU ỨNG BẮT TRÚNG: PHÁO HOA & SAO VÀNG 🎉 */}
       {isCaught && (
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 animate-bounce">
-          <span className="text-2xl">✨🎉✨</span>
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 animate-bounce">
+          <span className="text-3xl">✨🎉✨</span>
         </div>
       )}
 

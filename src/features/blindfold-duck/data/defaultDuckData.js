@@ -3,6 +3,34 @@
  * Môn Tiếng Anh THCS - Thầy Nguyễn Văn Hải
  */
 
+/**
+ * Rút gọn tên học sinh: "Chữ lót + Tên" (nếu trùng thì lấy "Họ + Tên")
+ * Giúp hiển thị gọn gàng, không bị chồng đè chữ khi cả lớp 35-40 học sinh cùng vào sân
+ */
+export function getShortStudentName(fullName = '', allNames = []) {
+  if (!fullName) return 'Vịt';
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 1) return fullName;
+  if (parts.length === 2) return fullName; // e.g. "Lê Nam"
+
+  // Chữ lót + Tên: e.g. "Huỳnh Thị Linh Vy" -> "Linh Vy", "Trịnh Trần Minh Trung" -> "Minh Trung"
+  const shortName = `${parts[parts.length - 2]} ${parts[parts.length - 1]}`;
+
+  // Kiểm tra trùng trong lớp: nếu có nhiều hơn 1 bạn cùng shortName thì lấy Họ + Tên
+  if (allNames && allNames.length > 0) {
+    const duplicates = allNames.filter(n => {
+      const p = (n || '').trim().split(/\s+/);
+      const s = p.length >= 2 ? `${p[p.length - 2]} ${p[p.length - 1]}` : n;
+      return s.toLowerCase() === shortName.toLowerCase();
+    });
+    if (duplicates.length > 1) {
+      return `${parts[0]} ${parts[parts.length - 1]}`; // e.g. "Huỳnh Vy" vs "Nguyễn Vy"
+    }
+  }
+
+  return shortName;
+}
+
 export const DEFAULT_DUCK_NAMES = [
   'Trang',
   'Duy',

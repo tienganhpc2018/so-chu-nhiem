@@ -40,8 +40,9 @@ class DuckAudioEngine {
    * @param {number} relX - Tọa độ X tương đối từ -1 (hoàn toàn bên trái) đến +1 (hoàn toàn bên phải)
    * @param {number} distance - Khoảng cách thực tế giữa người chơi và con vịt
    * @param {number} maxDist - Khoảng cách tối đa của sân
+   * @param {number} pitchType - 0: chuẩn, 1: cao (vịt nhỏ), 2: thấp (vịt to)
    */
-  playSpatialQuack(relX = 0, distance = 100, maxDist = 400) {
+  playSpatialQuack(relX = 0, distance = 100, maxDist = 400, pitchType = 0) {
     if (this.isMuted) return;
     this.initCtx();
     if (!this.ctx) return;
@@ -49,9 +50,9 @@ class DuckAudioEngine {
     try {
       const now = this.ctx.currentTime;
       const panVal = Math.max(-1, Math.min(1, relX));
-      // Khoảng cách càng gần âm lượng càng lớn, càng xa âm lượng càng nhỏ
+      // Khoảng cách càng gần âm lượng càng lớn, càng xa âm lượng nhỏ hơn
       const distRatio = Math.max(0, Math.min(1, distance / maxDist));
-      const distVol = (1.0 - distRatio * 0.75) * this.volume;
+      const distVol = (1.1 - distRatio * 0.7) * this.volume;
 
       // Panner Node (Định vị loa trái / phải)
       let panner;
@@ -60,22 +61,22 @@ class DuckAudioEngine {
         panner.pan.setValueAtTime(panVal, now);
       }
 
-      // Bộ dao động âm thanh tiếng quạc hoạt hình
+      // Bộ dao động âm thanh tiếng quạc hoạt hình sinh động
+      const baseFreq = pitchType === 1 ? 440 : pitchType === 2 ? 300 : 370;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       const filter = this.ctx.createBiquadFilter();
 
       osc.type = 'sawtooth';
-      // Tần số dao động đặc trưng tiếng quạc vịt 350Hz -> 200Hz
-      osc.frequency.setValueAtTime(360, now);
-      osc.frequency.exponentialRampToValueAtTime(180, now + 0.16);
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, now + 0.18);
 
       filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(800, now);
-      filter.Q.setValueAtTime(3.5, now);
+      filter.frequency.setValueAtTime(baseFreq * 2.2, now);
+      filter.Q.setValueAtTime(3.8, now);
 
       gain.gain.setValueAtTime(0.001, now);
-      gain.gain.linearRampToValueAtTime(0.35 * distVol, now + 0.03);
+      gain.gain.linearRampToValueAtTime(0.42 * distVol, now + 0.03);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
       osc.connect(filter);
@@ -89,10 +90,56 @@ class DuckAudioEngine {
       }
 
       osc.start(now);
-      osc.stop(now + 0.25);
+      osc.stop(now + 0.24);
+
+      // Tiếng cạp phụ thứ 2 nhát nhỏ cho vui nhộn ("Cạp cạp!")
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(baseFreq * 1.1, now + 0.14);
+      osc2.frequency.exponentialRampToValueAtTime(baseFreq * 0.55, now + 0.28);
+
+      gain2.gain.setValueAtTime(0.001, now + 0.14);
+      gain2.gain.linearRampToValueAtTime(0.3 * distVol, now + 0.16);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+      osc2.connect(filter);
+      if (panner) {
+        gain2.connect(panner);
+      } else {
+        gain2.connect(this.ctx.destination);
+      }
+      osc2.start(now + 0.14);
+      osc2.stop(now + 0.32);
     } catch (e) {
       // Audio fallback
     }
+  }
+
+  /**
+   * Tiếng tích tắc đếm ngược đồng hồ (Tick Tock)
+   */
+  playTickTock(isUrgent = false) {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(isUrgent ? 1200 : 800, now);
+
+      gain.gain.setValueAtTime(isUrgent ? 0.3 * this.volume : 0.15 * this.volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } catch (e) {}
   }
 
   /**

@@ -7,6 +7,8 @@ export const DuckLobbyScreen = ({
   onSelectMode,
   selectedDifficulty,
   onSelectDifficulty,
+  roundDuration = 20,
+  onSelectRoundDuration,
   onStartGame,
   onOpenRules,
   onOpenLeaderboard,
@@ -132,6 +134,46 @@ export const DuckLobbyScreen = ({
                     {lvl.desc}
                   </span>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 4.5 Cài đặt thời gian bắt vịt (Đúng yêu cầu Thầy: 20s hoặc 30s) */}
+        <div className="w-full mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-black text-amber-300 uppercase tracking-wider block text-left">
+              ⏱️ THỜI GIAN BẮT VỊT TRẢ BÀI:
+            </span>
+            <span className="text-[10px] text-amber-200/80 font-bold">
+              (Hết giờ sẽ tự động tóm 1 vịt để học sinh trả bài)
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { val: 20, label: '20 Giây', desc: 'Chuẩn lớp học' },
+              { val: 30, label: '30 Giây', desc: 'Rượt đuổi kịch tính' },
+              { val: 15, label: '15 Giây', desc: 'Thử thách chớp nhoáng' }
+            ].map(item => {
+              const isSelected = roundDuration === item.val;
+              return (
+                <button
+                  key={item.val}
+                  type="button"
+                  onClick={() => onSelectRoundDuration?.(item.val)}
+                  className={`p-2.5 sm:p-3 rounded-2xl border-2 cursor-pointer transition-all text-center ${
+                    isSelected
+                      ? 'bg-amber-500/35 border-yellow-300 shadow-lg shadow-amber-500/30 scale-102 font-black text-white'
+                      : 'bg-black/30 border-white/10 hover:border-white/30 text-slate-300 font-bold'
+                  }`}
+                >
+                  <span className="text-xs sm:text-sm font-black block text-amber-200">
+                    ⏱️ {item.label}
+                  </span>
+                  <span className="text-[10px] opacity-80 block mt-0.5">
+                    {item.desc}
+                  </span>
+                </button>
               );
             })}
           </div>
