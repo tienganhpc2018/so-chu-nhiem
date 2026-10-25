@@ -145,6 +145,35 @@ export async function saveGameSession(sessionData) {
   return sessionItem;
 }
 
+/**
+ * Lưu kết quả của từng vòng chơi vào Supabase table `game_rounds` & LocalStorage
+ */
+export async function saveGameRound(roundData) {
+  const roundItem = {
+    id: roundData.id || `round_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+    session_id: roundData.sessionId || null,
+    target_student_id: roundData.targetStudentId || null,
+    caught_student_id: roundData.caughtStudentId || null,
+    target_student_name: roundData.targetStudentName || null,
+    caught_student_name: roundData.caughtStudentName || null,
+    is_correct: roundData.isCorrect !== undefined ? roundData.isCorrect : true,
+    score: roundData.score || 10,
+    created_at: new Date().toISOString()
+  };
+
+  try {
+    await supabase.from('game_rounds').insert([roundItem]);
+  } catch (e) {}
+
+  try {
+    const KEY = 'blindfold_duck_rounds_history_v1';
+    const existing = JSON.parse(localStorage.getItem(KEY) || '[]');
+    localStorage.setItem(KEY, JSON.stringify([roundItem, ...existing].slice(0, 100)));
+  } catch (e) {}
+
+  return roundItem;
+}
+
 export function getLeaderboardSessions() {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.SESSIONS);

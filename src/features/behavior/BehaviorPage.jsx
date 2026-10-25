@@ -879,12 +879,15 @@ export const BehaviorPage = ({
         }}
       />
 
-      {/* 15. Bịt Mắt Bắt Vịt - Trò Chơi Dân Gian Học Tiếng Anh 🦆 */}
+      {/* 15. Bịt Mắt Bắt Vịt - Trò Chơi Dân Gian Gọi Tên 3D 🦆 */}
       <BlindfoldDuckModal
         isOpen={modalState.blindfoldDuck}
         onClose={() => closeModal('blindfoldDuck')}
         currentClass={currentClass}
         students={students}
+        onAwardPointsToStudent={(studentId, points, reason) => {
+          handleApplyPointChange(studentId, points, 'plus', reason);
+        }}
       />
 
     </div>

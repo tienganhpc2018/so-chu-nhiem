@@ -143,6 +143,116 @@ class DuckAudioEngine {
   }
 
   /**
+   * Tiếng tick giòn giã khi quay chọn tên ngẫu nhiên (Name Roulette Tick)
+   */
+  playTick() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(950, now);
+      osc.frequency.exponentialRampToValueAtTime(450, now + 0.04);
+
+      gain.gain.setValueAtTime(0.2 * this.volume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } catch (e) {}
+  }
+
+  /**
+   * Tiếng chuông khóa tên học sinh (Name Selected Ding & Fanfare)
+   */
+  playLockName() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+
+        gain.gain.setValueAtTime(0.28 * this.volume, now + idx * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.45);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.07);
+        osc.stop(now + idx * 0.07 + 0.5);
+      });
+    } catch (e) {}
+  }
+
+  /**
+   * Tiếng đàn vịt hốt hoảng nhao nhao quác quác khi bị người bắt rượt đuổi
+   */
+  playFlockPanic() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      [0, 0.08, 0.16].forEach((delay, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        const f = 420 + idx * 50;
+        osc.frequency.setValueAtTime(f, now + delay);
+        osc.frequency.exponentialRampToValueAtTime(f * 0.6, now + delay + 0.12);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(f * 2, now + delay);
+        filter.Q.setValueAtTime(3.5, now + delay);
+
+        gain.gain.setValueAtTime(0.18 * this.volume, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.14);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now + delay);
+        osc.stop(now + delay + 0.15);
+      });
+    } catch (e) {}
+  }
+
+  /**
+   * Đọc to tên học sinh bằng Text-to-Speech (Web Speech API)
+   */
+  speak(text) {
+    if (this.isMuted || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'vi-VN';
+      utterance.rate = 0.95;
+      utterance.pitch = 1.05;
+      const voices = window.speechSynthesis.getVoices();
+      const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VIE'));
+      if (viVoice) utterance.voice = viVoice;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {}
+  }
+
+  /**
    * Tiếng bắt được vịt (Catch Pop & Yay)
    */
   playCatchSuccess() {

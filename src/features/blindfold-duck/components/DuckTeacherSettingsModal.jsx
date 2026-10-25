@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Sparkles, Check, School, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
+import { X, Plus, Trash2, Sparkles, Check, School, BookOpen, AlertCircle, RefreshCw, Settings, Dices } from 'lucide-react';
 import { generateEnglishQuestionsAi } from '../services/duckAiService';
 
 export const DuckTeacherSettingsModal = ({
@@ -10,9 +10,20 @@ export const DuckTeacherSettingsModal = ({
   questions = [],
   onSaveQuestions,
   currentClass,
-  lmsStudents = []
+  lmsStudents = [],
+  // Các cài đặt mới
+  selectedMode = 'random_call',
+  onSelectMode,
+  roundDuration = 20,
+  onSelectRoundDuration,
+  noRepeat = true,
+  onToggleNoRepeat,
+  showDuckNames = false,
+  onToggleShowDuckNames,
+  enableTts = true,
+  onToggleTts
 }) => {
-  const [activeTab, setActiveTab] = useState('ducks'); // 'ducks' | 'questions'
+  const [activeTab, setActiveTab] = useState('settings'); // 'settings' | 'ducks' | 'questions'
   const [duckList, setDuckList] = useState(ducks);
   const [questionList, setQuestionList] = useState(questions);
 
@@ -23,19 +34,6 @@ export const DuckTeacherSettingsModal = ({
   const [aiTopic, setAiTopic] = useState('Unit 2 - City Life - Grade 9');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiNotice, setAiNotice] = useState(null);
-
-  // Thêm câu hỏi thủ công
-  const [showAddQuestionForm, setShowAddQuestionForm] = useState(false);
-  const [newQuestion, setNewQuestion] = useState({
-    question: '',
-    option_a: '',
-    option_b: '',
-    option_c: '',
-    option_d: '',
-    correct_answer: 'A',
-    explanation: '',
-    points: 10
-  });
 
   if (!isOpen) return null;
 
@@ -101,352 +99,319 @@ export const DuckTeacherSettingsModal = ({
     }
   };
 
-  // Lưu câu hỏi thủ công
-  const handleSaveNewQuestion = () => {
-    if (!newQuestion.question.trim() || !newQuestion.option_a.trim() || !newQuestion.option_b.trim()) {
-      alert('Vui lòng nhập đầy đủ nội dung câu hỏi và các đáp án!');
-      return;
-    }
-    const qItem = {
-      ...newQuestion,
-      id: `q_${Date.now()}`
-    };
-    const updated = [qItem, ...questionList];
-    setQuestionList(updated);
-    onSaveQuestions?.(updated);
-    setShowAddQuestionForm(false);
-    setNewQuestion({
-      question: '',
-      option_a: '',
-      option_b: '',
-      option_c: '',
-      option_d: '',
-      correct_answer: 'A',
-      explanation: '',
-      points: 10
-    });
-  };
-
-  // Xóa câu hỏi
-  const handleDeleteQuestion = (id) => {
-    const updated = questionList.filter(q => q.id !== id);
-    setQuestionList(updated);
-    onSaveQuestions?.(updated);
-  };
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border-4 border-amber-400 max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in select-none">
+      <div className="relative w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border-2 border-amber-400 text-slate-800 flex flex-col max-h-[90vh] overflow-hidden">
+        
         {/* Nút đóng */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-all"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Tiêu đề & Chọn Tab */}
-        <div className="pb-3 border-b border-slate-100 shrink-0">
-          <div className="flex items-center space-x-2.5 mb-3">
-            <span className="text-3xl">⚙️</span>
-            <div>
-              <span className="text-xs font-black text-amber-600 uppercase tracking-widest block">
-                DÀNH CHO GIÁO VIÊN
-              </span>
-              <h3 className="text-xl font-black text-slate-900 leading-tight">
-                Quản Lý Đàn Vịt & Câu Hỏi Tiếng Anh
-              </h3>
-            </div>
+        {/* Header */}
+        <div className="flex items-center space-x-2.5 mb-4">
+          <div className="p-2.5 rounded-2xl bg-amber-100 text-amber-700">
+            <Settings className="w-6 h-6" />
           </div>
-
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setActiveTab('ducks')}
-              className={`px-4 py-2 rounded-xl font-black text-xs sm:text-sm transition-all ${
-                activeTab === 'ducks'
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              🦆 Đàn Vịt Học Sinh ({duckList.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('questions')}
-              className={`px-4 py-2 rounded-xl font-black text-xs sm:text-sm transition-all ${
-                activeTab === 'questions'
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              📚 Câu Hỏi Tiếng Anh ({questionList.length})
-            </button>
+          <div>
+            <h2 className="text-xl font-black text-slate-900">
+              Cài Đặt Trò Chơi Gọi Tên Bịt Mắt Bắt Vịt
+            </h2>
+            <p className="text-xs text-slate-500">
+              {currentClass ? `Đang cấu hình cho: ${currentClass.name}` : 'Cấu hình toàn hệ thống'}
+            </p>
           </div>
         </div>
 
-        {/* Nội dung Tab 1: Quản lý Đàn Vịt */}
-        {activeTab === 'ducks' && (
-          <div className="my-4 overflow-y-auto flex-1 space-y-4 pr-1 custom-scrollbar">
-            {/* Thanh công cụ thêm nhanh & đồng bộ từ lớp LMS */}
-            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <strong className="block text-xs font-black text-amber-900">
-                  📍 Lớp hiện tại: {currentClass?.name || 'Chưa chọn lớp'}
-                </strong>
-                <span className="text-[11px] text-amber-700 font-medium">
-                  {lmsStudents.length} học sinh có sẵn trong hệ thống LMS
+        {/* Tabs */}
+        <div className="flex items-center space-x-2 border-b border-slate-200 pb-3 mb-4 shrink-0">
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              activeTab === 'settings'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <Dices className="w-4 h-4" />
+            <span>Quy Tắc Gọi Tên</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ducks')}
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              activeTab === 'ducks'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <span>🦆 Danh Sách Vịt / Học Sinh ({duckList.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              activeTab === 'questions'
+                ? 'bg-amber-500 text-white shadow-sm'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>Câu Hỏi ({questionList.length})</span>
+          </button>
+        </div>
+
+        {/* NỘI DUNG TỪNG TAB */}
+        <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+          
+          {/* TAB 1: CÀI ĐẶT QUY TẮC CHƠI */}
+          {activeTab === 'settings' && (
+            <div className="space-y-4">
+              {/* Chế độ chơi */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200">
+                <span className="text-xs font-black text-amber-900 uppercase block mb-2">
+                  CHẾ ĐỘ GAMEPLAY CHÍNH:
                 </span>
-              </div>
-
-              <button
-                onClick={handleImportFromLms}
-                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-extrabold text-xs shadow-md shadow-emerald-200 active:scale-95 transition-all"
-              >
-                <School className="w-3.5 h-3.5" />
-                <span>+ Lấy Từ Danh Sách Lớp ({lmsStudents.length} HS)</span>
-              </button>
-            </div>
-
-            {/* Ô thêm vịt thủ công */}
-            <div className="flex space-x-2">
-              <input
-                type="text"
-                placeholder="Nhập tên chú vịt / học sinh mới..."
-                value={newDuckName}
-                onChange={e => setNewDuckName(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleAddDuck()}
-                className="flex-1 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-400"
-              />
-              <button
-                onClick={handleAddDuck}
-                className="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs transition-all active:scale-95"
-              >
-                + Thêm Vịt
-              </button>
-            </div>
-
-            {/* Danh sách các chú vịt */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {duckList.map((d, idx) => (
-                <div
-                  key={d.id || idx}
-                  className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-extrabold text-slate-800"
-                >
-                  <div className="flex items-center space-x-1.5 truncate">
-                    <span>🦆</span>
-                    <span className="truncate">{d.name}</span>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteDuck(d.id)}
-                    className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors shrink-0"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                <div className="space-y-2">
+                  {[
+                    { id: 'random_call', name: '🎲 Gọi Tên Ngẫu Nhiên (Khuyên dùng - Chuẩn Version Gốc)', desc: 'Random chọn tên trước → Đàn vịt chạy toán loạn → Bắt vịt → Hiện tên học sinh' },
+                    { id: 'target', name: '🎯 Gọi Tên → Bắt Đúng Người', desc: 'Hệ thống gọi tên trước, người chơi quan sát đàn vịt và bắt đúng chú vịt mang tên đó' },
+                    { id: 'blind_catch', name: '🦆 Bắt Vịt → Công Bố Tên', desc: 'Đàn vịt chạy ẩn danh, tóm được con nào mới lật mở danh tính học sinh đó' }
+                  ].map(m => (
+                    <label
+                      key={m.id}
+                      onClick={() => onSelectMode?.(m.id)}
+                      className={`flex items-start space-x-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        selectedMode === m.id
+                          ? 'bg-white border-amber-500 shadow-sm'
+                          : 'bg-white/60 border-slate-200 hover:border-amber-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={selectedMode === m.id}
+                        onChange={() => onSelectMode?.(m.id)}
+                        className="mt-1 text-amber-600 focus:ring-amber-500"
+                      />
+                      <div>
+                        <strong className="text-xs font-black text-slate-900 block">{m.name}</strong>
+                        <span className="text-[11px] text-slate-500">{m.desc}</span>
+                      </div>
+                    </label>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Nội dung Tab 2: Quản lý Câu Hỏi & AI Tạo Câu Hỏi */}
-        {activeTab === 'questions' && (
-          <div className="my-4 overflow-y-auto flex-1 space-y-4 pr-1 custom-scrollbar">
-            {/* Khung AI Tạo câu hỏi */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200">
-              <div className="flex items-center space-x-1.5 mb-1.5">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-                <h4 className="font-black text-xs sm:text-sm text-purple-900">
-                  ✨ Gemini AI Tự Động Tạo Bộ Câu Hỏi Tiếng Anh
-                </h4>
               </div>
-              <p className="text-[11px] text-purple-700 font-medium mb-3">
-                Nhập chủ đề bài học tiếng Anh (Unit, chuyên đề ngữ pháp), AI sẽ đề xuất 5 câu hỏi trắc nghiệm kèm giải thích chi tiết.
-              </p>
 
-              <div className="flex space-x-2">
+              {/* Tùy chọn lọc trùng học sinh */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                  <strong className="text-xs font-black text-slate-900 block">
+                    Không lặp lại học sinh trong cùng buổi
+                  </strong>
+                  <span className="text-[11px] text-slate-500">
+                    Mỗi bạn chỉ được gọi 1 lần cho đến khi gọi hết cả lớp, sau đó mới reset.
+                  </span>
+                </div>
                 <input
-                  type="text"
-                  value={aiTopic}
-                  onChange={e => setAiTopic(e.target.value)}
-                  placeholder="Ví dụ: Unit 2 - City Life - Grade 9..."
-                  className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-purple-200 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  type="checkbox"
+                  checked={noRepeat}
+                  onChange={onToggleNoRepeat}
+                  className="w-5 h-5 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
                 />
+              </div>
+
+              {/* Tùy chọn đọc tên TTS */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                  <strong className="text-xs font-black text-slate-900 block">
+                    Tự động đọc to tên học sinh (Text-to-Speech)
+                  </strong>
+                  <span className="text-[11px] text-slate-500">
+                    Phát giọng đọc chúc mừng khi chọn tên và khi tóm được vịt.
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={enableTts}
+                  onChange={onToggleTts}
+                  className="w-5 h-5 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                />
+              </div>
+
+              {/* Hiển thị tên trên đầu vịt */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <div>
+                  <strong className="text-xs font-black text-slate-900 block">
+                    Hiển thị tên học sinh trên đầu vịt
+                  </strong>
+                  <span className="text-[11px] text-slate-500">
+                    Tắt để ẩn hoàn toàn danh tính đàn vịt, tạo bất ngờ 100% khi bắt được!
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={showDuckNames}
+                  onChange={onToggleShowDuckNames}
+                  className="w-5 h-5 rounded text-amber-600 focus:ring-amber-500 cursor-pointer"
+                />
+              </div>
+
+              {/* Thời gian vòng chơi */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <span className="text-xs font-black text-slate-700 uppercase block mb-2">
+                  Thời Gian Rượt Đuổi Mỗi Lượt:
+                </span>
+                <div className="grid grid-cols-4 gap-2">
+                  {[10, 15, 20, 30].map(sec => (
+                    <button
+                      key={sec}
+                      onClick={() => onSelectRoundDuration?.(sec)}
+                      className={`py-2 rounded-xl text-xs font-black border transition-all ${
+                        roundDuration === sec
+                          ? 'bg-amber-500 text-white border-amber-600 shadow-sm'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-amber-400'
+                      }`}
+                    >
+                      {sec} Giây
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: QUẢN LÝ VỊT / HỌC SINH */}
+          {activeTab === 'ducks' && (
+            <div className="space-y-4">
+              {/* Nút nhập nhanh từ LMS */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-purple-50 border border-purple-200">
+                <div>
+                  <strong className="text-xs font-black text-purple-900 block">
+                    Đồng bộ danh sách học sinh từ LMS
+                  </strong>
+                  <span className="text-[11px] text-purple-600">
+                    {currentClass
+                      ? `Lớp hiện tại (${currentClass.name}) có ${lmsStudents?.length || 0} học sinh`
+                      : 'Chọn lớp để nhập tự động'}
+                  </span>
+                </div>
                 <button
-                  disabled={isGeneratingAi}
-                  onClick={handleGenerateAi}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs shadow-md shadow-purple-200 active:scale-95 transition-all flex items-center space-x-1.5"
+                  onClick={handleImportFromLms}
+                  className="flex items-center space-x-1 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-black shadow-sm transition-all active:scale-95"
                 >
-                  {isGeneratingAi ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang tạo...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>AI Tạo Câu Hỏi</span>
-                    </>
-                  )}
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Đồng Bộ Ngay</span>
                 </button>
               </div>
 
-              {aiNotice && (
-                <div className="mt-2.5 p-2 rounded-xl bg-purple-100/80 text-[11px] font-bold text-purple-900 flex items-center space-x-1.5">
-                  <Check className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                  <span>{aiNotice}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Nút bật form tạo thủ công */}
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-black text-slate-500 uppercase tracking-wide">
-                Danh Sách {questionList.length} Câu Hỏi:
-              </span>
-              <button
-                onClick={() => setShowAddQuestionForm(!showAddQuestionForm)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs"
-              >
-                {showAddQuestionForm ? 'Đóng Form' : '+ Thêm Câu Hỏi Thủ Công'}
-              </button>
-            </div>
-
-            {/* Form tạo câu hỏi thủ công */}
-            {showAddQuestionForm && (
-              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2.5 text-xs">
-                <div>
-                  <label className="font-extrabold text-slate-700 block mb-1">Nội dung câu hỏi:</label>
-                  <input
-                    type="text"
-                    value={newQuestion.question}
-                    onChange={e => setNewQuestion({ ...newQuestion, question: e.target.value })}
-                    placeholder="Ví dụ: She decided ______ abroad."
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 font-bold"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="font-bold text-slate-600 block">Đáp án A:</label>
-                    <input
-                      type="text"
-                      value={newQuestion.option_a}
-                      onChange={e => setNewQuestion({ ...newQuestion, option_a: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-600 block">Đáp án B:</label>
-                    <input
-                      type="text"
-                      value={newQuestion.option_b}
-                      onChange={e => setNewQuestion({ ...newQuestion, option_b: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-600 block">Đáp án C:</label>
-                    <input
-                      type="text"
-                      value={newQuestion.option_c}
-                      onChange={e => setNewQuestion({ ...newQuestion, option_c: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-600 block">Đáp án D:</label>
-                    <input
-                      type="text"
-                      value={newQuestion.option_d}
-                      onChange={e => setNewQuestion({ ...newQuestion, option_d: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="font-bold text-slate-600 block">Đáp án đúng:</label>
-                    <select
-                      value={newQuestion.correct_answer}
-                      onChange={e => setNewQuestion({ ...newQuestion, correct_answer: e.target.value })}
-                      className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-black text-amber-700"
-                    >
-                      <option value="A">Đáp án A</option>
-                      <option value="B">Đáp án B</option>
-                      <option value="C">Đáp án C</option>
-                      <option value="D">Đáp án D</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="font-bold text-slate-600 block">Giải thích ngắn:</label>
-                    <input
-                      type="text"
-                      value={newQuestion.explanation}
-                      onChange={e => setNewQuestion({ ...newQuestion, explanation: e.target.value })}
-                      placeholder="Ví dụ: decide + to V"
-                      className="w-full px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-bold"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <button
-                    onClick={handleSaveNewQuestion}
-                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs shadow-md shadow-amber-200 active:scale-95"
-                  >
-                    Lưu Câu Hỏi
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Danh sách câu hỏi hiện tại */}
-            <div className="space-y-2">
-              {questionList.map((q, idx) => (
-                <div
-                  key={q.id || idx}
-                  className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs"
+              {/* Thêm vịt thủ công */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  placeholder="Nhập tên học sinh / tên vịt..."
+                  value={newDuckName}
+                  onChange={(e) => setNewDuckName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddDuck()}
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  onClick={handleAddDuck}
+                  className="flex items-center space-x-1 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm active:scale-95 transition-all"
                 >
-                  <div className="flex items-start justify-between">
-                    <p className="font-extrabold text-slate-900 leading-snug">
-                      <span className="text-amber-600 mr-1.5">Câu {idx + 1}:</span>
-                      {q.question}
-                    </p>
+                  <Plus className="w-4 h-4" />
+                  <span>Thêm</span>
+                </button>
+              </div>
+
+              {/* Lưới danh sách vịt */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {duckList.map((d, idx) => (
+                  <div
+                    key={d.id || idx}
+                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-2 min-w-0">
+                      <span className="text-base">🦆</span>
+                      <span className="text-xs font-bold text-slate-800 truncate">
+                        {d.name}
+                      </span>
+                    </div>
                     <button
-                      onClick={() => handleDeleteQuestion(q.id)}
-                      className="p-1 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 ml-2 shrink-0"
+                      onClick={() => handleDeleteDuck(d.id)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 ml-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600 font-semibold pl-2">
-                    <span className={q.correct_answer === 'A' ? 'text-emerald-700 font-black' : ''}>A. {q.option_a}</span>
-                    <span className={q.correct_answer === 'B' ? 'text-emerald-700 font-black' : ''}>B. {q.option_b}</span>
-                    <span className={q.correct_answer === 'C' ? 'text-emerald-700 font-black' : ''}>C. {q.option_c}</span>
-                    <span className={q.correct_answer === 'D' ? 'text-emerald-700 font-black' : ''}>D. {q.option_d}</span>
-                  </div>
-
-                  {q.explanation && (
-                    <span className="block text-[10.5px] text-slate-500 italic pl-2">
-                      💡 {q.explanation}
-                    </span>
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Nút hoàn tất */}
-        <div className="pt-3 border-t border-slate-100 flex justify-end shrink-0">
+          {/* TAB 3: QUẢN LÝ CÂU HỎI TIẾNG ANH */}
+          {activeTab === 'questions' && (
+            <div className="space-y-4">
+              {/* AI Tạo câu hỏi */}
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200">
+                <span className="text-xs font-black text-amber-900 uppercase block mb-1">
+                  AI TỰ ĐỘNG TẠO BỘ CÂU HỎI TIẾNG ANH:
+                </span>
+                <div className="flex items-center space-x-2 mt-2">
+                  <input
+                    type="text"
+                    value={aiTopic}
+                    onChange={(e) => setAiTopic(e.target.value)}
+                    placeholder="Chủ đề: e.g. Unit 3 - Teen Stress - Grade 9"
+                    className="flex-1 px-3 py-2 rounded-xl border border-amber-300 text-xs font-medium focus:outline-none focus:border-amber-500 bg-white"
+                  />
+                  <button
+                    onClick={handleGenerateAi}
+                    disabled={isGeneratingAi}
+                    className="flex items-center space-x-1 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-black shadow-sm disabled:opacity-50 active:scale-95 transition-all"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{isGeneratingAi ? 'Đang tạo...' : 'Tạo 5 Câu'}</span>
+                  </button>
+                </div>
+                {aiNotice && (
+                  <p className="text-[11px] font-bold text-emerald-700 mt-2">{aiNotice}</p>
+                )}
+              </div>
+
+              {/* Danh sách câu hỏi */}
+              <div className="space-y-2">
+                {questionList.map((q, idx) => (
+                  <div key={q.id || idx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                    <div className="flex items-start justify-between">
+                      <strong className="text-slate-800">
+                        {idx + 1}. {q.question}
+                      </strong>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black text-[10px] ml-2">
+                        Đáp án: {q.correct_answer}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Footer */}
+        <div className="pt-4 border-t border-slate-200 flex items-center justify-end shrink-0 mt-3">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs shadow-md shadow-amber-200 active:scale-95 transition-all"
+            className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs shadow-md transition-all active:scale-95"
           >
-            HOÀN TẤT & ĐÓNG CÀI ĐẶT
+            Lưu & Hoàn Tất
           </button>
         </div>
+
       </div>
     </div>
   );

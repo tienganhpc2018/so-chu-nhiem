@@ -44,25 +44,35 @@ export const DuckRulesModal = ({ isOpen, onClose }) => {
 
           <div className="space-y-2.5">
             <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider">
-              QUY TRÌNH THI ĐẤU & TRẢ BÀI:
+              QUY TRÌNH CHƠI VERSION GỐC:
             </h4>
 
             <div className="flex items-start space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-xl">🦆</span>
+              <span className="text-xl">🎲</span>
               <div>
-                <strong className="block text-slate-900 text-xs sm:text-sm">1. 9 Chú Vịt tham gia mỗi lượt chạy</strong>
+                <strong className="block text-slate-900 text-xs sm:text-sm">1. Quay chọn tên ngẫu nhiên</strong>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Trên sân đất nén 2.5D luôn có 9 chú vịt đại diện cho các bạn học sinh trong lớp, chạy vòng quanh sân, vỗ cánh và tung tăng né tránh người bịt mắt.
+                  Khi bắt đầu, hệ thống kích hoạt màn hình quay tên <strong>"🎯 AI SẼ GỌI AI?"</strong> với hiệu ứng lướt nhanh tên cả lớp và khóa tên người may mắn: 🔔 <strong>"LÝ HỒNG THƯƠNG!"</strong>.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-xl">⏱️</span>
+              <span className="text-xl">🦆</span>
               <div>
-                <strong className="block text-slate-900 text-xs sm:text-sm">2. Thời gian đếm ngược 20s hoặc 30s</strong>
+                <strong className="block text-slate-900 text-xs sm:text-sm">2. Đàn vịt 3D chạy tán loạn trong sân</strong>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Mỗi lượt chơi kéo dài 20 hoặc 30 giây rượt đuổi kịch tính. Người chơi có thể tự điều khiển bằng phím <strong>W/A/S/D / Mũi tên / Chuột</strong> hoặc để chú bé bịt mắt tự động lần theo tiếng kêu quác quác.
+                  Đàn vịt 20–30 con với 8 màu lông đa dạng ùa vào sân đất nén 3D bao quanh bởi hàng rào tre, liên tục chạy tản ra, tụ lại và né tránh người chơi.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+              <span className="text-xl">🏃</span>
+              <div>
+                <strong className="block text-slate-900 text-xs sm:text-sm">3. Người chơi bịt mắt rượt đuổi</strong>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Cậu bé áo bà ba nón lá bịt mắt dải lụa đỏ tiến vào giữa đàn vịt. Khi đến gần, đàn vịt hoảng sợ quác quác tạt sang hai bên cực kỳ phấn khích!
                 </p>
               </div>
             </div>
@@ -70,29 +80,19 @@ export const DuckRulesModal = ({ isOpen, onClose }) => {
             <div className="flex items-start space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
               <span className="text-xl">✋</span>
               <div>
-                <strong className="block text-slate-900 text-xs sm:text-sm">3. Hết giờ (hoặc bắt trúng) $\to$ Tóm 1 chú vịt</strong>
+                <strong className="block text-slate-900 text-xs sm:text-sm">4. Bắt vịt & Camera Zoom Focus</strong>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Khi đồng hồ về 0s hoặc khi nhấn phím <strong>Cách (Space) / Nút Bắt Vịt</strong> thành công, người bịt mắt sẽ tóm được 1 chú vịt may mắn.
+                  Nhấn nút <strong>"✋ BẮT VỊT NGAY!"</strong> hoặc đợi hết thời gian 20s, người chơi sẽ lao tới tóm gọn chú vịt. Camera lập tức phóng to focus vào vịt kèm ánh sáng spotlight và pháo hoa rực rỡ!
                 </p>
               </div>
             </div>
 
             <div className="flex items-start space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-xl">🎯</span>
+              <span className="text-xl">🎉</span>
               <div>
-                <strong className="block text-slate-900 text-xs sm:text-sm">4. Học sinh đứng lên trả bài</strong>
+                <strong className="block text-slate-900 text-xs sm:text-sm">5. Công bố học sinh & Gọi bạn tiếp theo</strong>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Màn hình trả bài hiện ra với tên đầy đủ của học sinh. Thầy có thể cho học sinh trả lời câu hỏi trắc nghiệm tiếng Anh hoặc kiểm tra miệng và chấm điểm trực tiếp (10 Điểm, 8-9 Điểm, Chưa thuộc).
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-              <span className="text-xl">🔄</span>
-              <div>
-                <strong className="block text-slate-900 text-xs sm:text-sm">5. Tự động luân chuyển cả lớp</strong>
-                <p className="text-xs text-slate-600 mt-0.5">
-                  Sau khi trả bài xong, hệ thống đưa các bạn học sinh tiếp theo vào sân cho đến khi tất cả các bạn trong lớp đều được tham gia vui vẻ!
+                  Màn hình vinh danh lớn ở giữa hiện rõ avatar và họ tên học sinh, phát âm thanh đọc tên và Thầy có thể cộng điểm nề nếp trực tiếp, sau đó nhấn <strong>"Gọi bạn tiếp theo"</strong> để tiếp tục chuỗi quay cả lớp!
                 </p>
               </div>
             </div>
