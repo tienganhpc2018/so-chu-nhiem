@@ -61,6 +61,7 @@ export const DuckArena = ({
   const patrolAngleRef = useRef(0);
   const spritesRef = useRef([]);
   const hasCaughtRef = useRef(false);
+  const isSurpriseLungingRef = useRef(false);
   const quackAudioTimerRef = useRef(0);
 
   // Tìm tên bạn học sinh đang được đuổi theo (Không bao giờ gán cứng ducks[0])
@@ -159,13 +160,13 @@ export const DuckArena = ({
     patrolAngleRef.current = 0;
   }, [ducks, targetDuckId, dimensions.width, dimensions.height]);
 
-  // HÀNH ĐỘNG BẮT VỊT (TỰ NHẬN DIỆN VỊT MỤC TIÊU HOẶC CHỌN THẬT SỰ NGẪU NHIÊN)
+  // HÀNH ĐỘNG BẮT VỊT (BẤT NGỜ LAO TỚI TÚM VỊT MỤC TIÊU)
   const triggerCatch = (forcedDuck = null) => {
     if (hasCaughtRef.current) return;
 
     let targetToCatch = forcedDuck;
     if (!targetToCatch) {
-      if (mode === 'random_call' && targetDuckId) {
+      if (targetDuckId) {
         const targetSprite = spritesRef.current.find(s => isMatchDuck(s.duck.id, targetDuckId));
         if (targetSprite) {
           targetToCatch = targetSprite.duck;
@@ -188,6 +189,7 @@ export const DuckArena = ({
 
     if (targetToCatch) {
       hasCaughtRef.current = true;
+      isSurpriseLungingRef.current = false;
       duckAudio.playCatchSuccess();
 
       const caughtSprite = spritesRef.current.find(
@@ -199,9 +201,9 @@ export const DuckArena = ({
         caughtSprite.state = 'CAUGHT';
         setCaughtDuckObj(targetToCatch);
 
-        // Cô gái tiến lại ôm vịt
+        // Lao tới ôm vịt hạnh phúc
         playerRef.current.x = caughtSprite.x;
-        playerRef.current.y = caughtSprite.y + 10;
+        playerRef.current.y = caughtSprite.y + 8;
         playerRef.current.isCatching = false;
         playerRef.current.isHoldingDuck = true;
         setPlayerState({ ...playerRef.current });
@@ -223,8 +225,11 @@ export const DuckArena = ({
     }
   };
 
-  // KHI HẾT THỜI GIAN: TỰ ĐỘNG BẮT ĐÚNG VỊT MỤC TIÊU HOẶC 1 CHÚ VỊT NGẪU NHIÊN
+  // KHI ĐẾM NGƯỢC XUỐNG DƯỚI 3.5S: KÍCH HOẠT PHA "BẤT NGỜ LAO TỚI BẮT VỊT"
   useEffect(() => {
+    if (timeLeft <= 3 && timeLeft > 0 && !hasCaughtRef.current && !isPaused) {
+      isSurpriseLungingRef.current = true;
+    }
     if (timeLeft === 0 && !hasCaughtRef.current && !isPaused) {
       let targetSprite = null;
       if (targetDuckId) {
@@ -244,7 +249,7 @@ export const DuckArena = ({
     }
   }, [timeLeft, isPaused, targetDuckId]);
 
-  // VÒNG LẶP VẬT LÝ VỊT DI CHUYỂN LIÊN TỤC KHẮP SÂN (60FPS)
+  // VÒNG LẶP VẬT LÝ DI CHUYỂN TOÀN SÂN & BẤT NGỜ BẮT VỊT (60FPS)
   useEffect(() => {
     let lastTime = performance.now();
 
@@ -255,35 +260,77 @@ export const DuckArena = ({
       if (!isPaused && !hasCaughtRef.current && spritesRef.current.length > 0) {
         let p = playerRef.current;
 
-        // 1. NGƯỜI BỊT MẮT RƯỢT ĐUỔI VỊT MỤC TIÊU (MẶT VÀ THÂN CÙNG HƯỚNG CHẠY)
-        let targetSprite = null;
-        if (targetDuckId) {
-          targetSprite = spritesRef.current.find(s => isMatchDuck(s.duck.id, targetDuckId));
-        }
-        if (!targetSprite && spritesRef.current.length > 0) {
-          const cycleIdx = Math.abs(Math.floor(currentTime / 3500)) % spritesRef.current.length;
-          targetSprite = spritesRef.current[cycleIdx];
-        }
+        // ==============================================================
+        // 1. CƠ CHẾ DI CHUYỂN NGƯỜI BỊT MẮT:
+        // - GIAI ĐOẠN 1 (Đầu & giữa trận): Di chuyển quanh cả vòng sân, mò mẫm tự nhiên
+        //   KHÔNG dí bắt 1 học sinh ngay, tạo sự hồi hộp bất ngờ cho cả lớp!
+        // - GIAI ĐOẠN 2 (3.5 giây cuối hoặc bấm nút bắt): Bất ngờ phi tới tóm lấy vịt mục tiêu!
+        // ==============================================================
+        let targetX = arenaCenter.x;
+        let targetY = arenaCenter.y;
+        let currentSpeed = 95 * dt;
 
-        const targetX = targetSprite ? targetSprite.x : arenaCenter.x;
-        const targetY = targetSprite ? targetSprite.y : arenaCenter.y;
+        if (isSurpriseLungingRef.current) {
+          // PHA BẤT NGỜ LAO TỚI BẮT VỊT (Bứt tốc độ cao tóm lấy mục tiêu)
+          let targetSprite = null;
+          if (targetDuckId) {
+            targetSprite = spritesRef.current.find(s => isMatchDuck(s.duck.id, targetDuckId));
+          }
+          if (!targetSprite) {
+            targetSprite = spritesRef.current[0];
+          }
+
+          targetX = targetSprite ? targetSprite.x : arenaCenter.x;
+          targetY = targetSprite ? targetSprite.y : arenaCenter.y;
+          currentSpeed = 230 * dt; // Bứt tốc bất ngờ
+          p.isCatching = true;
+
+          // Nếu đã áp sát dưới 25px: Bắt luôn!
+          const distToCatch = Math.hypot(targetX - p.x, targetY - p.y);
+          if (distToCatch < 28) {
+            triggerCatch(targetSprite.duck);
+            return;
+          }
+        } else {
+          // PHA MÒ MẪM QUANH CẢ VÒNG SÂN (Tự nhiên, không lộ mục tiêu)
+          patrolAngleRef.current += 0.85 * dt;
+          
+          // Đi tuần tra hình số 8 / hình elip mềm quanh cả vòng sân
+          const orbitRadiusX = arenaRadiusX * 0.55;
+          const orbitRadiusY = arenaRadiusY * 0.55;
+
+          let wanderX = arenaCenter.x + Math.cos(patrolAngleRef.current) * orbitRadiusX;
+          let wanderY = arenaCenter.y + Math.sin(patrolAngleRef.current * 1.3) * orbitRadiusY;
+
+          // Cứ 3.5 giây đổi hướng mò mẫm về phía một âm thanh vịt ngẫu nhiên gần đó
+          const soundCycle = Math.floor(currentTime / 3500);
+          const randSoundIdx = (soundCycle * 7) % spritesRef.current.length;
+          const soundSprite = spritesRef.current[randSoundIdx];
+
+          if (soundSprite && (currentTime % 3500) < 1400) {
+            wanderX = soundSprite.x;
+            wanderY = soundSprite.y;
+          }
+
+          targetX = wanderX;
+          targetY = wanderY;
+          currentSpeed = 100 * dt; // Chạy bước tự nhiên, không nhanh quá
+          p.isCatching = false;
+        }
 
         const toTargetX = targetX - p.x;
         const toTargetY = targetY - p.y;
         const distToTarget = Math.hypot(toTargetX, toTargetY) || 1;
 
-        patrolAngleRef.current += 3.5 * dt;
-        const huntSpeed = 125 * dt;
-
-        p.x += (toTargetX / distToTarget) * huntSpeed + Math.cos(patrolAngleRef.current) * 1.5;
-        p.y += (toTargetY / distToTarget) * (huntSpeed * 0.65) + Math.sin(patrolAngleRef.current) * 1.2;
+        p.x += (toTargetX / distToTarget) * currentSpeed;
+        p.y += (toTargetY / distToTarget) * currentSpeed;
 
         if (Math.abs(toTargetX) > 2) {
           p.direction = toTargetX >= 0 ? 'right' : 'left';
         }
         p.isWalking = true;
 
-        // Giữ người chơi trong sân
+        // Giữ người chơi luôn trong ranh giới sân cát
         const normPx = (p.x - arenaCenter.x) / (arenaRadiusX * 0.82);
         const normPy = (p.y - arenaCenter.y) / (arenaRadiusY * 0.82);
         const distNormP = Math.hypot(normPx, normPy);
@@ -400,28 +447,29 @@ export const DuckArena = ({
       }}
     >
       {/* ============================================================== */}
-      {/* 1. THANH TRẠNG THÁI ĐỈNH SÂN: ĐANG ĐUỔI THEO VỊT CỦA... (Chuẩn ảnh) */}
+      {/* 1. THANH TRẠNG THÁI ĐỈNH SÂN: HỒI HỘP, BẤT NGỜ (KHÔNG TIẾT LỘ SỚM) */}
       {/* ============================================================== */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-        <div className="px-5 py-2 rounded-full bg-[#1b4d3e]/85 backdrop-blur-md text-white border-2 border-white/40 shadow-xl flex items-center space-x-2">
+        <div className="px-5 py-2 rounded-full bg-[#1b4d3e]/90 backdrop-blur-md text-white border-2 border-white/40 shadow-xl flex items-center space-x-2">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
           <span className="text-xs sm:text-sm font-black tracking-wide">
-            {mode === 'blind_catch'
-              ? '🎯 Đang bịt mắt tìm bắt một chú vịt bí ẩn...'
-              : `Đang đuổi theo vịt của ${targetStudentName}...`}
+            {hasCaughtRef.current
+              ? `🎉 ĐÃ TÚM ĐƯỢC CHÚ VỊT CỦA ${targetStudentName.toUpperCase()}! 👏`
+              : timeLeft <= 3
+              ? `⚡ BẤT NGỜ LAO TỚI BẮT VỊT! 🎯`
+              : `🌾 Đang bịt mắt lùng sục quanh sân... Ai sẽ bị tóm đây? 🦆`}
           </span>
         </div>
       </div>
 
       {/* ============================================================== */}
-      {/* 1B. NÚT ĐỔI 3 NHÂN VẬT BỊT MẮT: CÔ BÉ / CẬU BÉ / THẦY GIÁO */}
+      {/* 1B. NÚT ĐỔI NHÂN VẬT THIỆN CẢM: CÔ BÉ / CẬU BÉ */}
       {/* ============================================================== */}
       <div className="absolute top-3 right-3 sm:right-5 z-50 pointer-events-auto flex items-center space-x-1 p-1 rounded-2xl bg-black/60 backdrop-blur-md border border-amber-400/50 shadow-xl">
-        <span className="text-[10px] font-black text-amber-200 pl-2 pr-1 hidden md:inline">Nhân vật:</span>
+        <span className="text-[10px] font-black text-amber-200 pl-2 pr-1 hidden sm:inline">Nhân vật:</span>
         {[
           { id: 'girl', label: 'Cô Bé', icon: '👧' },
-          { id: 'boy', label: 'Cậu Bé', icon: '👦' },
-          { id: 'teacher', label: 'Thầy Giáo', icon: '🧑‍🏫' }
+          { id: 'boy', label: 'Cậu Bé', icon: '👦' }
         ].map(char => (
           <button
             key={char.id}
@@ -429,7 +477,7 @@ export const DuckArena = ({
               e.stopPropagation();
               setActiveCharacter(char.id);
             }}
-            className={`flex items-center space-x-1 px-2.5 py-1 rounded-xl text-xs font-black transition-all ${
+            className={`flex items-center space-x-1 px-3 py-1 rounded-xl text-xs font-black transition-all ${
               activeCharacter === char.id
                 ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md scale-105 ring-2 ring-yellow-400'
                 : 'text-white/80 hover:text-white hover:bg-white/10'

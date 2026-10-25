@@ -192,20 +192,19 @@ export const DuckLobbyScreen = ({
           </div>
         </div>
 
-        {/* 4B. CHỌN NHÂN VẬT BỊT MẮT (CÔ BÉ / CẬU BÉ / THẦY GIÁO) */}
+        {/* 4B. CHỌN NHÂN VẬT BỊT MẮT THIỆN CẢM (CÔ BÉ / CẬU BÉ) */}
         <div className="flex items-center space-x-2 mb-6 p-1.5 rounded-2xl bg-black/40 border border-amber-400/30 backdrop-blur-md">
           <span className="text-[11px] font-black text-amber-300 uppercase tracking-wider px-2">
             Người bịt mắt:
           </span>
           {[
-            { id: 'girl', label: 'Cô Bé Bà Ba', icon: '👧' },
-            { id: 'boy', label: 'Cậu Bé Nhanh Nhẹn', icon: '👦' },
-            { id: 'teacher', label: 'Thầy Giáo Vui Tính', icon: '🧑‍🏫' }
+            { id: 'girl', label: 'Cô Bé Duyên Dáng', icon: '👧' },
+            { id: 'boy', label: 'Cậu Bé Khôi Ngô', icon: '👦' }
           ].map(c => (
             <button
               key={c.id}
               onClick={() => onSelectCharacter?.(c.id)}
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
                 characterType === c.id
                   ? 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 shadow-md scale-105 ring-2 ring-yellow-400'
                   : 'text-white/80 hover:text-white hover:bg-white/10'

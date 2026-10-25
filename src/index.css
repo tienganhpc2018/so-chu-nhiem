@@ -88,3 +88,57 @@
 .animate-bounce-fast {
   animation: bounceFast 0.22s ease-in-out infinite;
 }
+
+/* Human Natural Running Gait (Chạy mượt mà, chân bước tự nhiên như thật ngoài đời) */
+@keyframes humanStrideBackLeg {
+  0% { transform: rotate(-22deg); }
+  50% { transform: rotate(24deg); }
+  100% { transform: rotate(-22deg); }
+}
+
+@keyframes humanStrideFrontLeg {
+  0% { transform: rotate(24deg); }
+  50% { transform: rotate(-22deg); }
+  100% { transform: rotate(24deg); }
+}
+
+@keyframes humanArmSwingFront {
+  0% { transform: rotate(-20deg); }
+  50% { transform: rotate(18deg); }
+  100% { transform: rotate(-20deg); }
+}
+
+@keyframes humanArmSwingBack {
+  0% { transform: rotate(18deg); }
+  50% { transform: rotate(-20deg); }
+  100% { transform: rotate(18deg); }
+}
+
+@keyframes humanBodyBob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-human-leg-back {
+  animation: humanStrideBackLeg 0.42s ease-in-out infinite;
+  transform-origin: 50% 0%;
+}
+
+.animate-human-leg-front {
+  animation: humanStrideFrontLeg 0.42s ease-in-out infinite;
+  transform-origin: 50% 0%;
+}
+
+.animate-human-arm-front {
+  animation: humanArmSwingFront 0.42s ease-in-out infinite;
+  transform-origin: 20% 20%;
+}
+
+.animate-human-arm-back {
+  animation: humanArmSwingBack 0.42s ease-in-out infinite;
+  transform-origin: 20% 20%;
+}
+
+.animate-human-bob {
+  animation: humanBodyBob 0.21s ease-in-out infinite;
+}
