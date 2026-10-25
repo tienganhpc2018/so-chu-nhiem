@@ -66,19 +66,13 @@ export const DuckSprite = ({
         }}
       />
 
-      {/* 2. NHÃN TÊN HỌC SINH HÌNH VIÊN THUỐC TRẮNG (CHUẨN ẢNH THAM CHIẾU) */}
+      {/* 2. NHÃN TÊN HỌC SINH HÌNH VIÊN THUỐC TRẮNG (ĐỒNG NHẤT 100%, KHÔNG LỘ MỤC TIÊU) */}
       {showName && !isCaught && (
         <div
           className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap z-40 filter drop-shadow-xs"
           style={{ transform: isFacingRight ? 'none' : 'scaleX(-1)' }}
         >
-          <div
-            className={`px-2.5 py-0.5 rounded-full border shadow-sm flex items-center justify-center transition-all ${
-              isTarget
-                ? 'bg-red-600 text-yellow-200 border-yellow-300 font-black text-xs scale-105 animate-pulse'
-                : 'bg-white text-slate-900 border-slate-300 font-bold text-[11px]'
-            }`}
-          >
+          <div className="px-2.5 py-0.5 rounded-full border border-slate-300 bg-white/95 text-slate-900 font-bold text-[11px] shadow-sm flex items-center justify-center">
             <span>{displayName}</span>
           </div>
         </div>

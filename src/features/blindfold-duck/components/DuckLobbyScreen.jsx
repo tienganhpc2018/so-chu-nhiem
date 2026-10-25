@@ -2,7 +2,7 @@ import React from 'react';
 import { Play, Trophy, Settings, Volume2, VolumeX, Sparkles, School, Check, HelpCircle, Dices, Users, RefreshCw } from 'lucide-react';
 
 export const DuckLobbyScreen = ({
-  selectedMode = 'random_call',
+  selectedMode = 'blind_catch',
   onSelectMode,
   roundDuration = 20,
   onSelectRoundDuration,
@@ -26,25 +26,18 @@ export const DuckLobbyScreen = ({
 }) => {
   const GAME_MODES = [
     {
-      id: 'random_call',
-      name: 'Gọi Tên Ngẫu Nhiên',
-      desc: 'Version gốc: Quay chọn tên ngẫu nhiên → Đàn vịt chạy tán loạn → Bắt vịt → Công bố tên!',
-      icon: '🎲',
-      badge: 'CHUẨN VERSION GỐC'
+      id: 'blind_catch',
+      name: 'Bịt Mắt Bắt Vịt',
+      desc: 'Chuẩn dân gian: Đàn vịt chạy tung tăng → Người chơi mò mẫm bắt vịt → Bất ngờ tóm vịt rồi mới lật mở tên học sinh!',
+      icon: '🦆',
+      badge: 'CHUẨN DÂN GIAN & HỒI HỘP'
     },
     {
       id: 'target',
-      name: 'Gọi Tên → Bắt Đúng Người',
-      desc: 'Hệ thống gọi tên trước, người chơi quan sát đàn vịt và bắt đúng chú vịt mang tên đó!',
+      name: 'Thử Thách: Bắt Đúng Tên',
+      desc: 'Quay tên trước, người chơi quan sát đàn vịt để cố gắng tóm đúng chú vịt mang tên đó!',
       icon: '🎯',
       badge: 'THỬ THÁCH'
-    },
-    {
-      id: 'blind_catch',
-      name: 'Bắt Vịt → Công Bố Tên',
-      desc: 'Đàn vịt chạy ẩn danh hoàn toàn, lao vào tóm một chú vịt rồi lật mở xem đó là ai!',
-      icon: '🦆',
-      badge: 'BẤT NGỜ'
     }
   ];
 
@@ -102,7 +95,7 @@ export const DuckLobbyScreen = ({
           <span>🌾</span>
         </div>
 
-        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-orange-400 filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] flex items-center justify-center space-x-3">
+        <h1 className="text-4xl sm:text-6xl font-black py-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-orange-400 filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] flex items-center justify-center space-x-3 font-['Be_Vietnam_Pro',sans-serif]">
           <span className="text-4xl sm:text-6xl">🦆</span>
           <span>BỊT MẮT BẮT VỊT</span>
         </h1>
@@ -116,7 +109,7 @@ export const DuckLobbyScreen = ({
           <span className="text-[11px] font-black text-amber-300 uppercase tracking-wider block mb-2 text-left sm:text-center">
             CHỌN CHẾ ĐỘ CHƠI:
           </span>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
             {GAME_MODES.map(m => {
               const isSelected = selectedMode === m.id;
               return (

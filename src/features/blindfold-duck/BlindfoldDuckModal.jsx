@@ -34,12 +34,12 @@ export const BlindfoldDuckModal = ({
   const [gameStage, setGameStage] = useState('lobby');
 
   // Cấu hình gameplay
-  const [selectedMode, setSelectedMode] = useState('random_call'); // 'random_call' | 'target' | 'blind_catch'
+  const [selectedMode, setSelectedMode] = useState('blind_catch'); // 'blind_catch' | 'target'
   const [roundDuration, setRoundDuration] = useState(20); // 10s, 15s, 20s, 30s
   const [noRepeat, setNoRepeat] = useState(true); // Không lặp học sinh trong cùng buổi
   const [showDuckNames, setShowDuckNames] = useState(true); // Mặc định hiện nhãn tên trên đầu vịt chuẩn ảnh tham chiếu
   const [enableTts, setEnableTts] = useState(false); // Đã tắt giọng đọc theo yêu cầu Thầy
-  const [characterType, setCharacterType] = useState('girl'); // 'girl' | 'boy' | 'teacher'
+  const [characterType, setCharacterType] = useState('girl'); // 'girl' | 'boy'
 
   // Danh sách học sinh / vịt
   const [ducks, setDucks] = useState(() => getLocalDucks(lmsStudents));
@@ -114,20 +114,22 @@ export const BlindfoldDuckModal = ({
     return () => clearInterval(timer);
   }, [gameStage, isPaused, caughtStudent]);
 
-  // BẮT ĐẦU VÒNG CHƠI MỚI (WORKFLOW GỐC)
+  // BẮT ĐẦU VÒNG CHƠI MỚI (VÀO THẲNG SÂN BẮT VỊT, BẮT XONG MỚI CÔNG BỐ TÊN HỌC SINH)
   const handleStartRound = () => {
     setTimeLeft(roundDuration);
     setCaughtStudent(null);
 
-    // Ở chế độ "random_call" hoặc "target": chuyển sang màn hình quay tên trước
-    if (selectedMode === 'random_call' || selectedMode === 'target') {
+    // Chọn ngẫu nhiên 1 bạn bí mật từ danh sách học sinh chưa gọi
+    const pool = noRepeat ? ducks.filter(d => !calledStudentIds.includes(d.id)) : ducks;
+    const validPool = pool.length > 0 ? pool : ducks;
+    const randPick = validPool[Math.floor(Math.random() * validPool.length)];
+    setTargetStudent(randPick);
+
+    // Chỉ khi giáo viên chọn chế độ "Thử thách bắt đúng tên" thì mới quay tên trước
+    if (selectedMode === 'target') {
       setGameStage('picking');
     } else {
-      // Chế độ "blind_catch": chọn ngẫu nhiên 1 bạn chưa được gọi từ danh sách
-      const pool = noRepeat ? ducks.filter(d => !calledStudentIds.includes(d.id)) : ducks;
-      const validPool = pool.length > 0 ? pool : ducks;
-      const randPick = validPool[Math.floor(Math.random() * validPool.length)];
-      setTargetStudent(randPick);
+      // Mặc định vào thẳng sân đàn vịt bắt trước, sau đó mới công bố tên tạo bất ngờ hồi hộp
       setGameStage('playing');
     }
   };
@@ -243,14 +245,9 @@ export const BlindfoldDuckModal = ({
                 </span>
               </div>
 
-              {targetStudent && selectedMode !== 'blind_catch' && (
-                <div className="hidden md:flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-red-600/30 border border-red-500/50 text-xs font-black text-red-200 animate-pulse">
-                  <span>🎯 Mục tiêu:</span>
-                  <span className="text-yellow-300 font-extrabold uppercase">
-                    {targetStudent.name || targetStudent.full_name}
-                  </span>
-                </div>
-              )}
+              <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-400/30 text-xs font-bold text-amber-200">
+                <span>🦆 Đang săn bắt vịt bí ẩn</span>
+              </div>
             </div>
 
             {/* ĐỒNG HỒ ĐẾM NGƯỢC (20S) */}
