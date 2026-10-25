@@ -235,21 +235,10 @@ class DuckAudioEngine {
   }
 
   /**
-   * Đọc to tên học sinh bằng Text-to-Speech (Web Speech API)
+   * Đọc to tên học sinh bằng Text-to-Speech (Đã tắt hoàn toàn theo yêu cầu của Thầy)
    */
   speak(text) {
-    if (this.isMuted || !('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'vi-VN';
-      utterance.rate = 0.95;
-      utterance.pitch = 1.05;
-      const voices = window.speechSynthesis.getVoices();
-      const viVoice = voices.find(v => v.lang.includes('vi') || v.lang.includes('VIE'));
-      if (viVoice) utterance.voice = viVoice;
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {}
+    return;
   }
 
   /**

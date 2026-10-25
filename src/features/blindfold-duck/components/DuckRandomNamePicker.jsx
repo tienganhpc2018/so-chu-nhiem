@@ -94,14 +94,7 @@ export const DuckRandomNamePicker = ({
           });
         } catch (e) {}
 
-        // Đọc to tên học sinh nếu bật TTS
-        if (enableTts) {
-          setTimeout(() => {
-            duckAudio.speak(`Mời bạn ${finalWinner.name || finalWinner.full_name}!`);
-          }, 250);
-        }
-
-        // Tự động chuyển vào sân chơi sau 2.2 giây
+        // Tự động chuyển vào sân chơi sau 2 giây
         let cd = 2;
         setCountdownAuto(cd);
         const cdTimer = setInterval(() => {

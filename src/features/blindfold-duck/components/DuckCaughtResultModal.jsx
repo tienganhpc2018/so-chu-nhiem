@@ -35,14 +35,7 @@ export const DuckCaughtResultModal = ({
         origin: { y: 0.55 }
       });
     } catch (e) {}
-
-    // Đọc to tên học sinh
-    if (enableTts) {
-      setTimeout(() => {
-        duckAudio.speak(`Chúc mừng bạn ${displayName} đã được bắt!`);
-      }, 300);
-    }
-  }, [caughtStudent, enableTts, displayName]);
+  }, [caughtStudent, displayName]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in select-none">

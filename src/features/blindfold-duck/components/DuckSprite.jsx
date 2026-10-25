@@ -182,21 +182,7 @@ export const DuckSprite = ({
         </div>
       )}
 
-      {/* 5. Bong bóng lời thoại vui nhộn (nếu có) */}
-      {speechQuote && !isCaught && (
-        <div
-          className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 pointer-events-none filter drop-shadow-md"
-          style={{ transform: isFacingRight ? 'none' : 'scaleX(-1)' }}
-        >
-          <div className="relative px-3 py-1 rounded-2xl bg-white text-slate-900 text-xs font-black border-2 border-slate-800 shadow-md max-w-[200px] text-center leading-tight">
-            <span>{speechQuote}</span>
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-6 border-t-slate-800" />
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-3 border-x-transparent border-t-5 border-t-white" />
-          </div>
-        </div>
-      )}
-
-      {/* 6. Nhãn Tên Học Sinh trên đầu vịt (Chế độ hiện tên) */}
+      {/* 5. Nhãn Tên Học Sinh trên đầu vịt (Chế độ hiện tên) */}
       {showName && !isCaught && (
         <div
           className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap z-40 filter drop-shadow-xs"

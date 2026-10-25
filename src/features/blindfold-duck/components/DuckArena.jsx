@@ -4,13 +4,12 @@ import { DuckSprite } from './DuckSprite';
 import { duckAudio } from '../services/duckAudio';
 
 /**
- * GIAO DIỆN & VẬT LÝ SÂN CHƠI 3D BỊT MẮT BẮT VỊT (Chuẩn 100% Theo Video Tham Chiếu):
- * - CAMERA HẠ THẤP: Nhìn ngang sân thay vì từ trên cao xuống, thấy rõ chòi mái đỏ phía sau và tầm mặt nhân vật
- * - ĐÀN VỊT CHẠY THEO BẦY (Flocking Boids): Đàn vịt 20-30 con tụ lại chạy theo bầy, lượn quanh sân, khi người bắt đến thì cả bầy nhao nhao né tránh
- * - NGƯỜI BẮT DI CHUYỂN LINH HOẠT: Sửa triệt để lỗi đứng im, sải bước chân rượt đuổi dồn bầy vịt khắp sân
- * - ĐẦU HƯỚNG VỀ CAMERA: Luôn thấy rõ khuôn mặt cười và dải lụa đỏ bịt mắt
- * - NÓN LÁ HẤT RA SAU: Nón nhỏ gọn không che trán và mặt
- * - CẬN CẢNH KHI BẮT ĐƯỢC: Camera zoom cận cảnh ngang tầm mặt thấy rõ cảnh ôm vịt vàng trước ngực!
+ * GIAO DIỆN & VẬT LÝ SÂN CHƠI 3D BỊT MẮT BẮT VỊT (Tối ưu theo góp ý Thầy):
+ * 1. MẶT CẬU BÉ QUAY CÙNG CHIỀU VỚI HƯỚNG DI CHUYỂN (Chạy trái quay trái, chạy phải quay phải).
+ * 2. ĐÔI MẮT CHIBI ^^ CƯỜI HÍP ÁNH LÊN TRÊN DẢI LỤA ĐỎ: Biểu cảm hóm hỉnh, tinh nghịch.
+ * 3. ĐÀN VỊT CHẠY THEO BẦY VÒNG QUANH SÂN: Phân bổ đều khắp sân, không bị dồn cục vào góc.
+ * 4. NGƯỜI CHƠI CHẠY RƯỢT ĐUỔI BẦY VỊT: Di chuyển mượt mà, sải chân sải tay bám đuổi.
+ * 5. BỎ HOÀN TOÀN CÂU THOẠI TIẾNG: Không còn bong bóng thoại che khuất hay giọng đọc khó nghe.
  */
 export const DuckArena = ({
   ducks = [],
@@ -26,15 +25,15 @@ export const DuckArena = ({
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 1000, height: 620 });
 
-  // Tâm và bán kính sân đất nén (Camera hạ thấp góc nhìn ngang: ry dẹt hơn, sân nằm ở nửa dưới)
+  // Tâm và bán kính sân đất nén (Camera hạ thấp nhìn ngang sân)
   const arenaCenter = { x: dimensions.width / 2, y: dimensions.height / 2 + 75 };
   const arenaRadiusX = Math.min(dimensions.width * 0.44, 460);
-  const arenaRadiusY = Math.min(dimensions.height * 0.28, 175); // Hạ thấp góc nhìn
+  const arenaRadiusY = Math.min(dimensions.height * 0.28, 175);
 
-  // Người chơi bịt mắt (Dùng REF để tránh lỗi stale closure đứng im tại chỗ)
+  // Người chơi bịt mắt (Dùng REF để di chuyển mượt mà không bị khựng)
   const playerRef = useRef({
-    x: arenaCenter.x - 40,
-    y: arenaCenter.y + 20,
+    x: arenaCenter.x - 60,
+    y: arenaCenter.y + 10,
     direction: 'right',
     isWalking: true,
     isCatching: false,
@@ -68,7 +67,7 @@ export const DuckArena = ({
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
-  // KHỞI TẠO ĐÀN VỊT CHẠY THEO BẦY (FLOCKING 20-30 CON)
+  // KHỞI TẠO ĐÀN VỊT PHÂN BỔ ĐỀU VÒNG QUANH SÂN (TRÁNH DỒN CỤC VÀO GÓC)
   useEffect(() => {
     if (!ducks || ducks.length === 0) return;
 
@@ -77,8 +76,8 @@ export const DuckArena = ({
     setCameraZoom({ scale: 1, x: 0, y: 0 });
 
     playerRef.current = {
-      x: arenaCenter.x - 30,
-      y: arenaCenter.y + 20,
+      x: arenaCenter.x - 70,
+      y: arenaCenter.y,
       direction: 'right',
       isWalking: true,
       isCatching: false,
@@ -86,8 +85,8 @@ export const DuckArena = ({
     };
     setPlayerState({ ...playerRef.current });
 
-    // Khởi tạo 20 - 30 chú vịt
-    const flockTargetCount = Math.max(18, Math.min(30, ducks.length));
+    // Khởi tạo từ 18 - 28 chú vịt
+    const flockTargetCount = Math.max(18, Math.min(28, ducks.length));
     const cohort = [];
 
     for (let i = 0; i < flockTargetCount; i++) {
@@ -99,28 +98,27 @@ export const DuckArena = ({
       });
     }
 
-    // Đặt đàn vịt xuất phát theo cụm bầy (Flock clusters) ở phía trên bên phải sân
+    // Phân bổ đều khắp 360 độ vòng tròn sân cát
     const initialSprites = cohort.map((item, idx) => {
-      const clusterAngle = -0.3 + (idx / flockTargetCount) * 1.8;
-      const rRatio = 0.55 + (idx % 3) * 0.12;
-      const x = arenaCenter.x + Math.cos(clusterAngle) * (arenaRadiusX * rRatio);
-      const y = arenaCenter.y + Math.sin(clusterAngle) * (arenaRadiusY * rRatio);
+      const angle = (idx / flockTargetCount) * Math.PI * 2;
+      const rRatio = 0.5 + ((idx * 3) % 4) * 0.09; // Bán kính từ 0.5 đến 0.77
+      const x = arenaCenter.x + Math.cos(angle) * (arenaRadiusX * rRatio);
+      const y = arenaCenter.y + Math.sin(angle) * (arenaRadiusY * rRatio);
 
-      const baseSpeed = 62 + (idx % 4) * 8;
-      // Ban đầu đàn vịt cùng hướng bơi/chạy quanh vòng tròn
-      const moveAngle = clusterAngle + Math.PI / 2;
+      const baseSpeed = 68 + (idx % 4) * 8;
+      // Hướng chạy tiếp tuyến vòng quanh sân (ngược chiều kim đồng hồ)
+      const tangentAngle = angle + Math.PI / 2;
 
       return {
         instanceId: item.instanceId,
         duck: item,
         x,
         y,
-        vx: Math.cos(moveAngle) * baseSpeed,
-        vy: Math.sin(moveAngle) * (baseSpeed * 0.65),
+        vx: Math.cos(tangentAngle) * baseSpeed,
+        vy: Math.sin(tangentAngle) * (baseSpeed * 0.65),
         speed: baseSpeed,
         state: 'WALK',
         colorIndex: idx,
-        speechQuote: null,
         isQuacking: false,
         isCaught: false,
         isTarget: item.isTarget
@@ -132,11 +130,10 @@ export const DuckArena = ({
     patrolAngleRef.current = 0;
   }, [ducks, targetDuckId, dimensions.width, dimensions.height]);
 
-  // HÀNH ĐỘNG BẮT VỊT (Tự động hoặc khi Thầy bấm nút Bắt)
+  // HÀNH ĐỘNG BẮT VỊT
   const triggerCatch = (forcedDuck = null) => {
     if (hasCaughtRef.current) return;
 
-    // Xác định chú vịt bị bắt
     let targetToCatch = forcedDuck;
     if (!targetToCatch) {
       if (mode === 'random_call' && targetDuckId) {
@@ -160,22 +157,22 @@ export const DuckArena = ({
         caughtSprite.state = 'CAUGHT';
         setCaughtDuckObj(targetToCatch);
 
-        // Đặt vị trí người chơi ngay sát chú vịt để ôm vịt
+        // Đặt vị trí người chơi ngay sát chú vịt để ôm vịt trước ngực
         playerRef.current.x = caughtSprite.x;
-        playerRef.current.y = caughtSprite.y + 10;
+        playerRef.current.y = caughtSprite.y + 8;
         playerRef.current.isCatching = false;
         playerRef.current.isHoldingDuck = true;
         setPlayerState({ ...playerRef.current });
 
-        // CẬN CẢNH KHI BẮT ĐƯỢC: Camera zoom cận cảnh ngang tầm mặt người chơi và vịt!
-        const focusX = (arenaCenter.x - caughtSprite.x) * 0.55;
-        const focusY = (arenaCenter.y - caughtSprite.y) * 0.55 + 20;
-        setCameraZoom({ scale: 1.45, x: focusX, y: focusY });
+        // Cận cảnh khi bắt được: Camera zoom thẳng vào khuôn mặt và tư thế ôm vịt
+        const focusX = (arenaCenter.x - caughtSprite.x) * 0.6;
+        const focusY = (arenaCenter.y - caughtSprite.y) * 0.6 + 25;
+        setCameraZoom({ scale: 1.5, x: focusX, y: focusY });
       }
 
       setDuckSprites([...spritesRef.current]);
 
-      // Sau 1.4s thưởng thức cảnh ôm vịt hạnh phúc, gửi thông báo hoàn tất
+      // Sau 1.4s thưởng thức cảnh ôm vịt, mở modal vinh danh
       setTimeout(() => {
         onCatchDuck?.(targetToCatch);
       }, 1400);
@@ -185,7 +182,7 @@ export const DuckArena = ({
     }
   };
 
-  // KHI HẾT THỜI GIAN VÒNG CHƠI: TỰ ĐỘNG BẮT ĐÚNG CHÚ VỊT MỤC TIÊU
+  // KHI HẾT THỜI GIAN: TỰ ĐỘNG BẮT ĐÚNG CHÚ VỊT MỤC TIÊU
   useEffect(() => {
     if (timeLeft === 0 && !hasCaughtRef.current && !isPaused) {
       const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId);
@@ -194,7 +191,7 @@ export const DuckArena = ({
     }
   }, [timeLeft, isPaused, targetDuckId]);
 
-  // VÒNG LẶP VẬT LÝ FLOCKING & RƯỢT ĐUỔI CHUẨN 60FPS
+  // VÒNG LẶP VẬT LÝ FLOCKING & RƯỢT ĐUỔI CHUẨN (60FPS)
   useEffect(() => {
     let lastTime = performance.now();
 
@@ -205,21 +202,15 @@ export const DuckArena = ({
       if (!isPaused && !hasCaughtRef.current && spritesRef.current.length > 0) {
         let p = playerRef.current;
 
-        // ==============================================================
-        // 1. TÍNH TÂM VÀ VẬN TỐC TRUNG BÌNH CỦA BẦY VỊT (FLOCK CENTER & VELOCITY)
-        // ==============================================================
+        // 1. TÍNH TÂM BẦY VỊT
         let flockCenterX = 0;
         let flockCenterY = 0;
-        let flockVelX = 0;
-        let flockVelY = 0;
         let activeCount = 0;
 
         spritesRef.current.forEach(s => {
           if (!s.isCaught) {
             flockCenterX += s.x;
             flockCenterY += s.y;
-            flockVelX += s.vx;
-            flockVelY += s.vy;
             activeCount++;
           }
         });
@@ -227,14 +218,9 @@ export const DuckArena = ({
         if (activeCount > 0) {
           flockCenterX /= activeCount;
           flockCenterY /= activeCount;
-          flockVelX /= activeCount;
-          flockVelY /= activeCount;
         }
 
-        // ==============================================================
-        // 2. NGƯỜI BỊT MẮT RƯỢT ĐUỔI THEO BẦY VỊT (CẬP NHẬT LIÊN TỤC KHÔNG ĐỨNG IM)
-        // ==============================================================
-        // Mục tiêu rượt: Tiến về phía bầy vịt hoặc chú vịt mục tiêu
+        // 2. NGƯỜI CHƠI BỊT MẮT RƯỢT ĐUỔI (MẶT VÀ THÂN LUÔN HƯỚNG CÙNG CHIỀU CHẠY)
         const targetSprite = spritesRef.current.find(s => s.duck.id === targetDuckId);
         const targetX = targetSprite ? targetSprite.x : flockCenterX;
         const targetY = targetSprite ? targetSprite.y : flockCenterY;
@@ -243,14 +229,16 @@ export const DuckArena = ({
         const toTargetY = targetY - p.y;
         const distToTarget = Math.hypot(toTargetX, toTargetY) || 1;
 
-        patrolAngleRef.current += 3.8 * dt;
-        // Tốc độ chạy rượt đuổi sôi nổi: 135px/s
-        const huntSpeed = 135 * dt;
+        patrolAngleRef.current += 3.6 * dt;
+        const huntSpeed = 138 * dt;
 
-        p.x += (toTargetX / distToTarget) * huntSpeed + Math.cos(patrolAngleRef.current) * 1.8;
-        p.y += (toTargetY / distToTarget) * (huntSpeed * 0.65) + Math.sin(patrolAngleRef.current) * 1.4;
+        p.x += (toTargetX / distToTarget) * huntSpeed + Math.cos(patrolAngleRef.current) * 1.5;
+        p.y += (toTargetY / distToTarget) * (huntSpeed * 0.65) + Math.sin(patrolAngleRef.current) * 1.2;
 
-        p.direction = toTargetX >= 0 ? 'right' : 'left';
+        // Cập nhật hướng quay mặt cùng chiều với hướng di chuyển
+        if (Math.abs(toTargetX) > 2) {
+          p.direction = toTargetX >= 0 ? 'right' : 'left';
+        }
         p.isWalking = true;
 
         // Giới hạn người chơi trong sân
@@ -262,92 +250,85 @@ export const DuckArena = ({
           p.y = arenaCenter.y + (normPy / distNormP) * (arenaRadiusY * 0.82);
         }
 
-        // Đồng bộ lên state cho React render chuyển động mượt mà
         setPlayerState({ ...p });
 
-        // ==============================================================
-        // 3. THUẬT TOÁN FLOCKING CHO ĐÀN VỊT CHẠY THEO BẦY
-        // ==============================================================
+        // 3. VẬT LÝ BẦY VỊT (FLOCKING CHẠY VÒNG QUANH SÂN, KHÔNG BỊ DỒN VÀO GÓC)
         let anyPanic = false;
 
         spritesRef.current.forEach((sprite, i) => {
           if (sprite.isCaught) return;
 
-          // A. LỰC HÚT VỀ TÂM BẦY (COHESION - Vịt muốn chạy gần bầy vịt)
-          const toFlockX = (flockCenterX - sprite.x) * 0.45;
-          const toFlockY = (flockCenterY - sprite.y) * 0.45;
+          // A. Lực chạy vòng quanh sân (Orbit Tangent - ngược chiều kim đồng hồ)
+          const angle = Math.atan2(sprite.y - arenaCenter.y, sprite.x - arenaCenter.x);
+          const orbitSpeed = sprite.state === 'PANIC' ? 140 : 72;
+          const tangVx = -Math.sin(angle) * orbitSpeed;
+          const tangVy = Math.cos(angle) * (orbitSpeed * 0.65);
 
-          // B. LỰC ĐỒNG HƯỚNG VỚI BẦY (ALIGNMENT - Chạy cùng chiều với bầy vịt)
-          const alignX = flockVelX * 0.25;
-          const alignY = flockVelY * 0.25;
+          // B. Lực né tránh người chơi khi lại gần
+          const distToPlayer = Math.hypot(sprite.x - p.x, sprite.y - p.y);
+          let fleeVx = 0;
+          let fleeVy = 0;
 
-          // C. LỰC TÁCH NHAU TRÁNH ĐÈ LÊN NHAU (SEPARATION)
-          let pushX = 0;
-          let pushY = 0;
+          if (distToPlayer < 155) {
+            sprite.state = 'PANIC';
+            anyPanic = true;
+            // Đẩy dạt ra xa người chơi
+            const awayX = (sprite.x - p.x) / (distToPlayer || 1);
+            const awayY = (sprite.y - p.y) / (distToPlayer || 1);
+            fleeVx = awayX * 165;
+            fleeVy = awayY * 115;
+          } else {
+            sprite.state = 'WALK';
+          }
+
+          // C. Lực tách nhau (Separation - giữ cự ly thoải mái, không dồn thành một đống)
+          let sepVx = 0;
+          let sepVy = 0;
           for (let j = 0; j < spritesRef.current.length; j++) {
             if (i !== j && !spritesRef.current[j].isCaught) {
               const other = spritesRef.current[j];
               const dx = sprite.x - other.x;
               const dy = sprite.y - other.y;
               const d = Math.hypot(dx, dy);
-              if (d < 38 && d > 0) {
-                pushX += (dx / d) * (38 - d) * 1.8;
-                pushY += (dy / d) * (38 - d) * 1.8;
+              if (d < 44 && d > 0) {
+                const push = ((44 - d) / d) * 60;
+                sepVx += dx * push;
+                sepVy += dy * push;
               }
             }
           }
 
-          // D. LỰC NÉ TRÁNH NGƯỜI CHƠI (PANIC & HERDING)
-          const distToPlayer = Math.hypot(sprite.x - p.x, sprite.y - p.y);
-          let fleeX = 0;
-          let fleeY = 0;
+          // D. Lực kéo nhẹ về tâm bầy (Cohesion)
+          const cohVx = (flockCenterX - sprite.x) * 0.25;
+          const cohVy = (flockCenterY - sprite.y) * 0.25;
 
-          if (distToPlayer < 155) {
-            sprite.state = 'PANIC';
-            anyPanic = true;
-            // Đẩy mạnh ra xa người chơi
-            fleeX = ((sprite.x - p.x) / (distToPlayer || 1)) * 160;
-            fleeY = ((sprite.y - p.y) / (distToPlayer || 1)) * 110;
-          } else {
-            sprite.state = 'WALK';
-          }
+          // Tổng hợp gia tốc
+          const targetVx = tangVx + fleeVx + sepVx + cohVx;
+          const targetVy = tangVy + fleeVy + sepVy + cohVy;
 
-          // E. CHẠY VÒNG QUANH SÂN (Perimeter circling)
-          const angleToCenter = Math.atan2(sprite.y - arenaCenter.y, sprite.x - arenaCenter.x);
-          const tangentX = -Math.sin(angleToCenter) * 35;
-          const tangentY = Math.cos(angleToCenter) * 22;
+          // Làm mượt vận tốc (Smoothing interpolation)
+          sprite.vx += (targetVx - sprite.vx) * 3.5 * dt;
+          sprite.vy += (targetVy - sprite.vy) * 3.5 * dt;
 
-          // TỔNG HỢP VẬN TỐC CỦA CHÚ VỊT
-          sprite.vx += (toFlockX + alignX + pushX + fleeX + tangentX) * dt;
-          sprite.vy += (toFlockY + alignY + pushY + fleeY + tangentY) * dt;
-
-          // Giới hạn tốc độ tối đa
-          const currentSpeed = Math.hypot(sprite.vx, sprite.vy);
-          const maxSpeed = sprite.state === 'PANIC' ? 140 : 85;
-          if (currentSpeed > maxSpeed) {
-            sprite.vx = (sprite.vx / currentSpeed) * maxSpeed;
-            sprite.vy = (sprite.vy / currentSpeed) * maxSpeed;
-          }
-
-          // Cập nhật vị trí
+          // Cập nhật tọa độ
           sprite.x += sprite.vx * dt;
           sprite.y += sprite.vy * dt;
 
-          // F. GIỚI HẠN TRONG HÀNG RÀO TRE
-          const normX = (sprite.x - arenaCenter.x) / (arenaRadiusX * 0.88);
-          const normY = (sprite.y - arenaCenter.y) / (arenaRadiusY * 0.88);
+          // E. Giữ vịt luôn chạy trong hàng rào tre
+          const normX = (sprite.x - arenaCenter.x) / (arenaRadiusX * 0.86);
+          const normY = (sprite.y - arenaCenter.y) / (arenaRadiusY * 0.86);
           const dNorm = Math.hypot(normX, normY);
 
           if (dNorm > 1) {
-            sprite.x = arenaCenter.x + (normX / dNorm) * (arenaRadiusX * 0.88);
-            sprite.y = arenaCenter.y + (normY / dNorm) * (arenaRadiusY * 0.88);
-            sprite.vx = -sprite.vx * 0.8;
-            sprite.vy = -sprite.vy * 0.8;
+            sprite.x = arenaCenter.x + (normX / dNorm) * (arenaRadiusX * 0.86);
+            sprite.y = arenaCenter.y + (normY / dNorm) * (arenaRadiusY * 0.86);
+            sprite.vx *= -0.4;
+            sprite.vy *= -0.4;
           }
         });
 
-        // Âm thanh nhao nhao khi đàn vịt hoảng loạn
-        if (anyPanic && currentTime - panicAudioTimerRef.current > 1500) {
+        // Âm thanh vịt nhao nhao khi hoảng loạn
+        if (anyPanic && currentTime - panicAudioTimerRef.current > 1600) {
           panicAudioTimerRef.current = currentTime;
           duckAudio.playFlockPanic();
         }
@@ -364,7 +345,7 @@ export const DuckArena = ({
     };
   }, [isPaused, arenaCenter.x, arenaCenter.y, arenaRadiusX, arenaRadiusY, targetDuckId]);
 
-  // CỌC RÀO TRE BAO QUANH
+  // HÀNG RÀO TRE BAO QUANH SÂN
   const fencePosts = [];
   const postCount = 28;
   for (let i = 0; i < postCount; i++) {
@@ -383,7 +364,7 @@ export const DuckArena = ({
       onClick={() => triggerCatch()}
       className="relative w-full h-full overflow-hidden bg-gradient-to-b from-[#1b3a1a] via-[#2d5526] to-[#122611] select-none cursor-pointer"
     >
-      {/* Container có camera zoom ngang tầm mắt */}
+      {/* Container áp dụng hiệu ứng Camera Zoom ngang tầm mắt */}
       <div
         className="relative w-full h-full transition-transform duration-700 ease-out"
         style={{
@@ -392,16 +373,14 @@ export const DuckArena = ({
         }}
       >
         {/* ============================================================== */}
-        {/* 1. CAMERA HẠ THẤP: CHÒI ĐÌNH MÁI ĐỎ HIỆN RÕ Ở HẬU CẢNH NGANG MẮT */}
+        {/* 1. CHÒI ĐÌNH MÁI ĐỎ HẬU CẢNH NGANG MẮT */}
         {/* ============================================================== */}
         <div className="absolute top-2 inset-x-0 h-52 pointer-events-none flex flex-col items-center z-5">
-          {/* Mái ngói đỏ lớn nhìn ngang */}
           <div className="relative mt-2 flex flex-col items-center">
             <div className="w-56 sm:w-80 h-14 sm:h-16 bg-gradient-to-b from-[#dc2626] to-[#991b1b] rounded-t-3xl shadow-2xl border-b-4 border-[#7f1d1d]" />
             <div className="absolute -left-6 top-0 w-10 h-10 border-t-5 border-l-5 border-[#b91c1c] rounded-tl-full transform -rotate-15" />
             <div className="absolute -right-6 top-0 w-10 h-10 border-t-5 border-r-5 border-[#b91c1c] rounded-tr-full transform rotate-15" />
           </div>
-          {/* 6 Cột gỗ đình làng cao ráo */}
           <div className="relative w-52 sm:w-72 h-16 bg-[#3f2212]/40 flex justify-between items-end px-3 border-b-2 border-[#543018]">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="w-4 h-16 bg-[#5c351b] rounded-t-xs border-r border-[#3a200f]" />
@@ -409,7 +388,7 @@ export const DuckArena = ({
           </div>
         </div>
 
-        {/* DÂY CỜ HỘI NGŨ SẮC GIĂNG NGANG */}
+        {/* DÂY CỜ HỘI NGŨ SẮC */}
         <div className="absolute top-16 sm:top-18 inset-x-4 sm:inset-x-12 pointer-events-none z-15 flex justify-between items-center opacity-90">
           {['#2563eb', '#eab308', '#dc2626', '#facc15', '#16a34a', '#ea580c', '#eab308', '#2563eb', '#dc2626', '#16a34a'].map((c, i) => (
             <div key={i} className="flex flex-col items-center">
@@ -421,7 +400,7 @@ export const DuckArena = ({
           ))}
         </div>
 
-        {/* GÓC TRÁI: Bù nhìn rơm & Kiện rơm */}
+        {/* Bù nhìn rơm góc trái */}
         <div className="absolute top-20 left-2 sm:left-10 pointer-events-none z-10 hidden sm:flex flex-col items-center">
           <div className="w-0 h-0 border-x-[20px] border-x-transparent border-b-[15px] border-b-[#dfbe84]" />
           <div className="w-8 h-8 rounded-full bg-[#fcd34d] border border-amber-600 flex items-center justify-center text-xs -mt-1">
@@ -433,14 +412,14 @@ export const DuckArena = ({
           </div>
         </div>
 
-        {/* GÓC PHẢI: Chum vại sành & Đụn rơm */}
+        {/* Chum vại sành góc phải */}
         <div className="absolute top-24 right-2 sm:right-12 pointer-events-none z-10 hidden sm:flex items-end space-x-2">
           <div className="w-18 h-16 bg-gradient-to-b from-[#fcd34d] to-[#b45309] rounded-t-full border border-amber-800 shadow-lg" />
           <div className="w-12 h-14 bg-gradient-to-r from-[#78350f] via-[#9a3412] to-[#78350f] rounded-full border-2 border-[#451a03] shadow-xl" />
         </div>
 
         {/* ============================================================== */}
-        {/* 2. SÂN ĐẤT NÉN GÓC NHÌN NGANG & HÀNG RÀO TRE */}
+        {/* 2. SÂN ĐẤT NÉN VÀ HÀNG RÀO TRE */}
         {/* ============================================================== */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
@@ -458,7 +437,7 @@ export const DuckArena = ({
             </filter>
           </defs>
 
-          {/* Mặt sân cát elip góc nhìn ngang */}
+          {/* Mặt sân cát elip */}
           <ellipse
             cx={arenaCenter.x}
             cy={arenaCenter.y}
@@ -483,7 +462,7 @@ export const DuckArena = ({
             opacity="0.65"
           />
 
-          {/* Hàng rào 2 nan gỗ */}
+          {/* Hàng rào tre 2 tầng */}
           <ellipse
             cx={arenaCenter.x}
             cy={arenaCenter.y - 18}
@@ -524,7 +503,7 @@ export const DuckArena = ({
             </g>
           ))}
 
-          {/* Cổng rào gỗ mở phía trước */}
+          {/* Cổng rào gỗ */}
           <g>
             <rect
               x={arenaCenter.x - 30}
@@ -550,7 +529,7 @@ export const DuckArena = ({
         </svg>
 
         {/* ============================================================== */}
-        {/* 3. ĐÀN VỊT 3D CHẠY THEO BẦY VUI NHỘN (FLOCKING BOIDS) */}
+        {/* 3. ĐÀN VỊT 3D CHẠY THEO BẦY VÒNG QUANH SÂN (FLOCKING) */}
         {/* ============================================================== */}
         {duckSprites.map(sprite => (
           <DuckSprite
@@ -562,7 +541,6 @@ export const DuckArena = ({
             vy={sprite.vy}
             state={sprite.state}
             colorIndex={sprite.colorIndex}
-            speechQuote={sprite.speechQuote}
             isQuacking={sprite.isQuacking}
             isCaught={sprite.isCaught}
             isTarget={sprite.isTarget}
@@ -572,7 +550,7 @@ export const DuckArena = ({
         ))}
 
         {/* ============================================================== */}
-        {/* 4. CẬU BÉ BỊT MẮT: ĐẦU HƯỚNG VỀ CAMERA, NÓN HẤT RA SAU, SẢI BƯỚC RƯỢT ĐUỔI */}
+        {/* 4. CẬU BÉ BỊT MẮT 3D: MẶT HƯỚNG CÙNG CHIỀU CHẠY, MẮT CHIBI ^^ */}
         {/* ============================================================== */}
         <DuckPlayerSprite
           x={playerState.x}
@@ -585,7 +563,7 @@ export const DuckArena = ({
       </div>
 
       {/* ============================================================== */}
-      {/* 5. NÚT BẮT VỊT TO NỔI BẬT DƯỚI ĐÁY */}
+      {/* 5. NÚT BẮT VỊT TO NỔI BẬT DƯỚI ĐÁY SÂN */}
       {/* ============================================================== */}
       {!hasCaughtRef.current && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex items-center space-x-3">
