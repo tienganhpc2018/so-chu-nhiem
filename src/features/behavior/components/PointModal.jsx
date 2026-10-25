@@ -15,10 +15,13 @@ import {
   AlertCircle,
   CheckCircle2,
   Image as ImageIcon,
-  Camera
+  Camera,
+  Crop,
+  Scissors
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { soundFx } from '../../../utils/soundEffects';
+import { AvatarCropModal } from '../../../components/AvatarCropModal';
 
 const DEFAULT_PLUS_CRITERIA = [
   { id: 'p1', label: 'Phát biểu xây dựng bài', points: 2, icon: '🙋‍♂️' },
@@ -116,6 +119,10 @@ export const PointModal = ({
   // Exchange points selection: 10, 20, 30
   const [exchangeAmount, setExchangeAmount] = useState(10);
   const [notification, setNotification] = useState(null);
+
+  // Avatar Cropper Modal state
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
 
   // New criteria form state
   const [showAddCriteria, setShowAddCriteria] = useState(false);
@@ -242,19 +249,35 @@ export const PointModal = ({
     showToast(`Đã thêm tiêu chí mới: ${newItem.label}`);
   };
 
-  // Upload ảnh
+  // Upload ảnh chân dung từ máy tính -> Mở Avatar Crop Modal để Thầy căn chỉnh khuôn mặt
   const handleUploadImage = (e) => {
     const file = e.target.files?.[0];
     if (file && currentSt) {
       const reader = new FileReader();
       reader.onload = (evt) => {
         const base64 = evt.target.result;
-        soundFx.playCorrect();
-        onUpdateAvatar?.(currentSt.id, base64);
-        showToast('Đã cập nhật ảnh đại diện mới!');
+        setCropImageSrc(base64);
+        setShowCropModal(true);
       };
       reader.readAsDataURL(file);
+      e.target.value = ''; // Reset input để có thể chọn lại file
     }
+  };
+
+  // Mở công cụ căn chỉnh khuôn mặt cho ảnh hiện tại của học sinh
+  const handleOpenReCrop = () => {
+    if (currentSt?.avatar || currentSt?.avatar_url) {
+      setCropImageSrc(currentSt.avatar || currentSt.avatar_url);
+      setShowCropModal(true);
+    }
+  };
+
+  // Lưu avatar sau khi đã căn chỉnh khuôn mặt chính xác
+  const handleSaveCroppedAvatar = (croppedBase64) => {
+    soundFx.playCorrect();
+    onUpdateAvatar?.(currentSt.id, croppedBase64);
+    setShowCropModal(false);
+    showToast('Đã căn chỉnh khuôn mặt và lưu avatar thành công!');
   };
 
   // Progress to next 10 points
@@ -294,7 +317,7 @@ export const PointModal = ({
                     `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentSt.full_name)}`
                   }
                   alt={currentSt.full_name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
               </div>
               <span
@@ -779,11 +802,26 @@ export const PointModal = ({
                 </div>
               </div>
 
-              <label className="cursor-pointer px-4 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-2 shrink-0 transition-all active:scale-95">
-                <Upload className="w-4 h-4" />
-                <span>Chọn File Ảnh</span>
-                <input type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
-              </label>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {/* Nút Căn chỉnh khuôn mặt nếu học sinh đã có ảnh đại diện */}
+                {currentSt.avatar && !currentSt.avatar.includes('dicebear') && (
+                  <button
+                    type="button"
+                    onClick={handleOpenReCrop}
+                    className="px-3.5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-1.5 transition-all active:scale-95"
+                    title="Mở công cụ di chuyển và căn đúng khuôn mặt"
+                  >
+                    <Crop className="w-4 h-4" />
+                    <span>Căn Chỉnh Khuôn Mặt</span>
+                  </button>
+                )}
+
+                <label className="cursor-pointer px-4 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-2xl text-xs font-black shadow-md flex items-center space-x-2 shrink-0 transition-all active:scale-95">
+                  <Upload className="w-4 h-4" />
+                  <span>Chọn File Ảnh</span>
+                  <input type="file" accept="image/*" onChange={handleUploadImage} className="hidden" />
+                </label>
+              </div>
             </div>
 
             {/* 2. GIỚI TÍNH HỌC SINH */}
@@ -912,6 +950,15 @@ export const PointModal = ({
         </div>
 
       </div>
+
+      {/* MODAL CĂN CHỈNH & DI CHUYỂN KHUÔN MẶT AVATAR (Chuẩn yêu cầu Thầy) */}
+      <AvatarCropModal
+        isOpen={showCropModal}
+        onClose={() => setShowCropModal(false)}
+        imageSrc={cropImageSrc}
+        studentName={currentSt?.full_name || currentSt?.name}
+        onSaveAvatar={handleSaveCroppedAvatar}
+      />
     </div>
   );
 };

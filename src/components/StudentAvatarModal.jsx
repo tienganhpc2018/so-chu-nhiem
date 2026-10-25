@@ -282,6 +282,7 @@ export const StudentAvatarModal = ({ isOpen, onClose, student, onUpdateStudentAv
         isOpen={showCropModal}
         onClose={() => setShowCropModal(false)}
         imageSrc={tempImageSrc}
+        studentName={student?.full_name || student?.name}
         onSaveAvatar={handleSaveCroppedAvatar}
       />
     </div>

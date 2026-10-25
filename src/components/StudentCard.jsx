@@ -78,7 +78,7 @@ export const StudentCard = ({
           <img
             src={student.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${student.id}`}
             alt={student.full_name}
-            className="w-14 h-14 rounded-2xl object-cover border-2 border-purple-200 p-0.5 bg-purple-50 group-hover/av:border-purple-500 group-hover/av:scale-105 transition-all shadow-sm"
+            className="w-14 h-14 rounded-2xl object-cover object-top border-2 border-purple-200 p-0.5 bg-purple-50 group-hover/av:border-purple-500 group-hover/av:scale-105 transition-all shadow-sm"
             onError={(e) => {
               e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${student.id}`;
             }}

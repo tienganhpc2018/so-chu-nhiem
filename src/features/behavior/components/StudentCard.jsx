@@ -60,7 +60,7 @@ export const StudentCard = ({
               `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(student.full_name || 'student')}`
             }
             alt={student.full_name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            className="w-full h-full object-cover object-top group-hover:scale-110 transition-transform duration-300"
             loading="lazy"
           />
         </div>
