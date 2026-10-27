@@ -2,24 +2,22 @@ import React from 'react';
 import { getShortStudentName } from '../data/defaultDuckData';
 
 /**
- * 6 BẢNG MÀU LÔNG VỊT 3D CHUẨN ẢNH THAM CHIẾU (ĐẦU ĐEN / MỎ VÀNG CAM / THÂN PASTEL):
+ * 6 BẢNG MÀU LÔNG VỊT PIXAR 3D ĐÁNG YÊU (THÂN TRẮNG MUỐT/PASTEL + MỎ CHÂN CAM TƯƠI):
  */
 export const DUCK_PALETTES = [
-  { body: '#ffffff', bodyStroke: '#cbd5e1', head: '#1e293b', beak: '#f59e0b', feet: '#ea580c' }, // Trắng kem
-  { body: '#fbcfe8', bodyStroke: '#f472b6', head: '#0f172a', beak: '#f97316', feet: '#ea580c' }, // Hồng pastel
-  { body: '#a7f3d0', bodyStroke: '#34d399', head: '#1e293b', beak: '#f59e0b', feet: '#ea580c' }, // Xanh mint
-  { body: '#fef08a', bodyStroke: '#facc15', head: '#1e293b', beak: '#ea580c', feet: '#ea580c' }, // Vàng nhạt
-  { body: '#fed7aa', bodyStroke: '#fb923c', head: '#0f172a', beak: '#f59e0b', feet: '#ea580c' }, // Cam đào
-  { body: '#bae6fd', bodyStroke: '#38bdf8', head: '#1e293b', beak: '#f97316', feet: '#ea580c' }  // Xanh dương
+  { body: '#ffffff', bodyStroke: '#cbd5e1', head: '#f8fafc', beak: '#f97316', feet: '#ea580c' }, // Trắng muốt Pixar
+  { body: '#fef9c3', bodyStroke: '#facc15', head: '#fef08a', beak: '#f97316', feet: '#ea580c' }, // Vàng tơ pastel
+  { body: '#ffffff', bodyStroke: '#cbd5e1', head: '#1e293b', beak: '#f59e0b', feet: '#ea580c' }, // Cổ điển đầu đen
+  { body: '#e0f2fe', bodyStroke: '#7dd3fc', head: '#bae6fd', beak: '#f97316', feet: '#ea580c' }, // Xanh thiên thanh
+  { body: '#fce7f3', bodyStroke: '#f472b6', head: '#fbcfe8', beak: '#f97316', feet: '#ea580c' }, // Hồng dâu pastel
+  { body: '#ecfdf5', bodyStroke: '#6ee7b7', head: '#a7f3d0', beak: '#f97316', feet: '#ea580c' }  // Xanh mint
 ];
 
 /**
- * SPRITE CHÚ VỊT 3D HOẠT HÌNH SIÊU HÀI HƯỚC (Waddle & Googly Eyes):
- * - Thân béo tròn lắc mông lạch bạch
- * - Mắt to tròn ngơ ngác, khi hoảng loạn mắt lồi há to mỏ kêu quác
- * - Chân cam guồng tít như bánh xe hoạt hình
- * - Cánh đập nhấp nhô vui nhộn
- * - Nhãn tên học sinh dạng viên thuốc trắng [Hân], [Bích], [Khiêm], [Diễm]...
+ * SPRITE CHÚ VỊT CON HỌC SINH 3D KIỂU PIXAR:
+ * - Nhãn tên hình viên thuốc viền xanh nhẹ nhàng (small blue-outlined name tag floating above).
+ * - Bong bóng thoại vui nhộn (Speech bubbles with short cheerful phrases).
+ * - Biểu cảm phong phú: há mỏ vui sướng, nháy mắt, toát mồ hôi lo lắng, đeo kính tròn tri thức.
  */
 export const DuckSprite = ({
   duck,
@@ -27,6 +25,7 @@ export const DuckSprite = ({
   y = 0,
   vx = 1,
   vy = 0,
+  speech = null,
   isQuacking = false,
   isCaught = false,
   isTarget = false,
@@ -41,6 +40,7 @@ export const DuckSprite = ({
 
   const palette = DUCK_PALETTES[Math.abs(colorIndex) % DUCK_PALETTES.length];
   const isPanic = state === 'PANIC';
+  const hasGlasses = colorIndex % 5 === 2; // Một chú vịt đeo kính tròn đáng yêu
 
   return (
     <div
@@ -54,7 +54,7 @@ export const DuckSprite = ({
         willChange: 'left, top, transform'
       }}
     >
-      {/* 1. Bóng đổ tiếp xúc mặt đất dưới chân vịt */}
+      {/* 1. BÓNG ĐỔ TIẾP XÚC MẶT CÁT */}
       <div
         className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full pointer-events-none"
         style={{
@@ -66,19 +66,34 @@ export const DuckSprite = ({
         }}
       />
 
-      {/* 2. NHÃN TÊN HỌC SINH HÌNH VIÊN THUỐC TRẮNG (ĐỒNG NHẤT 100%, KHÔNG LỘ MỤC TIÊU) */}
+      {/* 2. BONG BÓNG LỜI THOẠI HÀI HƯỚC (SPEECH BUBBLE) */}
+      {speech && !isCaught && (
+        <div
+          className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 animate-speech-pop pointer-events-none"
+          style={{ transform: isFacingRight ? 'none' : 'scaleX(-1)' }}
+        >
+          <div className="relative px-2.5 py-1 rounded-2xl bg-white text-slate-900 border-2 border-sky-400 shadow-lg text-[10px] font-black flex items-center space-x-1">
+            <span>{speech}</span>
+            {/* Đuôi bong bóng thoại */}
+            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-6 border-t-sky-400" />
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-x-3 border-x-transparent border-t-5 border-t-white" />
+          </div>
+        </div>
+      )}
+
+      {/* 3. NHÃN TÊN VIỀN XANH NHẸ NHÀNG (SMALL BLUE-OUTLINED NAME TAG) */}
       {showName && !isCaught && (
         <div
           className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap z-40 filter drop-shadow-xs"
           style={{ transform: isFacingRight ? 'none' : 'scaleX(-1)' }}
         >
-          <div className="px-2.5 py-0.5 rounded-full border border-slate-300 bg-white/95 text-slate-900 font-bold text-[11px] shadow-sm flex items-center justify-center">
+          <div className="px-2.5 py-0.5 rounded-full border-2 border-sky-400 bg-white/95 text-sky-950 font-black text-[11px] shadow-sm flex items-center justify-center">
             <span>{displayName}</span>
           </div>
         </div>
       )}
 
-      {/* 3. KHỐI CHÚ VỊT HOẠT HÌNH HÀI HƯỚC (LẮC MÔNG LẠCH BẠCH) */}
+      {/* 4. CHÚ VỊT CON HOẠT HÌNH PIXAR (LẮC MÔNG VỖ CÁNH) */}
       <div className={`relative w-16 h-16 ${isPanic ? 'animate-bounce-fast' : isCaught ? 'animate-wiggle' : 'animate-duck-waddle'}`}>
         <svg
           width="64"
@@ -89,22 +104,22 @@ export const DuckSprite = ({
           className="filter drop-shadow-sm overflow-visible"
         >
           <defs>
-            {/* Gradient 3D cho thân vịt béo tròn */}
-            <radialGradient id={`duckGrad_${palette.body}`} cx="40%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-              <stop offset="45%" stopColor={palette.body} />
+            {/* Gradient thân vịt tròn mịn màng */}
+            <radialGradient id={`pixarDuck_${palette.body.replace('#','')}`} cx="40%" cy="30%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="50%" stopColor={palette.body} />
               <stop offset="100%" stopColor={palette.bodyStroke} />
             </radialGradient>
 
-            {/* Gradient cho đầu đen tròn */}
-            <radialGradient id="duckHeadGradient" cx="35%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#475569" />
-              <stop offset="60%" stopColor="#1e293b" />
+            {/* Gradient đầu vịt */}
+            <radialGradient id={`duckHead_${palette.head.replace('#','')}`} cx="35%" cy="30%" r="65%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
+              <stop offset="50%" stopColor={palette.head} />
               <stop offset="100%" stopColor="#090d16" />
             </radialGradient>
           </defs>
 
-          {/* ĐÔI CHÂN CAM GUỒNG TÍT HOẠT HÌNH */}
+          {/* ĐÔI CHÂN CAM GUỒNG BƯỚC */}
           <g className={!isCaught ? 'animate-duck-feet' : ''}>
             <path
               d="M26 51L24 59M24 59L18 61M24 59L24 62M24 59L29 61"
@@ -120,18 +135,18 @@ export const DuckSprite = ({
             />
           </g>
 
-          {/* THÂN VỊT BÉO TRÒN HÌNH QUẢ TRỨNG 3D */}
+          {/* THÂN VỊT BÉO TRÒN HÌNH QUẢ TRỨNG */}
           <ellipse
             cx="28"
             cy="40"
             rx="17"
             ry="13"
-            fill={`url(#duckGrad_${palette.body})`}
+            fill={`url(#pixarDuck_${palette.body.replace('#','')})`}
             stroke={palette.bodyStroke}
             strokeWidth="1.2"
           />
 
-          {/* ĐUÔI VỊT VỂNH LÊN VUI NHỘN */}
+          {/* ĐUÔI VỊT VỂNH LÊN */}
           <path
             d="M13 38C9 35 6 34 4 37C6 40 10 42 14 42Z"
             fill={palette.body}
@@ -155,48 +170,53 @@ export const DuckSprite = ({
               strokeWidth="1.2"
               transform="rotate(-12 28 39)"
             />
-            {/* Vạch lông cánh */}
             <path d="M22 40C25 42 29 42 32 40" stroke={palette.bodyStroke} strokeWidth="1" strokeLinecap="round" />
           </g>
 
-          {/* ĐẦU TRÒN ĐEN LÁY (CHUẨN ẢNH THAM CHIẾU) */}
+          {/* ĐẦU TRÒN XOE */}
           <circle
             cx="42"
             cy="27"
             r="11"
-            fill="url(#duckHeadGradient)"
-            stroke="#090d16"
+            fill={`url(#duckHead_${palette.head.replace('#','')})`}
+            stroke={palette.bodyStroke}
             strokeWidth="1"
           />
 
-          {/* ============================================================== */}
-          {/* MẮT HÀI HƯỚC: BÌNH THƯỜNG / HOẢNG SỢ (PANIC) / BỊ BẮT (CAUGHT) */}
-          {/* ============================================================== */}
+          {/* KÍNH TRÒN TRI THỨC (NẾU CÓ) */}
+          {hasGlasses && (
+            <g>
+              <circle cx="45" cy="25" r="5" fill="none" stroke="#0284c7" strokeWidth="1.2" />
+              <line x1="40" y1="25" x2="38" y2="25" stroke="#0284c7" strokeWidth="1.2" />
+            </g>
+          )}
+
+          {/* MẮT BIỂU CẢM THEO TRẠNG THÁI */}
           {isCaught ? (
-            /* Mắt xoắn ốc chóng mặt khi bị bắt @_@ */
+            /* Bị bắt: Mắt xoắn ốc chóng mặt @_@ */
             <g>
               <circle cx="45" cy="25" r="4.5" fill="#ffffff" />
               <path d="M43 25C43 23.5 45 23.5 45.5 24.5C46 25.5 44 26.5 45 27" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" />
             </g>
           ) : isPanic ? (
-            /* Mắt lồi trợn to hoảng hốt khi bị rượt đuổi! */
+            /* Hoảng loạn: Mắt lồi to tròn trố lên! */
             <g>
-              <circle cx="45" cy="24" r="5" fill="#ffffff" stroke="#0f172a" strokeWidth="1.2" />
+              <circle cx="45" cy="24" r="5.2" fill="#ffffff" stroke="#0f172a" strokeWidth="1.2" />
               <circle cx="46" cy="24" r="2.2" fill="#ef4444" />
               <circle cx="46.5" cy="23.5" r="1" fill="#ffffff" />
             </g>
           ) : (
-            /* Mắt tròn xoe ngơ ngác đáng yêu */
+            /* Bình thường: Mắt anime to tròn long lanh */
             <g>
-              <circle cx="45" cy="25" r="3.5" fill="#ffffff" />
-              <circle cx="45.5" cy="25" r="2" fill="#0f172a" />
-              <circle cx="46.2" cy="24.2" r="0.8" fill="#ffffff" />
+              <circle cx="45" cy="25" r="3.8" fill="#ffffff" />
+              <circle cx="45.5" cy="25" r="2.2" fill="#0f172a" />
+              <circle cx="46.2" cy="24.2" r="1" fill="#ffffff" />
             </g>
           )}
 
-          {/* MỎ VỊT MÀU CAM TƯƠI: HÁ TO KHI HOẢNG SỢ HOẶC CƯỜI TƯƠI */}
+          {/* MỎ VỊT MÀU CAM TƯƠI */}
           {isPanic ? (
-            /* Mỏ há to kêu QUẠC QUẠC */
+            /* Mỏ há to kêu QUÁC QUÁC */
             <path
               d="M48 26C56 25 59 29 57 34C53 36 48 35 46 31Z"
               fill={palette.beak}
@@ -214,13 +234,21 @@ export const DuckSprite = ({
             />
           )}
 
-          {/* Giọt mồ hôi hốt hoảng bay lên khi hoảng loạn */}
+          {/* Giọt mồ hôi hốt hoảng khi bị rượt gần */}
           {isPanic && (
             <path
-              d="M54 14C55 12 58 13 57 16C56 18 53 19 53 17C53 15 54 14 54 14Z"
+              d="M54 13C55 11 58 12 57 15C56 17 53 18 53 16C53 14 54 13 54 13Z"
               fill="#38bdf8"
               className="animate-bounce"
             />
+          )}
+
+          {/* Dấu chấm than đỏ trên đầu khi giật mình */}
+          {isPanic && (
+            <g className="animate-pulse">
+              <circle cx="43" cy="8" r="1.5" fill="#ef4444" />
+              <rect x="42" y="11" width="2" height="4" rx="1" fill="#ef4444" />
+            </g>
           )}
         </svg>
       </div>

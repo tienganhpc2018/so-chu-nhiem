@@ -11,11 +11,25 @@ import { duckAudio } from '../services/duckAudio';
  * - Nhân vật CÔ GÁI bịt mắt 3D duyên dáng, áo bà ba nâu, bím tóc tết rủ nơ đỏ, nón lá tre nghiêng
  * - ĐÀN VỊT DI CHUYỂN LIÊN TỤC KHẮP SÂN: Tản đều 360 độ, không bao giờ bị kẹt lại một góc
  */
+const PANIC_SPEECHES = [
+  'Ối! Thầy gần quá! 😱',
+  'Á á chạy mau! 💨',
+  'Hụt rồi! 😜',
+  'Em chưa học bài đâu! 💦'
+];
+
+const WANDER_SPEECHES = [
+  'Thầy ơi, em đây này! 🖐️',
+  'Bắt em đi! 😜',
+  'Hụt rồi! 🏃',
+  'Không bắt được em đâu! 😆'
+];
+
 export const DuckArena = ({
   ducks = [],
-  mode = 'random_call',
+  mode = 'blind_catch',
   targetDuckId = null,
-  characterType = 'girl',
+  characterType = 'boy',
   timeLeft = 20,
   roundDuration = 20,
   showDuckNames = true,
@@ -25,7 +39,7 @@ export const DuckArena = ({
 }) => {
   const containerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 1000, height: 620 });
-  const [activeCharacter, setActiveCharacter] = useState(characterType || 'girl');
+  const [activeCharacter, setActiveCharacter] = useState(characterType || 'boy');
 
   // Cập nhật khi prop thay đổi
   useEffect(() => {
@@ -151,7 +165,9 @@ export const DuckArena = ({
         colorIndex: idx,
         isQuacking: false,
         isCaught: false,
-        isTarget: item.isTarget
+        isTarget: item.isTarget,
+        speech: null,
+        speechTimer: 2 + Math.random() * 5
       };
     });
 
@@ -389,6 +405,25 @@ export const DuckArena = ({
           // Cập nhật vị trí di chuyển
           sprite.x += sprite.vx * dt;
           sprite.y += sprite.vy * dt;
+
+          // E. Quản lý bong bóng lời thoại ngộ nghĩnh của đàn vịt
+          sprite.speechTimer -= dt;
+          if (sprite.isCaught) {
+            sprite.speech = 'Bị tóm rồi! 🦆';
+          } else if (sprite.state === 'PANIC') {
+            if (!sprite.speech || sprite.speechTimer <= 0) {
+              sprite.speech = PANIC_SPEECHES[Math.floor(Math.random() * PANIC_SPEECHES.length)];
+              sprite.speechTimer = 2.4;
+            }
+          } else if (sprite.state === 'WALK') {
+            if (sprite.speech && sprite.speechTimer <= 0) {
+              sprite.speech = null;
+              sprite.speechTimer = 6 + Math.random() * 8;
+            } else if (!sprite.speech && sprite.speechTimer <= 0 && Math.random() < 0.25) {
+              sprite.speech = WANDER_SPEECHES[Math.floor(Math.random() * WANDER_SPEECHES.length)];
+              sprite.speechTimer = 2.5;
+            }
+          }
 
           // D. Giữ vịt trong hàng rào tre (Uốn lượn mềm mại khi chạm biên, KHÔNG KẸT)
           const normX = (sprite.x - arenaCenter.x) / (arenaRadiusX * 0.85);
@@ -661,6 +696,7 @@ export const DuckArena = ({
             isQuacking={sprite.isQuacking}
             isCaught={sprite.isCaught}
             isTarget={sprite.isTarget}
+            speech={sprite.speech}
             showName={showDuckNames}
             allNames={allNames}
           />

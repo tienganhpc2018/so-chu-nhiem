@@ -89,56 +89,54 @@
   animation: bounceFast 0.22s ease-in-out infinite;
 }
 
-/* Human Natural Running Gait (Chạy mượt mà, chân bước tự nhiên như thật ngoài đời) */
-@keyframes humanStrideBackLeg {
-  0% { transform: rotate(-22deg); }
-  50% { transform: rotate(24deg); }
-  100% { transform: rotate(-22deg); }
+/* Dynamic Forward Running Gait (Pixar style: nghiêng người sải bước chân thực, không nhảy hàng ngang) */
+@keyframes pixarRunBodyLean {
+  0%, 100% { transform: translateY(0) rotate(8deg); }
+  50% { transform: translateY(-3px) rotate(11deg); }
 }
 
-@keyframes humanStrideFrontLeg {
-  0% { transform: rotate(24deg); }
-  50% { transform: rotate(-22deg); }
-  100% { transform: rotate(24deg); }
+@keyframes pixarRunLegFront {
+  0% { transform: rotate(36deg); }
+  50% { transform: rotate(-26deg); }
+  100% { transform: rotate(36deg); }
 }
 
-@keyframes humanArmSwingFront {
-  0% { transform: rotate(-20deg); }
-  50% { transform: rotate(18deg); }
-  100% { transform: rotate(-20deg); }
+@keyframes pixarRunLegBack {
+  0% { transform: rotate(-26deg); }
+  50% { transform: rotate(36deg); }
+  100% { transform: rotate(-26deg); }
 }
 
-@keyframes humanArmSwingBack {
-  0% { transform: rotate(18deg); }
-  50% { transform: rotate(-20deg); }
-  100% { transform: rotate(18deg); }
+@keyframes pixarArmsReach {
+  0%, 100% { transform: rotate(-5deg) translateX(0); }
+  50% { transform: rotate(5deg) translateX(3px); }
 }
 
-@keyframes humanBodyBob {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-2px); }
+@keyframes speechBubblePop {
+  0% { transform: scale(0) translateY(8px); opacity: 0; }
+  70% { transform: scale(1.1) translateY(-2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-.animate-human-leg-back {
-  animation: humanStrideBackLeg 0.42s ease-in-out infinite;
+.animate-pixar-body {
+  animation: pixarRunBodyLean 0.36s ease-in-out infinite;
+}
+
+.animate-pixar-leg-front {
+  animation: pixarRunLegFront 0.36s ease-in-out infinite;
   transform-origin: 50% 0%;
 }
 
-.animate-human-leg-front {
-  animation: humanStrideFrontLeg 0.42s ease-in-out infinite;
+.animate-pixar-leg-back {
+  animation: pixarRunLegBack 0.36s ease-in-out infinite;
   transform-origin: 50% 0%;
 }
 
-.animate-human-arm-front {
-  animation: humanArmSwingFront 0.42s ease-in-out infinite;
-  transform-origin: 20% 20%;
+.animate-pixar-arms {
+  animation: pixarArmsReach 0.36s ease-in-out infinite;
+  transform-origin: 20% 40%;
 }
 
-.animate-human-arm-back {
-  animation: humanArmSwingBack 0.42s ease-in-out infinite;
-  transform-origin: 20% 20%;
-}
-
-.animate-human-bob {
-  animation: humanBodyBob 0.21s ease-in-out infinite;
+.animate-speech-pop {
+  animation: speechBubblePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }

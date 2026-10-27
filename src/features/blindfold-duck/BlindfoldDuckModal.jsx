@@ -39,7 +39,7 @@ export const BlindfoldDuckModal = ({
   const [noRepeat, setNoRepeat] = useState(true); // Không lặp học sinh trong cùng buổi
   const [showDuckNames, setShowDuckNames] = useState(true); // Mặc định hiện nhãn tên trên đầu vịt chuẩn ảnh tham chiếu
   const [enableTts, setEnableTts] = useState(false); // Đã tắt giọng đọc theo yêu cầu Thầy
-  const [characterType, setCharacterType] = useState('girl'); // 'girl' | 'boy'
+  const [characterType, setCharacterType] = useState('boy'); // 'boy' | 'girl'
 
   // Danh sách học sinh / vịt
   const [ducks, setDucks] = useState(() => getLocalDucks(lmsStudents));

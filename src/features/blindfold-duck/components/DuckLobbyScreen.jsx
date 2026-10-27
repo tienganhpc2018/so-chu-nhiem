@@ -12,7 +12,7 @@ export const DuckLobbyScreen = ({
   onToggleShowDuckNames,
   enableTts = false,
   onToggleTts,
-  characterType = 'girl',
+  characterType = 'boy',
   onSelectCharacter,
   onStartGame,
   onOpenRules,
