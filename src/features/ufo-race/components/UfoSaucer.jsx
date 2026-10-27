@@ -1,14 +1,26 @@
 import React, { useEffect, useState } from 'react';
 
+/**
+ * UfoSaucer.jsx - Đĩa bay UFO thế hệ mới:
+ * 1. Kích thước thu nhỏ thanh thoát (chỉ 220px - 280px), không còn to bè che khuất phố
+ * 2. Bay ở trên cao cách xa học sinh bên dưới (khoảng cách > 450px)
+ * 3. Di chuyển lượn trái - phải tự nhiên, nghiêng góc theo hướng bay (ufoTilt)
+ * 4. Tia hút Tractor Beam và tia Laser tự động hướng từ tọa độ UFO thời gian thực đến học sinh
+ * 5. Bảng điểm LED điện tử và 10 đèn LED đa sắc viền thân đĩa bay
+ */
+
 export const UfoSaucer = ({
   capturedCount = 0,
   targetCount = 2,
-  isVisible = false, // Chỉ xuất hiện khi giáo viên bấm Bắt đầu
+  isVisible = false,
   isBeaming = false,
   targetStudentPos = null,
   containerWidth = 1000,
   containerHeight = 700,
-  countdownSeconds = null
+  countdownSeconds = null,
+  ufoX = null,
+  ufoY = null,
+  ufoTilt = 0
 }) => {
   const [lightOffset, setLightOffset] = useState(0);
 
@@ -19,7 +31,7 @@ export const UfoSaucer = ({
     return () => clearInterval(timer);
   }, []);
 
-  // 10 màu đèn LED viền quanh đĩa bay chuẩn 100% theo ảnh Thầy gửi
+  // 10 màu đèn LED viền quanh đĩa bay
   const LED_ITEMS = [
     { cx: 175, cy: 154, color: '#f97316' }, // Cam
     { cx: 205, cy: 161, color: '#f59e0b' }, // Hổ phách
@@ -33,14 +45,19 @@ export const UfoSaucer = ({
     { cx: 625, cy: 154, color: '#f43f5e' }  // Đỏ hồng
   ];
 
-  const ufoCenterX = containerWidth / 2;
-  const targetBeamX = targetStudentPos ? targetStudentPos.x : ufoCenterX;
+  const currentUfoX = ufoX ?? (containerWidth / 2);
+  const currentUfoY = ufoY ?? 55;
+  const targetBeamX = targetStudentPos ? targetStudentPos.x : currentUfoX;
   const streetY = (containerHeight * 0.84) || 600;
+
+  // Tọa độ miệng khoang hút ở đáy đĩa bay
+  const nozzleX = currentUfoX;
+  const nozzleY = currentUfoY + 20;
 
   return (
     <div className="absolute inset-0 pointer-events-none select-none z-30">
       
-      {/* 1. TIA HÚT TRACTOR BEAM XOAY ĐỘNG: Luôn chiếu từ đĩa bay thẳng xuống mặt đất */}
+      {/* 1. TIA HÚT TRACTOR BEAM: Chiếu từ miệng đĩa bay di động xuống mục tiêu dưới mặt đường */}
       {isBeaming && isVisible && (
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none z-20"
@@ -48,66 +65,66 @@ export const UfoSaucer = ({
         >
           <defs>
             <linearGradient id="dynamicBeamGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.8" />
-              <stop offset="35%" stopColor="#22d3ee" stopOpacity="0.5" />
-              <stop offset="75%" stopColor="#06b6d4" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.02" />
+              <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.85" />
+              <stop offset="35%" stopColor="#22d3ee" stopOpacity="0.55" />
+              <stop offset="75%" stopColor="#06b6d4" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.04" />
             </linearGradient>
             <filter id="beamSoftGlow">
-              <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+              <feGaussianBlur stdDeviation="8" result="coloredBlur" />
               <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
           </defs>
 
-          {/* Tia sáng hình nón kết nối trực tiếp từ cửa đáy đĩa bay bao trọn học sinh xuống tận mặt đường */}
+          {/* Tia sáng hình nón kết nối trực tiếp từ cửa đáy UFO di động xuống mặt đại lộ */}
           <polygon
             points={`
-              ${ufoCenterX - 55}, 145
-              ${ufoCenterX + 55}, 145
-              ${targetBeamX + 165}, ${streetY + 40}
-              ${targetBeamX - 165}, ${streetY + 40}
+              ${nozzleX - 32}, ${nozzleY}
+              ${nozzleX + 32}, ${nozzleY}
+              ${targetBeamX + 110}, ${streetY + 35}
+              ${targetBeamX - 110}, ${streetY + 35}
             `}
             fill="url(#dynamicBeamGrad)"
             filter="url(#beamSoftGlow)"
-            className="transition-all duration-700 ease-out"
+            className="transition-all duration-300 ease-out"
           />
 
-          {/* Quầng sáng elip chiếu rọi trực tiếp trên mặt đường dưới chân cột sáng */}
+          {/* Quầng sáng elip rực rỡ trên mặt đường dưới chân cột sáng */}
           <ellipse
             cx={targetBeamX}
-            cy={streetY + 15}
-            rx="160"
-            ry="28"
+            cy={streetY + 18}
+            rx="115"
+            ry="24"
             fill="#22d3ee"
-            opacity="0.35"
-            className="transition-all duration-700 ease-out animate-pulse"
+            opacity="0.4"
+            className="transition-all duration-300 ease-out animate-pulse"
           />
         </svg>
       )}
 
-      {/* 2. Tia Laser vàng nhắm thẳng từ đĩa bay vào mục tiêu */}
+      {/* 2. Tia Laser vàng khóa mục tiêu từ tâm UFO tới học sinh */}
       {isBeaming && targetStudentPos && (
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none z-35"
           style={{ width: `${containerWidth}px`, height: '100%' }}
         >
           <line
-            x1={ufoCenterX}
-            y1={140}
+            x1={nozzleX}
+            y1={nozzleY}
             x2={targetStudentPos.x}
-            y2={targetStudentPos.y - 45}
+            y2={targetStudentPos.y - 42}
             stroke="#f59e0b"
-            strokeWidth="3.5"
+            strokeWidth="3"
             strokeDasharray="6,4"
             className="animate-pulse"
           />
           <circle
             cx={targetStudentPos.x}
-            cy={targetStudentPos.y - 45}
-            r="18"
+            cy={targetStudentPos.y - 42}
+            r="16"
             fill="none"
             stroke="#f59e0b"
             strokeWidth="2.5"
@@ -116,15 +133,18 @@ export const UfoSaucer = ({
         </svg>
       )}
 
-      {/* 3. ĐỒ HỌA VECTOR SVG ĐĨA BAY UFO CHUẨN XÁC 100% THEO ẢNH THAM CHIẾU */}
+      {/* 3. ĐỒ HỌA VECTOR SVG ĐĨA BAY UFO THU NHỎ THANH THOÁT, LƯỢN TRÁI PHẢI TRÊN CAO */}
       <div
-        className={`absolute top-2 sm:top-5 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-40 transition-all duration-1000 ease-out ${
-          isVisible
-            ? 'translate-y-0 opacity-100 scale-100'
-            : '-translate-y-[260%] opacity-0 scale-50'
-        }`}
+        className="absolute flex flex-col items-center pointer-events-none z-40 transition-opacity duration-500 ease-out"
+        style={{
+          left: `${currentUfoX}px`,
+          top: `${currentUfoY}px`,
+          transform: `translate(-50%, -50%) rotate(${ufoTilt}deg)`,
+          opacity: isVisible ? 1 : 0
+        }}
       >
-        <div className="relative w-[380px] sm:w-[520px] md:w-[620px] filter drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)] animate-bounce-subtle">
+        {/* Kích thước đĩa bay nhỏ gọn vừa vặn: w-[210px] sm:w-[250px] md:w-[280px] */}
+        <div className="relative w-[210px] sm:w-[250px] md:w-[280px] filter drop-shadow-[0_10px_24px_rgba(0,0,0,0.65)]">
           <svg
             viewBox="0 0 800 240"
             className="w-full h-auto overflow-visible select-none"
@@ -154,10 +174,10 @@ export const UfoSaucer = ({
             <circle cx="400" cy="72" r="13" fill="#10b981" />
             <circle cx="400" cy="72" r="7" fill="#047857" />
 
-            {/* Lớp 2: Vành đĩa bay màu trắng bạc thanh thoát (White Lip Rim) */}
+            {/* Lớp 2: Vành đĩa bay màu trắng bạc thanh thoát */}
             <ellipse cx="400" cy="130" rx="360" ry="58" fill="url(#ufoRimGrad)" stroke="#e2e8f0" strokeWidth="2" />
 
-            {/* Lớp 3: Mặt đĩa trong màu xám than sắc nét (Dark Bevel Face) */}
+            {/* Lớp 3: Mặt đĩa trong màu xám than sắc nét */}
             <ellipse cx="400" cy="144" rx="320" ry="44" fill="url(#ufoFaceGrad)" />
 
             {/* Lớp 4: Khung bảng LED điện tử hiển thị tỷ số (ví dụ: 0/2) */}
@@ -195,7 +215,7 @@ export const UfoSaucer = ({
               </g>
             )}
 
-            {/* Lớp 5: Dãy 10 bóng đèn LED nhiều màu bo tròn */}
+            {/* Lớp 5: Dãy 10 bóng đèn LED nhiều màu bo tròn quanh vành đĩa */}
             {LED_ITEMS.map((led, idx) => {
               const isActive = (idx + lightOffset) % 2 === 0;
               return (
@@ -224,7 +244,7 @@ export const UfoSaucer = ({
             })}
 
             {/* Lớp 6: Cửa khoang hút đáy đĩa bay */}
-            <ellipse cx="400" cy="188" rx="80" ry="7" fill="#0f172a" stroke="#22d3ee" strokeWidth="1" opacity="0.8" />
+            <ellipse cx="400" cy="188" rx="80" ry="7" fill="#0f172a" stroke="#22d3ee" strokeWidth="1.2" opacity="0.9" />
           </svg>
         </div>
       </div>
