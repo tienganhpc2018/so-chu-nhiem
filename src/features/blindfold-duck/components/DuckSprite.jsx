@@ -2,22 +2,24 @@ import React from 'react';
 import { getShortStudentName } from '../data/defaultDuckData';
 
 /**
- * 6 BẢNG MÀU LÔNG VỊT PIXAR 3D ĐÁNG YÊU (THÂN TRẮNG MUỐT/PASTEL + MỎ CHÂN CAM TƯƠI):
+ * 4 BẢNG MÀU LÔNG VỊT TỰ NHIÊN, DỄ THƯƠNG (ĐỒNG NHẤT ĐẦU VÀ THÂN):
+ * - Trắng muốt (vịt đồng quê trắng)
+ * - Vàng tơ (vịt con lông vàng)
+ * - Kem nhạt (vịt lông kem)
+ * - Nâu vàng nhạt (vịt cỏ tự nhiên)
  */
 export const DUCK_PALETTES = [
-  { body: '#ffffff', bodyStroke: '#cbd5e1', head: '#f8fafc', beak: '#f97316', feet: '#ea580c' }, // Trắng muốt Pixar
-  { body: '#fef9c3', bodyStroke: '#facc15', head: '#fef08a', beak: '#f97316', feet: '#ea580c' }, // Vàng tơ pastel
-  { body: '#ffffff', bodyStroke: '#cbd5e1', head: '#1e293b', beak: '#f59e0b', feet: '#ea580c' }, // Cổ điển đầu đen
-  { body: '#e0f2fe', bodyStroke: '#7dd3fc', head: '#bae6fd', beak: '#f97316', feet: '#ea580c' }, // Xanh thiên thanh
-  { body: '#fce7f3', bodyStroke: '#f472b6', head: '#fbcfe8', beak: '#f97316', feet: '#ea580c' }, // Hồng dâu pastel
-  { body: '#ecfdf5', bodyStroke: '#6ee7b7', head: '#a7f3d0', beak: '#f97316', feet: '#ea580c' }  // Xanh mint
+  { body: '#ffffff', shade: '#e2e8f0', beak: '#f97316', feet: '#ea580c' }, // Vịt trắng muốt tự nhiên
+  { body: '#fef08a', shade: '#facc15', beak: '#f97316', feet: '#ea580c' }, // Vịt con lông vàng tơ
+  { body: '#ffedd5', shade: '#fed7aa', beak: '#ea580c', feet: '#c2410c' }, // Vịt kem cam đào
+  { body: '#f1f5f9', shade: '#cbd5e1', beak: '#f97316', feet: '#ea580c' }  // Vịt trắng xám thanh lịch
 ];
 
 /**
- * SPRITE CHÚ VỊT CON HỌC SINH 3D KIỂU PIXAR:
- * - Nhãn tên hình viên thuốc viền xanh nhẹ nhàng (small blue-outlined name tag floating above).
- * - Bong bóng thoại vui nhộn (Speech bubbles with short cheerful phrases).
- * - Biểu cảm phong phú: há mỏ vui sướng, nháy mắt, toát mồ hôi lo lắng, đeo kính tròn tri thức.
+ * SPRITE CHÚ VỊT CON HOẠT HÌNH ĐÁNG YÊU, THUẦN KHIẾT:
+ * - Đầu và thân liền mạch tự nhiên, cùng tông màu lông, mỏ cam tươi xinh xắn.
+ * - KHÔNG CÒN BONG BÓNG LỜI THOẠI LẪN LỘN: Chỉ duy nhất 1 nhãn tên học sinh rõ ràng, dễ nhìn.
+ * - Mắt tròn đen lay láy có đốm sáng long lanh, không còn mắt trợn trừng hay đầu đen dị hợm.
  */
 export const DuckSprite = ({
   duck,
@@ -25,7 +27,6 @@ export const DuckSprite = ({
   y = 0,
   vx = 1,
   vy = 0,
-  speech = null,
   isQuacking = false,
   isCaught = false,
   isTarget = false,
@@ -40,12 +41,11 @@ export const DuckSprite = ({
 
   const palette = DUCK_PALETTES[Math.abs(colorIndex) % DUCK_PALETTES.length];
   const isPanic = state === 'PANIC';
-  const hasGlasses = colorIndex % 5 === 2; // Một chú vịt đeo kính tròn đáng yêu
 
   return (
     <div
       className={`absolute pointer-events-none select-none transition-transform duration-75 ${
-        isCaught ? 'z-50 scale-140 -translate-y-8' : 'z-20'
+        isCaught ? 'z-50 scale-135 -translate-y-8' : 'z-20'
       }`}
       style={{
         left: `${x}px`,
@@ -54,46 +54,31 @@ export const DuckSprite = ({
         willChange: 'left, top, transform'
       }}
     >
-      {/* 1. BÓNG ĐỔ TIẾP XÚC MẶT CÁT */}
+      {/* 1. BÓNG ĐỔ DƯỚI CHÂN VỊT TRÊN CÁT */}
       <div
         className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full pointer-events-none"
         style={{
-          width: isCaught ? '24px' : '44px',
-          height: isCaught ? '6px' : '12px',
-          backgroundColor: 'rgba(50, 30, 10, 0.35)',
-          filter: isCaught ? 'blur(4px)' : 'blur(2px)',
+          width: isCaught ? '24px' : '42px',
+          height: isCaught ? '6px' : '10px',
+          backgroundColor: 'rgba(60, 36, 12, 0.35)',
+          filter: isCaught ? 'blur(3px)' : 'blur(1.5px)',
           opacity: isCaught ? 0.3 : 0.85
         }}
       />
 
-      {/* 2. BONG BÓNG LỜI THOẠI HÀI HƯỚC (SPEECH BUBBLE) */}
-      {speech && !isCaught && (
-        <div
-          className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap z-50 animate-speech-pop pointer-events-none"
-          style={{ transform: isFacingRight ? 'none' : 'scaleX(-1)' }}
-        >
-          <div className="relative px-2.5 py-1 rounded-2xl bg-white text-slate-900 border-2 border-sky-400 shadow-lg text-[10px] font-black flex items-center space-x-1">
-            <span>{speech}</span>
-            {/* Đuôi bong bóng thoại */}
-            <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-6 border-t-sky-400" />
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-x-3 border-x-transparent border-t-5 border-t-white" />
-          </div>
-        </div>
-      )}
-
-      {/* 3. NHÃN TÊN VIỀN XANH NHẸ NHÀNG (SMALL BLUE-OUTLINED NAME TAG) */}
+      {/* 2. DUY NHẤT 1 NHÃN TÊN HỌC SINH (RÕ RÀNG, KHÔNG LẪN CHỮ) */}
       {showName && !isCaught && (
         <div
-          className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap z-40 filter drop-shadow-xs"
+          className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap z-40 filter drop-shadow-sm"
           style={{ transform: isFacingRight ? 'none' : 'scaleX(-1)' }}
         >
-          <div className="px-2.5 py-0.5 rounded-full border-2 border-sky-400 bg-white/95 text-sky-950 font-black text-[11px] shadow-sm flex items-center justify-center">
+          <div className="px-2.5 py-0.5 rounded-full border border-sky-400 bg-white/95 text-sky-950 font-black text-[11px] shadow-sm flex items-center justify-center">
             <span>{displayName}</span>
           </div>
         </div>
       )}
 
-      {/* 4. CHÚ VỊT CON HOẠT HÌNH PIXAR (LẮC MÔNG VỖ CÁNH) */}
+      {/* 3. CHÚ VỊT HOẠT HÌNH TỰ NHIÊN, XINH XẮN (ĐẦU VÀ THÂN ĐỒNG NHẤT) */}
       <div className={`relative w-16 h-16 ${isPanic ? 'animate-bounce-fast' : isCaught ? 'animate-wiggle' : 'animate-duck-waddle'}`}>
         <svg
           width="64"
@@ -101,155 +86,119 @@ export const DuckSprite = ({
           viewBox="0 0 64 64"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="filter drop-shadow-sm overflow-visible"
+          className="filter drop-shadow-xs overflow-visible"
         >
           <defs>
-            {/* Gradient thân vịt tròn mịn màng */}
-            <radialGradient id={`pixarDuck_${palette.body.replace('#','')}`} cx="40%" cy="30%" r="65%">
+            {/* Gradient lông vịt mịn màng, ấm áp */}
+            <radialGradient id={`cuteDuckBody_${palette.body.replace('#','')}`} cx="40%" cy="30%" r="65%">
               <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="50%" stopColor={palette.body} />
-              <stop offset="100%" stopColor={palette.bodyStroke} />
+              <stop offset="60%" stopColor={palette.body} />
+              <stop offset="100%" stopColor={palette.shade} />
             </radialGradient>
 
-            {/* Gradient đầu vịt */}
-            <radialGradient id={`duckHead_${palette.head.replace('#','')}`} cx="35%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8" />
-              <stop offset="50%" stopColor={palette.head} />
-              <stop offset="100%" stopColor="#090d16" />
-            </radialGradient>
+            {/* Gradient mỏ vịt cam tươi */}
+            <linearGradient id="cuteDuckBeak" x1="0%" y1="0%" x2="100%" y2="50%">
+              <stop offset="0%" stopColor="#fb923c" />
+              <stop offset="100%" stopColor="#ea580c" />
+            </linearGradient>
           </defs>
 
-          {/* ĐÔI CHÂN CAM GUỒNG BƯỚC */}
+          {/* ĐÔI CHÂN MÀNG CAM GUỒNG BƯỚC NHẸ NHÀNG */}
           <g className={!isCaught ? 'animate-duck-feet' : ''}>
             <path
-              d="M26 51L24 59M24 59L18 61M24 59L24 62M24 59L29 61"
+              d="M26 51L24 58M24 58L19 60M24 58L24 61M24 58L28 60"
               stroke={palette.feet}
-              strokeWidth="2.8"
+              strokeWidth="2.4"
               strokeLinecap="round"
             />
             <path
-              d="M34 51L36 59M36 59L30 61M36 59L36 62M36 59L41 61"
+              d="M34 51L35 58M35 58L30 60M35 58L35 61M35 58L39 60"
               stroke={palette.feet}
-              strokeWidth="2.8"
+              strokeWidth="2.4"
               strokeLinecap="round"
             />
           </g>
 
-          {/* THÂN VỊT BÉO TRÒN HÌNH QUẢ TRỨNG */}
+          {/* THÂN VỊT BẦU BĨNH HÌNH QUẢ TRỨNG NẰM NGHIÊNG */}
           <ellipse
             cx="28"
             cy="40"
-            rx="17"
-            ry="13"
-            fill={`url(#pixarDuck_${palette.body.replace('#','')})`}
-            stroke={palette.bodyStroke}
+            rx="16.5"
+            ry="12.5"
+            fill={`url(#cuteDuckBody_${palette.body.replace('#','')})`}
+            stroke={palette.shade}
             strokeWidth="1.2"
           />
 
-          {/* ĐUÔI VỊT VỂNH LÊN */}
+          {/* ĐUÔI VỊT VỂNH LÊN ĐÁNG YÊU */}
           <path
-            d="M13 38C9 35 6 34 4 37C6 40 10 42 14 42Z"
+            d="M13 37C9 34 5 33 4 36C6 39 10 41 14 41Z"
             fill={palette.body}
-            stroke={palette.bodyStroke}
+            stroke={palette.shade}
             strokeWidth="1"
           />
 
-          {/* CÁNH VỊT VỖ PHẦN PHẬT */}
-          <g
-            className={`origin-[28px_38px] ${
-              isCaught || isPanic ? 'animate-wing-fast' : 'animate-wing-flap'
-            }`}
-          >
+          {/* CÁNH VỊT NHỎ XINH BÊN HÔNG */}
+          <g className={`origin-[28px_38px] ${isPanic ? 'animate-wing-fast' : 'animate-wing-flap'}`}>
             <ellipse
               cx="28"
               cy="39"
-              rx="10"
-              ry="6.5"
+              rx="9.5"
+              ry="6"
               fill={palette.body}
-              stroke={palette.bodyStroke}
+              stroke={palette.shade}
               strokeWidth="1.2"
-              transform="rotate(-12 28 39)"
+              transform="rotate(-10 28 39)"
             />
-            <path d="M22 40C25 42 29 42 32 40" stroke={palette.bodyStroke} strokeWidth="1" strokeLinecap="round" />
+            <path d="M23 40C26 42 29 42 32 40" stroke={palette.shade} strokeWidth="0.8" strokeLinecap="round" />
           </g>
 
-          {/* ĐẦU TRÒN XOE */}
+          {/* CỔ VÀ ĐẦU VỊT LIỀN MẠCH, CÙNG TÔNG MÀU VỚI THÂN (TỰ NHIÊN, CỰC DỄ THƯƠNG) */}
+          {/* Vùng cổ nối mềm mại */}
+          <path
+            d="M35 40C36 34 37 30 40 28C42 32 40 38 35 40Z"
+            fill={`url(#cuteDuckBody_${palette.body.replace('#','')})`}
+          />
+
+          {/* Đầu vịt tròn xoe, cùng màu lông xinh xắn */}
           <circle
             cx="42"
             cy="27"
-            r="11"
-            fill={`url(#duckHead_${palette.head.replace('#','')})`}
-            stroke={palette.bodyStroke}
-            strokeWidth="1"
+            r="10.5"
+            fill={`url(#cuteDuckBody_${palette.body.replace('#','')})`}
+            stroke={palette.shade}
+            strokeWidth="1.2"
           />
 
-          {/* KÍNH TRÒN TRI THỨC (NẾU CÓ) */}
-          {hasGlasses && (
-            <g>
-              <circle cx="45" cy="25" r="5" fill="none" stroke="#0284c7" strokeWidth="1.2" />
-              <line x1="40" y1="25" x2="38" y2="25" stroke="#0284c7" strokeWidth="1.2" />
-            </g>
-          )}
-
-          {/* MẮT BIỂU CẢM THEO TRẠNG THÁI */}
+          {/* ĐÔI MẮT ĐEN TO TRÒN LONG LANH RẤT HIỀN VÀ DỄ THƯƠNG */}
           {isCaught ? (
-            /* Bị bắt: Mắt xoắn ốc chóng mặt @_@ */
+            /* Khi bị bắt: Mắt xoắn nhẹ ngộ nghĩnh */
             <g>
-              <circle cx="45" cy="25" r="4.5" fill="#ffffff" />
-              <path d="M43 25C43 23.5 45 23.5 45.5 24.5C46 25.5 44 26.5 45 27" stroke="#0f172a" strokeWidth="1.2" strokeLinecap="round" />
-            </g>
-          ) : isPanic ? (
-            /* Hoảng loạn: Mắt lồi to tròn trố lên! */
-            <g>
-              <circle cx="45" cy="24" r="5.2" fill="#ffffff" stroke="#0f172a" strokeWidth="1.2" />
-              <circle cx="46" cy="24" r="2.2" fill="#ef4444" />
-              <circle cx="46.5" cy="23.5" r="1" fill="#ffffff" />
+              <circle cx="44.5" cy="25" r="3.2" fill="#0f172a" />
+              <circle cx="45" cy="24.5" r="1.2" fill="#ffffff" />
             </g>
           ) : (
-            /* Bình thường: Mắt anime to tròn long lanh */
+            /* Mắt to tròn đen láy, có đốm sáng trắng phản chiếu (Pixar beady eye) */
             <g>
-              <circle cx="45" cy="25" r="3.8" fill="#ffffff" />
-              <circle cx="45.5" cy="25" r="2.2" fill="#0f172a" />
-              <circle cx="46.2" cy="24.2" r="1" fill="#ffffff" />
+              <circle cx="44.5" cy="25.5" r="3.2" fill="#0f172a" />
+              <circle cx="45.5" cy="24.5" r="1.3" fill="#ffffff" />
+              <circle cx="43.8" cy="26.8" r="0.6" fill="#ffffff" />
             </g>
           )}
 
-          {/* MỎ VỊT MÀU CAM TƯƠI */}
-          {isPanic ? (
-            /* Mỏ há to kêu QUÁC QUÁC */
-            <path
-              d="M48 26C56 25 59 29 57 34C53 36 48 35 46 31Z"
-              fill={palette.beak}
-              stroke="#c2410c"
-              strokeWidth="1.2"
-            />
-          ) : (
-            /* Mỏ cười mỉm ngộ nghĩnh */
-            <path
-              d="M49 27C56 27 58 30 56 33C53 35 49 33 47 31Z"
-              fill={palette.beak}
-              stroke="#c2410c"
-              strokeWidth="1"
-              strokeLinejoin="round"
-            />
-          )}
+          {/* MỎ VỊT VÀNG CAM DẸP TỰ NHIÊN (RẤT THẬT VÀ ĐÁNG YÊU) */}
+          <path
+            d="M49 26C55 25.5 59 28 57 32C53 34 48 33 46 30Z"
+            fill="url(#cuteDuckBeak)"
+            stroke="#c2410c"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+          {/* Lỗ mũi nhỏ xinh trên mỏ */}
+          <circle cx="50" cy="28" r="0.6" fill="#9a3412" />
 
-          {/* Giọt mồ hôi hốt hoảng khi bị rượt gần */}
-          {isPanic && (
-            <path
-              d="M54 13C55 11 58 12 57 15C56 17 53 18 53 16C53 14 54 13 54 13Z"
-              fill="#38bdf8"
-              className="animate-bounce"
-            />
-          )}
-
-          {/* Dấu chấm than đỏ trên đầu khi giật mình */}
-          {isPanic && (
-            <g className="animate-pulse">
-              <circle cx="43" cy="8" r="1.5" fill="#ef4444" />
-              <rect x="42" y="11" width="2" height="4" rx="1" fill="#ef4444" />
-            </g>
-          )}
+          {/* Má hồng phớt nhẹ siêu đáng yêu */}
+          <ellipse cx="40" cy="30" rx="2.5" ry="1.6" fill="#fb7185" opacity="0.65" />
         </svg>
       </div>
     </div>

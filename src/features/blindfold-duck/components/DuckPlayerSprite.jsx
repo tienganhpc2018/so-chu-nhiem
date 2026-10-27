@@ -1,17 +1,14 @@
 import React from 'react';
 
 /**
- * NHÂN VẬT HOẠT HÌNH 3D PIXAR - CẬU BÉ BỊT MẮT BẮT VỊT (CHUẨN 100% PROMPT THẦY YÊU CẦU):
- * - Conical hat (Nón lá tre) đội nghiêng nhẹ sau gáy.
- * - Khăn đỏ BỊT KÍN MẮT THẬT SỰ (Bright red cloth blindfold tied around his eyes with knot at the side).
- *   TUYỆT ĐỐI KHÔNG BỊT Ở TRÁN MÀ PHỦ KÍN ĐÚNG TẦM MẮT.
- * - Khuôn mặt tròn bầu bĩnh đáng yêu, má hồng (rosy cheeks), miệng cười tươi há to hào hứng (cheerful open-mouth smile).
- * - Áo bà ba nâu mộc mạc tay ngắn xắn gấu (brown rustic ao ba ba style shirt with short rolled sleeves).
- * - Quần ngố xám nâu (grey-brown short trousers).
- * - Dải khăn vải trắng thắt eo (white cloth sash tied at the waist with dangling knot).
- * - Chân trần (bare feet) chạm đất vững vàng có bóng đổ tiếp xúc và vệt gió lướt (motion-speed lines).
- * - Dáng chạy nghiêng người lao về phía trước, hai tay dang rộng với ra bắt vịt (arms outstretched in front to grab).
- * - Sải chân bước chạy tới lui tự nhiên chân thực, KHÔNG NHẢY HÀNG NGANG.
+ * NHÂN VẬT HỌC SINH BÌNH THƯỜNG - CHẠY BỘ TỰ NHIÊN TRÊN MẶT ĐẤT:
+ * 1. DÁNG ĐỨNG THẲNG UPRIGHT: Không nghiêng ngả, không nằm ngang như bơi dưới nước.
+ * 2. TAY VUNG CHÂN BƯỚC NHƯ NGƯỜI THẬT:
+ *    - Hai cánh tay gập khuỷu tay tự nhiên bên hông, đánh so le theo bước chạy.
+ *    - Hai chân bước đi/chạy thẳng đứng dưới hông, dậm vững trên mặt cát.
+ * 3. TRANG PHỤC HỌC SINH GỌN GÀNG, GẦN GŨI:
+ *    - Áo cộc tay năng động, quần ngố thể thao, khăn đỏ bịt mắt ngang tầm mắt.
+ *    - Đứng và chạy hoàn toàn trên mặt đất có bóng đổ ôm sát dưới chân.
  */
 export const DuckPlayerSprite = ({
   x = 0,
@@ -31,342 +28,286 @@ export const DuckPlayerSprite = ({
       style={{
         left: `${x}px`,
         top: `${y}px`,
-        // Lật ngang theo hướng chạy trái/phải
-        transform: `translate(-50%, -90%) ${isFacingLeft && !isHoldingDuck ? 'scaleX(-1)' : 'scaleX(1)'}`,
+        // Lật ngang theo hướng di chuyển trái/phải
+        transform: `translate(-50%, -92%) ${isFacingLeft && !isHoldingDuck ? 'scaleX(-1)' : 'scaleX(1)'}`,
         willChange: 'left, top, transform'
       }}
     >
-      {/* 1. Bóng đổ tiếp xúc mặt đất dưới chân (Không lơ lửng) */}
+      {/* 1. Bóng đổ tiếp xúc mặt đất ngay dưới hai bàn chân */}
       <div
         className="absolute bottom-1 left-1/2 -translate-x-1/2 rounded-full pointer-events-none"
         style={{
-          width: isHoldingDuck ? '65px' : '58px',
-          height: '11px',
-          backgroundColor: 'rgba(56, 34, 12, 0.45)',
-          filter: 'blur(2.5px)'
+          width: isHoldingDuck ? '56px' : '48px',
+          height: '10px',
+          backgroundColor: 'rgba(50, 30, 10, 0.45)',
+          filter: 'blur(2px)'
         }}
       />
 
-      {/* Vệt gió tốc độ màu trắng dưới chân (Motion speed lines) */}
-      {isWalking && !isHoldingDuck && (
-        <div className="absolute bottom-3 -left-4 pointer-events-none opacity-70">
-          <svg width="32" height="12" viewBox="0 0 32 12" fill="none">
-            <path d="M28 2L6 2" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3 3" />
-            <path d="M24 7L2 7" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M20 11L8 11" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round" />
-          </svg>
-        </div>
-      )}
-
-      {/* 2. KHỐI NHÂN VẬT SVG PIXAR 3D CHUẨN ĐẸP (140x145px) */}
-      <div className={`relative w-35 h-36 flex flex-col items-center transition-transform duration-200 ${isCatching ? 'scale-105' : ''}`}>
+      {/* 2. KHỐI NHÂN VẬT SVG ĐỨNG THẲNG UPRIGHT TỰ NHIÊN (120x135px) */}
+      <div className={`relative w-30 h-34 flex flex-col items-center transition-transform duration-150 ${isCatching ? 'scale-105' : ''}`}>
         <svg
-          width="140"
-          height="145"
-          viewBox="0 0 140 145"
+          width="120"
+          height="135"
+          viewBox="0 0 120 135"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="filter drop-shadow-md overflow-visible"
         >
           <defs>
-            {/* Làn da bánh mật / da sáng mịn màng kiểu Pixar */}
-            <radialGradient id="pixarSkinGrad" cx="45%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#fff5ea" />
-              <stop offset="55%" stopColor="#fedac0" />
-              <stop offset="100%" stopColor="#f5aa7c" />
+            {/* Màu da tự nhiên, khỏe khoắn */}
+            <radialGradient id="normalSkin" cx="45%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#fff7ed" />
+              <stop offset="65%" stopColor="#fed7aa" />
+              <stop offset="100%" stopColor="#fb923c" />
             </radialGradient>
 
-            {/* Khăn đỏ bịt mắt chất liệu lụa bóng 3D */}
-            <linearGradient id="blindfoldRedGrad" x1="0%" y1="0%" x2="100%" y2="80%">
+            {/* Dải khăn đỏ bịt mắt */}
+            <linearGradient id="blindfoldSilk" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#f87171" />
-              <stop offset="25%" stopColor="#ef4444" />
-              <stop offset="70%" stopColor="#dc2626" />
-              <stop offset="100%" stopColor="#991b1b" />
+              <stop offset="40%" stopColor="#ef4444" />
+              <stop offset="100%" stopColor="#b91c1c" />
             </linearGradient>
 
-            {/* Áo bà ba nâu mộc mạc 3D */}
-            <radialGradient id="brownAoBaBaGrad" cx="40%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#a16207" />
-              <stop offset="40%" stopColor="#854d0e" />
-              <stop offset="85%" stopColor="#713f12" />
-              <stop offset="100%" stopColor="#451a03" />
-            </radialGradient>
-
-            {/* Quần ngố xám nâu (Grey-brown trousers) */}
-            <linearGradient id="greyBrownPants" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#64748b" />
-              <stop offset="60%" stopColor="#475569" />
-              <stop offset="100%" stopColor="#334155" />
+            {/* Áo học sinh: Vàng đất hoặc Nâu ấm thanh lịch */}
+            <linearGradient id="shirtStudentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={isGirl ? '#fda4af' : '#fbbf24'} />
+              <stop offset="60%" stopColor={isGirl ? '#f43f5e' : '#d97706'} />
+              <stop offset="100%" stopColor={isGirl ? '#be123c' : '#92400e'} />
             </linearGradient>
 
-            {/* Dải khăn trắng thắt lưng */}
-            <linearGradient id="whiteSashGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="70%" stopColor="#f1f5f9" />
-              <stop offset="100%" stopColor="#cbd5e1" />
+            {/* Quần short học sinh sẫm màu */}
+            <linearGradient id="shortsDark" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#475569" />
+              <stop offset="100%" stopColor="#1e293b" />
             </linearGradient>
 
-            {/* Nón lá tre vàng óng 3D */}
-            <radialGradient id="pixarHatGrad" cx="50%" cy="25%" r="70%">
+            {/* Nón lá tre */}
+            <radialGradient id="hatGrad" cx="50%" cy="30%" r="65%">
               <stop offset="0%" stopColor="#fef08a" />
-              <stop offset="45%" stopColor="#eab308" />
-              <stop offset="80%" stopColor="#ca8a04" />
-              <stop offset="100%" stopColor="#854d0e" />
+              <stop offset="60%" stopColor="#eab308" />
+              <stop offset="100%" stopColor="#a16207" />
             </radialGradient>
           </defs>
 
           {/* ============================================================== */}
-          {/* TƯ THẾ 1: CHẠY LAO VỀ PHÍA TRƯỚC, BỊT KÍN MẮT, HAI TAY DANG BẮT */}
+          {/* TƯ THẾ 1: CHẠY BỘ THẲNG ĐỨNG TỰ NHIÊN NHƯ NGƯỜI NGOÀI ĐỜI */}
           {/* ============================================================== */}
           {!isHoldingDuck ? (
-            <g className={isWalking ? 'animate-pixar-body' : ''} style={{ transformOrigin: '70px 110px' }}>
+            <g className={isWalking ? 'animate-normal-body' : ''}>
               
-              {/* NÓN LÁ TRE TRUYỀN THỐNG ĐỘI NGHIÊNG RA SAU ĐẦU */}
-              <g transform="translate(32, 18) rotate(-16)">
-                <ellipse cx="26" cy="20" rx="26" ry="14" fill="#78350f" opacity="0.25" />
+              {/* NÓN LÁ ĐỘI RA SAU ĐẦU GỌN GÀNG */}
+              <g transform="translate(24, 18) rotate(-12)">
+                <ellipse cx="22" cy="18" rx="22" ry="12" fill="#78350f" opacity="0.25" />
                 <path
-                  d="M26 2L2 28C2 28 14 34 26 34C38 34 50 28 50 28L26 2Z"
-                  fill="url(#pixarHatGrad)"
+                  d="M22 2L2 24C2 24 12 29 22 29C32 29 42 24 42 24L22 2Z"
+                  fill="url(#hatGrad)"
                   stroke="#a16207"
                   strokeWidth="1.2"
                 />
-                <circle cx="26" cy="2" r="2.2" fill="#78350f" />
-                {/* Vành nón lá đan nan tre */}
-                <path d="M8 26C16 30 36 30 44 26" stroke="#ca8a04" strokeWidth="0.8" opacity="0.6" />
+                <circle cx="22" cy="2" r="2" fill="#78350f" />
               </g>
 
-              {/* DẢI LỤA ĐỎ BUỘC NÚT PHÍA SAU ĐẦU BAY PHẤP PHỚI */}
-              <g className="animate-pulse">
-                {/* Nút thắt dải lụa bên thái dương */}
-                <ellipse cx="51" cy="50" rx="4.5" ry="3.5" fill="#b91c1c" />
-                {/* Dải lụa bay dài theo gió */}
-                <path d="M48 50C36 48 24 54 14 62C21 63 32 60 42 55Z" fill="url(#blindfoldRedGrad)" />
-                <path d="M46 53C35 57 26 68 18 78C26 75 35 68 42 60Z" fill="#b91c1c" />
+              {/* DẢI LỤA ĐỎ NƠ THẮT BAY PHÍA SAU */}
+              <g>
+                <path d="M42 42C32 40 22 46 16 52C22 53 30 50 38 46Z" fill="url(#blindfoldSilk)" />
+                <path d="M40 45C32 48 24 57 18 64C25 62 33 56 38 50Z" fill="#991b1b" />
               </g>
 
-              {/* CHÂN SAU (VUNG RA SAU THEO NHỊP CHẠY TỰ NHIÊN) */}
+              {/* TAY SAU (GẬP KHUỶU TAY ĐÁNH SAU NHƯ NGƯỜI CHẠY BỘ THẬT) */}
               <g
-                className={isWalking ? 'animate-pixar-leg-back' : ''}
-                style={{ transformOrigin: '58px 90px' }}
+                className={isWalking ? 'animate-normal-arm-back' : ''}
+                style={{ transformOrigin: '50px 58px' }}
               >
-                {/* Ống quần xám sau */}
-                <path d="M54 88L40 106L51 110L62 92Z" fill="url(#greyBrownPants)" />
-                {/* Bắp chân & Bàn chân trần sau chạm đẩy cát */}
+                {/* Ống tay áo sau */}
+                <path d="M50 56L42 66L47 69L54 58Z" fill="url(#shirtStudentGrad)" />
+                {/* Cánh tay gập khuỷu tay đánh nhịp */}
                 <path
-                  d="M40 106L32 120C31 123 34 126 39 126C43 126 46 124 47 120L51 110Z"
-                  fill="url(#pixarSkinGrad)"
+                  d="M44 67L36 78C35 80 37 83 40 83C43 83 45 81 48 78L49 69Z"
+                  fill="url(#normalSkin)"
                   stroke="#ea580c"
                   strokeWidth="0.8"
                 />
-                {/* Các ngón chân trần */}
-                <circle cx="33" cy="123" r="2.2" fill="#f97316" />
-                <circle cx="37" cy="124" r="2" fill="#f97316" />
+                {/* Bàn tay nắm nhẹ khi chạy */}
+                <circle cx="39" cy="81" r="3.6" fill="url(#normalSkin)" stroke="#ea580c" strokeWidth="0.8" />
               </g>
 
-              {/* THÂN NGƯỜI & ÁO BÀ BA NÂU DÂN DÃ */}
-              <g>
-                {/* Thân áo bà ba nâu ôm dáng nghiêng tới trước */}
+              {/* CHÂN SAU (BƯỚC CHẠY THẲNG DƯỚI HÔNG, VUNG GÓT TỰ NHIÊN) */}
+              <g
+                className={isWalking ? 'animate-normal-leg-back' : ''}
+                style={{ transformOrigin: '54px 78px' }}
+              >
+                {/* Ống quần sau */}
+                <path d="M48 76L42 92L52 94L56 78Z" fill="url(#shortsDark)" />
+                {/* Cẳng chân & Bàn chân sau dậm đẩy mặt đất */}
                 <path
-                  d="M52 64C52 64 62 58 75 60C85 62 92 68 88 83L54 87C49 80 50 70 52 64Z"
-                  fill="url(#brownAoBaBaGrad)"
+                  d="M44 92L40 108C39 111 41 114 46 114C49 114 51 112 51 108L50 93Z"
+                  fill="url(#normalSkin)"
+                  stroke="#ea580c"
+                  strokeWidth="0.8"
+                />
+                <ellipse cx="43" cy="112" rx="5" ry="2.2" fill="#f97316" />
+              </g>
+
+              {/* THÂN NGƯỜI ĐỨNG THẲNG UPRIGHT (KHÔNG BỊ NẰM NGANG) */}
+              <g>
+                {/* Áo cộc tay học sinh dáng thẳng */}
+                <path
+                  d="M46 54C46 54 54 48 64 49C74 50 80 56 78 68L48 72C44 66 45 58 46 54Z"
+                  fill="url(#shirtStudentGrad)"
                   stroke="#3b1d0c"
                   strokeWidth="1.2"
                 />
 
-                {/* Khăn vải trắng thắt eo (White cloth sash at waist) */}
-                <path d="M54 82C62 81 78 81 87 83L86 87C77 85 60 85 53 86Z" fill="url(#whiteSashGrad)" stroke="#cbd5e1" strokeWidth="1" />
-                {/* Dải vải buông rủ xuống hông */}
-                <path d="M57 85C53 91 50 100 52 106C55 103 59 95 61 87Z" fill="url(#whiteSashGrad)" stroke="#94a3b8" strokeWidth="0.8" />
+                {/* Khăn vải trắng thắt eo nhẹ nhàng */}
+                <rect x="47" y="70" width="31" height="5" rx="1.5" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.8" />
+                <path d="M49 74C46 78 44 86 46 91C48 88 51 82 52 75Z" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.6" />
 
-                {/* Hàng cúc áo bà ba */}
-                <circle cx="72" cy="67" r="1.5" fill="#fef08a" />
-                <circle cx="70" cy="74" r="1.5" fill="#fef08a" />
-                <circle cx="68" cy="80" r="1.5" fill="#fef08a" />
-
-                {/* Tóc cô bé (bím tóc) nếu chọn girl */}
+                {/* Tóc cô bé nếu là girl */}
                 {isGirl && (
-                  <g className="animate-wiggle" style={{ transformOrigin: '50px 72px' }}>
-                    <ellipse cx="48" cy="78" rx="4" ry="5.5" fill="#0f172a" />
-                    <ellipse cx="49" cy="86" rx="3.5" ry="5" fill="#0f172a" />
-                    <ellipse cx="50" cy="94" rx="3" ry="4.5" fill="#0f172a" />
-                    <circle cx="50" cy="100" r="3" fill="#ef4444" />
+                  <g className="animate-wiggle" style={{ transformOrigin: '44px 62px' }}>
+                    <ellipse cx="42" cy="66" rx="3.5" ry="5" fill="#0f172a" />
+                    <ellipse cx="43" cy="74" rx="3" ry="4.5" fill="#0f172a" />
+                    <circle cx="43" cy="80" r="2.5" fill="#ef4444" />
                   </g>
                 )}
 
                 {/* ============================================================== */}
-                {/* ĐẦU & KHUÔN MẶT: BỊT KÍN MẮT BẰNG KHĂN ĐỎ THẬT SỰ */}
+                {/* ĐẦU & KHUÔN MẶT CẬU BÉ HỌC SINH ĐỨNG THẲNG */}
                 {/* ============================================================== */}
                 <g>
-                  {/* Khối đầu tròn bầu bĩnh đáng yêu (Pixar head) */}
-                  <circle cx="75" cy="48" r="18.5" fill="url(#pixarSkinGrad)" stroke="#ea580c" strokeWidth="0.8" />
+                  {/* Khối đầu tròn đáng yêu */}
+                  <circle cx="66" cy="40" r="16.5" fill="url(#normalSkin)" stroke="#ea580c" strokeWidth="0.8" />
 
-                  {/* Lọn tóc mái đen lấp ló trên trán */}
-                  <path d="M60 36C66 30 78 30 84 37C80 34 72 32 66 34Z" fill="#1e293b" />
+                  {/* Tóc mái học sinh gọn gàng */}
+                  <path d="M52 30C58 24 72 24 76 30C72 27 64 26 58 28Z" fill="#1e293b" />
 
-                  {/* ============================================================ */}
-                  {/* ĐÂY LÀ ĐIỂM CỐT LÕI: KHĂN ĐỎ BỊT KÍN MẮT THẬT SỰ (KHÔNG Ở TRÁN) */}
-                  {/* Phủ kín từ y=41 đến y=56 (toàn bộ vị trí mắt), uốn lượn 3D mềm mại */}
-                  {/* ============================================================ */}
+                  {/* KHĂN ĐỎ BỊT KÍN NGANG TẦM MẮT (ĐÚNG LUẬT TRÒ CHƠI) */}
                   <path
-                    d="M56 42C64 38 86 38 93 43C94 48 93 54 88 56C82 54 64 54 58 55C54 52 54 45 56 42Z"
-                    fill="url(#blindfoldRedGrad)"
+                    d="M50 34C58 31 76 31 82 35C83 39 82 45 78 47C72 45 58 45 52 46C48 43 48 37 50 34Z"
+                    fill="url(#blindfoldSilk)"
                     stroke="#7f1d1d"
                     strokeWidth="1.2"
                   />
-                  {/* Đường viền ánh sáng vàng lễ hội phản chiếu trên dải lụa */}
-                  <path d="M60 46C68 43 82 43 88 47" stroke="#fecdd3" strokeWidth="1" strokeLinecap="round" opacity="0.8" />
+                  {/* Hai mắt cười híp hóm hỉnh ^^ trên bề mặt lụa đỏ */}
+                  <path d="M59 39C61 37 64 37 65 39" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.9" />
+                  <path d="M70 39C72 37 75 37 76 39" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.9" />
 
-                  {/* Hai đường cong mắt cười híp hóm hỉnh ^ ^ ánh lên trên mặt lụa đỏ */}
-                  <path d="M68 48C70 46 73 46 74 48" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.9" />
-                  <path d="M78 48C80 46 83 46 84 48" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.9" />
+                  {/* Sống mũi nhỏ bên dưới khăn */}
+                  <circle cx="75" cy="45" r="1" fill="#ea580c" opacity="0.8" />
 
-                  {/* Sống mũi nhỏ xinh xắn lộ phía dưới dải bịt mắt */}
-                  <circle cx="85" cy="54" r="1.2" fill="#ea580c" opacity="0.8" />
+                  {/* Má hồng phúng phính */}
+                  <ellipse cx="73" cy="48" rx="4.2" ry="2.6" fill="#fb7185" opacity="0.85" />
+                  <ellipse cx="58" cy="47" rx="3.5" ry="2.2" fill="#fb7185" opacity="0.75" />
 
-                  {/* HAI GÒ MÁ HỒNG PHÚNG PHÍNH (Rosy cheeks) */}
-                  <ellipse cx="83" cy="57" rx="5" ry="3.2" fill="#fb7185" opacity="0.85" />
-                  <ellipse cx="68" cy="56" rx="4" ry="2.8" fill="#fb7185" opacity="0.75" />
-
-                  {/* MIỆNG CƯỜI TƯƠI HÁ TO HÀO HỨNG (Cheerful open-mouth smile) */}
-                  <path d="M76 58C79 65 87 64 89 58" fill="#9f1239" stroke="#881337" strokeWidth="1" />
-                  {/* Răng trắng & Lưỡi hồng xinh xắn */}
-                  <path d="M78 59C80 61 85 61 87 59" fill="#ffffff" />
-                  <ellipse cx="82.5" cy="62" rx="3" ry="1.6" fill="#f43f5e" />
+                  {/* Miệng cười tươi hiền lành */}
+                  <path d="M68 49C71 54 77 53 79 49" stroke="#9f1239" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+                  <path d="M70 50C72 52 75 52 77 50" fill="#ffffff" />
                 </g>
               </g>
 
-              {/* CHÂN TRƯỚC (SẢI BƯỚC TỚI TRƯỚC CHẠM ĐẤT TỰ NHIÊN, KHÔNG NHẢY HÀNG NGANG) */}
+              {/* CHÂN TRƯỚC (BƯỚC TỚI TRƯỚC CHẠM ĐẤT TỰ NHIÊN) */}
               <g
-                className={isWalking ? 'animate-pixar-leg-front' : ''}
-                style={{ transformOrigin: '72px 88px' }}
+                className={isWalking ? 'animate-normal-leg-front' : ''}
+                style={{ transformOrigin: '66px 78px' }}
               >
-                {/* Ống quần xám trước */}
-                <path d="M68 86L82 104L93 100L83 85Z" fill="url(#greyBrownPants)" />
-                {/* Bắp chân & Bàn chân trần trước dậm vững trên cát */}
+                {/* Ống quần trước */}
+                <path d="M60 76L70 91L80 89L72 76Z" fill="url(#shortsDark)" />
+                {/* Cẳng chân & Bàn chân trước chạm đất vững vàng */}
                 <path
-                  d="M82 104L86 119C86 122 91 124 97 124C100 124 102 121 100 117L93 100Z"
-                  fill="url(#pixarSkinGrad)"
+                  d="M70 91L73 108C73 111 77 113 83 113C86 113 87 110 86 107L80 91Z"
+                  fill="url(#normalSkin)"
                   stroke="#ea580c"
                   strokeWidth="0.8"
                 />
-                {/* Các ngón chân trần */}
-                <circle cx="95" cy="122" r="2.4" fill="#f97316" />
-                <circle cx="99" cy="122" r="2.1" fill="#f97316" />
+                <ellipse cx="80" cy="111" rx="5.5" ry="2.4" fill="#f97316" />
               </g>
 
-              {/* HAI TAY DANG RỘNG VỀ PHÍA TRƯỚC BẮT VỊT (ARMS OUTSTRETCHED TO GRAB) */}
+              {/* TAY TRƯỚC (GẬP KHUỶU TAY VUNG TRƯỚC NHƯ NGƯỜI CHẠY BỘ) */}
               <g
-                className={isWalking ? 'animate-pixar-arms' : ''}
-                style={{ transformOrigin: '72px 68px' }}
+                className={isWalking ? 'animate-normal-arm-front' : ''}
+                style={{ transformOrigin: '65px 56px' }}
               >
-                {/* Tay sau vươn ra trước */}
+                {/* Ống tay áo trước */}
+                <path d="M63 56L72 65L77 62L68 54Z" fill="url(#shirtStudentGrad)" />
+                {/* Cẳng tay vươn phía trước tự nhiên (hoặc dang ra khi sắp bắt) */}
                 <path
-                  d="M66 66C74 65 88 64 96 66C99 67 100 70 97 72C92 75 80 76 72 75Z"
-                  fill="#713f12"
-                />
-                {/* Tay áo nâu xắn gấu */}
-                <ellipse cx="78" cy="69" rx="3.5" ry="5.5" fill="#451a03" />
-
-                {/* Bàn tay sau mở ngón mò mẫm */}
-                <circle cx="98" cy="69" r="4.2" fill="url(#pixarSkinGrad)" stroke="#ea580c" strokeWidth="0.8" />
-
-                {/* Tay trước vươn dài nhất đón bắt */}
-                <path
-                  d="M74 68C86 67 104 66 114 68C117 69 118 72 115 74C108 79 94 80 82 78Z"
-                  fill="url(#brownAoBaBaGrad)"
-                  stroke="#3b1d0c"
-                  strokeWidth="1"
-                />
-                {/* Tay áo xắn gấu trước */}
-                <ellipse cx="88" cy="72" rx="4" ry="6" fill="#451a03" />
-
-                {/* Bàn tay trước 5 ngón xòe rộng vồ bắt vịt */}
-                <path
-                  d="M114 67C118 64 124 64 126 67C127 69 123 71 121 72C124 73 126 75 125 78C122 79 119 77 117 76C118 78 117 80 115 80C112 80 111 77 111 74Z"
-                  fill="url(#pixarSkinGrad)"
+                  d={isCatching
+                    ? "M73 64C83 62 96 61 104 63C107 64 107 67 104 69C97 73 86 74 76 72Z"
+                    : "M73 64L84 72C86 74 88 77 86 80C83 82 80 81 78 78L72 68Z"}
+                  fill="url(#normalSkin)"
                   stroke="#ea580c"
                   strokeWidth="0.8"
                 />
+                {/* Bàn tay xòe tự nhiên */}
+                <circle cx={isCatching ? 104 : 85} cy={isCatching ? 65 : 77} r="3.8" fill="url(#normalSkin)" stroke="#ea580c" strokeWidth="0.8" />
               </g>
             </g>
           ) : (
             // ==============================================================
-            // TƯ THẾ 2: CHIẾN THẮNG - ÔM CHÚ VỊT CON VÀO LÒNG CƯỜI HẠNH PHÚC
+            // TƯ THẾ 2: ĐỨNG THẲNG ÔM CHÚ VỊT VÀO LÒNG (CHIẾN THẮNG)
             // ==============================================================
-            <g className="animate-wiggle" transform="translate(70, 72) translate(-70, -72)">
+            <g className="animate-wiggle" transform="translate(60, 68) translate(-60, -68)">
               {/* Nón lá sau đầu */}
-              <g transform="translate(70, 24) rotate(-3) translate(-70, -24)">
-                <ellipse cx="70" cy="22" rx="30" ry="15" fill="#854d0e" opacity="0.25" />
-                <path d="M70 2L36 28C36 28 53 34 70 34C87 34 104 28 104 28L70 2Z" fill="url(#pixarHatGrad)" stroke="#854d0e" strokeWidth="1.2" />
+              <g transform="translate(60, 20) rotate(-2) translate(-60, -20)">
+                <ellipse cx="60" cy="18" rx="26" ry="13" fill="#854d0e" opacity="0.25" />
+                <path d="M60 2L30 24C30 24 45 29 60 29C75 29 90 24 90 24L60 2Z" fill="url(#hatGrad)" stroke="#854d0e" strokeWidth="1.2" />
               </g>
 
-              {/* Thân áo nâu */}
+              {/* Thân áo đứng thẳng */}
               <path
-                d="M50 64C50 58 60 55 70 55C80 55 90 58 90 64L88 90C78 92 62 92 52 90Z"
-                fill="url(#brownAoBaBaGrad)"
+                d="M44 56C44 50 52 48 60 48C68 48 76 50 76 56L74 78C66 80 54 80 46 78Z"
+                fill="url(#shirtStudentGrad)"
                 stroke="#3f220f"
                 strokeWidth="1.2"
               />
-              <rect x="51" y="84" width="38" height="6" rx="2" fill="url(#whiteSashGrad)" stroke="#cbd5e1" strokeWidth="1" />
+              <rect x="45" y="73" width="30" height="5" rx="1.5" fill="#ffffff" stroke="#cbd5e1" strokeWidth="0.8" />
 
-              {/* Hai chân đứng vững trên mặt cát */}
-              <rect x="54" y="92" width="11" height="15" rx="2" fill="url(#greyBrownPants)" />
-              <rect x="75" y="92" width="11" height="15" rx="2" fill="url(#greyBrownPants)" />
-              <path d="M54 107L52 121C52 124 58 125 66 125L66 107Z" fill="url(#pixarSkinGrad)" />
-              <path d="M86 107L88 121C88 124 82 125 74 125L74 107Z" fill="url(#pixarSkinGrad)" />
+              {/* Hai chân đứng thẳng đứng trên mặt đất */}
+              <rect x="47" y="80" width="10" height="15" rx="2" fill="url(#shortsDark)" />
+              <rect x="63" y="80" width="10" height="15" rx="2" fill="url(#shortsDark)" />
+              <path d="M47 95L46 112C46 115 51 116 57 116L57 95Z" fill="url(#normalSkin)" />
+              <path d="M73 95L74 112C74 115 69 116 63 116L63 95Z" fill="url(#normalSkin)" />
 
               {/* ĐẦU CHÍNH DIỆN: BỊT KÍN MẮT BẰNG KHĂN ĐỎ */}
-              <circle cx="70" cy="46" r="19" fill="url(#pixarSkinGrad)" stroke="#ea580c" strokeWidth="0.8" />
+              <circle cx="60" cy="38" r="17" fill="url(#normalSkin)" stroke="#ea580c" strokeWidth="0.8" />
               
               {/* Khăn đỏ bịt kín ngang mắt */}
               <path
-                d="M50 40C56 36 84 36 90 40C92 45 91 52 88 54C82 52 58 52 52 54C49 52 48 45 50 40Z"
-                fill="url(#blindfoldRedGrad)"
+                d="M42 33C48 30 72 30 78 33C80 37 79 43 76 45C70 43 50 43 44 45C42 43 41 37 42 33Z"
+                fill="url(#blindfoldSilk)"
                 stroke="#7f1d1d"
                 strokeWidth="1.2"
               />
-              {/* Hai mắt cười híp hóm hỉnh ^ ^ trên khăn */}
-              <path d="M58 46C60 44 63 44 65 46" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-              <path d="M75 46C77 44 80 44 82 46" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+              {/* Hai mắt cười híp ^^ trên khăn */}
+              <path d="M49 38C51 36 54 36 56 38" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+              <path d="M64 38C66 36 69 36 71 38" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" fill="none" />
 
-              {/* Má hồng phúng phính & Miệng cười há to vui sướng ^^ */}
-              <ellipse cx="56" cy="54" rx="4.8" ry="3.2" fill="#fb7185" opacity="0.85" />
-              <ellipse cx="84" cy="54" rx="4.8" ry="3.2" fill="#fb7185" opacity="0.85" />
-              <path d="M63 56C66 63 74 63 77 56" fill="#9f1239" stroke="#881337" strokeWidth="1" />
-              <path d="M65 57C67 59 73 59 75 57" fill="#ffffff" />
+              {/* Má hồng & Miệng cười vui mừng */}
+              <ellipse cx="48" cy="46" rx="4" ry="2.6" fill="#fb7185" opacity="0.85" />
+              <ellipse cx="72" cy="46" rx="4" ry="2.6" fill="#fb7185" opacity="0.85" />
+              <path d="M54 48C57 54 63 54 66 48" fill="#9f1239" stroke="#881337" strokeWidth="0.8" />
+              <path d="M56 49C58 51 62 51 64 49" fill="#ffffff" />
 
-              {/* CHÚ VỊT TRẮNG ĐÁNG YÊU ĐƯỢC ÔM TRONG TAY (PIXAR DUCKLING) */}
-              <g transform="translate(70, 75) scale(1.1) translate(-70, -75)">
-                {/* Thân vịt trắng muốt */}
-                <ellipse cx="70" cy="74" rx="16" ry="13" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.2" />
-                {/* Đầu vịt tròn xoe */}
-                <circle cx="79" cy="67" r="9.5" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
-                {/* Mắt vịt to tròn ngơ ngác khi bị bế */}
-                <circle cx="82" cy="65" r="3.2" fill="#0f172a" />
-                <circle cx="83" cy="64" r="1.2" fill="#ffffff" />
-                {/* Má hồng của chú vịt */}
-                <ellipse cx="80" cy="69" rx="2.5" ry="1.5" fill="#fb7185" opacity="0.8" />
-                {/* Mỏ vịt cam há to */}
-                <path d="M86 67C92 67 94 69 92 71C89 72 86 71 84 69Z" fill="#f97316" stroke="#c2410c" strokeWidth="0.8" />
-                <ellipse cx="66" cy="74" rx="8" ry="5.5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+              {/* CHÚ VỊT NHỎ ĐÁNG YÊU ĐƯỢC ÔM TRONG TAY */}
+              <g transform="translate(60, 68) scale(1.05) translate(-60, -68)">
+                {/* Thân vịt trắng/vàng con */}
+                <ellipse cx="60" cy="66" rx="14" ry="11" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.2" />
+                <circle cx="68" cy="60" r="8" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1" />
+                <circle cx="71" cy="58" r="2.6" fill="#0f172a" />
+                <circle cx="72" cy="57" r="1" fill="#ffffff" />
+                <path d="M74 60C79 60 81 62 79 64C77 65 74 64 72 62Z" fill="#f97316" stroke="#c2410c" strokeWidth="0.8" />
+                <ellipse cx="56" cy="66" rx="7" ry="4.5" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
 
-                {/* Hai tay ôm trọn chú vịt */}
+                {/* Hai cánh tay ôm trọn vịt */}
                 <path
-                  d="M54 68C56 74 61 80 70 80C79 80 84 74 86 68"
-                  stroke="url(#brownAoBaBaGrad)"
-                  strokeWidth="8"
+                  d="M46 60C48 66 52 71 60 71C68 71 72 66 74 60"
+                  stroke="url(#shirtStudentGrad)"
+                  strokeWidth="7"
                   strokeLinecap="round"
                 />
-                <circle cx="66" cy="80" r="4.2" fill="url(#pixarSkinGrad)" />
-                <circle cx="74" cy="80" r="4.2" fill="url(#pixarSkinGrad)" />
-
-                {/* Trái tim yêu thương bung nở */}
-                <g className="animate-bounce">
-                  <path
-                    d="M70 52C67 48 62 49 62 53C62 57 70 61 70 61C70 61 78 57 78 53C78 49 73 48 70 52Z"
-                    fill="#ef4444"
-                  />
-                </g>
+                <circle cx="56" cy="71" r="3.6" fill="url(#normalSkin)" />
+                <circle cx="64" cy="71" r="3.6" fill="url(#normalSkin)" />
               </g>
             </g>
           )}
