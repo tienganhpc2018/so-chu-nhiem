@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
 /**
- * UfoSaucer.jsx - Đĩa bay UFO thế hệ mới đúng 100% theo ảnh tham chiếu:
- * 1. Mái vòm tròn vòm kính trong suốt phát sáng xanh da trời (Cyan Blue Dome)
- * 2. Vành đĩa bay viền tím xanh (Indigo / Purple Glowing Rim)
- * 3. Hàng đèn LED cyan neon tròn rực rỡ quanh bụng đĩa bay (nhấp nháy xoay tròn)
- * 4. Kích thước vừa vặn (240px - 290px), bay lượn trái - phải tự nhiên trên cao
- * 5. Khi khóa mục tiêu, UFO lướt tới vị trí học sinh và phóng luồng tia sáng hút hình nón rực rỡ
+ * UfoSaucer.jsx - Đĩa bay UFO thế hệ mới:
+ * 1. Kích thước thu nhỏ thanh thoát (chỉ 220px - 280px), không còn to bè che khuất phố
+ * 2. Bay ở trên cao cách xa học sinh bên dưới (khoảng cách > 450px)
+ * 3. Di chuyển lượn trái - phải tự nhiên, nghiêng góc theo hướng bay (ufoTilt)
+ * 4. Tia hút Tractor Beam và tia Laser tự động hướng từ tọa độ UFO thời gian thực đến học sinh
+ * 5. Bảng điểm LED điện tử và 10 đèn LED đa sắc viền thân đĩa bay
  */
 
 export const UfoSaucer = ({
@@ -26,50 +26,52 @@ export const UfoSaucer = ({
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setLightOffset(prev => (prev + 1) % 8);
-    }, 160);
+      setLightOffset(prev => (prev + 1) % 10);
+    }, 180);
     return () => clearInterval(timer);
   }, []);
 
-  // 8 bóng đèn tròn LED Cyan rực sáng quanh bụng UFO chuẩn như ảnh mẫu
+  // 10 màu đèn LED viền quanh đĩa bay
   const LED_ITEMS = [
-    { cx: 120, cy: 95 },
-    { cx: 155, cy: 104 },
-    { cx: 195, cy: 109 },
-    { cx: 240, cy: 111 },
-    { cx: 280, cy: 111 },
-    { cx: 325, cy: 109 },
-    { cx: 365, cy: 104 },
-    { cx: 400, cy: 95 }
+    { cx: 175, cy: 154, color: '#f97316' }, // Cam
+    { cx: 205, cy: 161, color: '#f59e0b' }, // Hổ phách
+    { cx: 238, cy: 167, color: '#eab308' }, // Vàng
+    { cx: 272, cy: 171, color: '#22c55e' }, // Xanh lá
+    { cx: 308, cy: 173, color: '#14b8a6' }, // Xanh ngọc
+    { cx: 492, cy: 173, color: '#06b6d4' }, // Cyan
+    { cx: 528, cy: 171, color: '#3b82f6' }, // Xanh dương
+    { cx: 562, cy: 167, color: '#ec4899' }, // Hồng cánh sen
+    { cx: 595, cy: 161, color: '#a855f7' }, // Tím
+    { cx: 625, cy: 154, color: '#f43f5e' }  // Đỏ hồng
   ];
 
   const currentUfoX = ufoX ?? (containerWidth / 2);
-  const currentUfoY = ufoY ?? 110;
+  const currentUfoY = ufoY ?? 55;
   const targetBeamX = targetStudentPos ? targetStudentPos.x : currentUfoX;
-  const streetY = (containerHeight * 0.82) || 580;
+  const streetY = (containerHeight * 0.84) || 600;
 
   // Tọa độ miệng khoang hút ở đáy đĩa bay
   const nozzleX = currentUfoX;
-  const nozzleY = currentUfoY + 22;
+  const nozzleY = currentUfoY + 20;
 
   return (
     <div className="absolute inset-0 pointer-events-none select-none z-30">
       
-      {/* 1. TIA HÚT TRACTOR BEAM: Chiếu từ miệng UFO di động xuống học sinh trên phố */}
+      {/* 1. TIA HÚT TRACTOR BEAM: Chiếu từ miệng đĩa bay di động xuống mục tiêu dưới mặt đường */}
       {isBeaming && isVisible && (
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none z-20"
           style={{ width: `${containerWidth}px`, height: '100%' }}
         >
           <defs>
-            <linearGradient id="ufoBeamGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.9" />
-              <stop offset="25%" stopColor="#22d3ee" stopOpacity="0.65" />
-              <stop offset="70%" stopColor="#06b6d4" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#0284c7" stopOpacity="0.05" />
+            <linearGradient id="dynamicBeamGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.85" />
+              <stop offset="35%" stopColor="#22d3ee" stopOpacity="0.55" />
+              <stop offset="75%" stopColor="#06b6d4" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.04" />
             </linearGradient>
             <filter id="beamSoftGlow">
-              <feGaussianBlur stdDeviation="10" result="coloredBlur" />
+              <feGaussianBlur stdDeviation="8" result="coloredBlur" />
               <feMerge>
                 <feMergeNode in="coloredBlur" />
                 <feMergeNode in="SourceGraphic" />
@@ -77,15 +79,15 @@ export const UfoSaucer = ({
             </filter>
           </defs>
 
-          {/* Tia sáng hình nón kết nối trực tiếp từ cửa đáy UFO di động xuống mặt vỉa hè / đại lộ */}
+          {/* Tia sáng hình nón kết nối trực tiếp từ cửa đáy UFO di động xuống mặt đại lộ */}
           <polygon
             points={`
-              ${nozzleX - 35}, ${nozzleY}
-              ${nozzleX + 35}, ${nozzleY}
-              ${targetBeamX + 115}, ${streetY + 30}
-              ${targetBeamX - 115}, ${streetY + 30}
+              ${nozzleX - 32}, ${nozzleY}
+              ${nozzleX + 32}, ${nozzleY}
+              ${targetBeamX + 110}, ${streetY + 35}
+              ${targetBeamX - 110}, ${streetY + 35}
             `}
-            fill="url(#ufoBeamGradient)"
+            fill="url(#dynamicBeamGrad)"
             filter="url(#beamSoftGlow)"
             className="transition-all duration-300 ease-out"
           />
@@ -93,11 +95,11 @@ export const UfoSaucer = ({
           {/* Quầng sáng elip rực rỡ trên mặt đường dưới chân cột sáng */}
           <ellipse
             cx={targetBeamX}
-            cy={streetY + 14}
-            rx="120"
+            cy={streetY + 18}
+            rx="115"
             ry="24"
             fill="#22d3ee"
-            opacity="0.45"
+            opacity="0.4"
             className="transition-all duration-300 ease-out animate-pulse"
           />
         </svg>
@@ -131,7 +133,7 @@ export const UfoSaucer = ({
         </svg>
       )}
 
-      {/* 3. ĐỒ HỌA VECTOR SVG ĐĨA BAY UFO CHUẨN 100% THEO ẢNH MẪU */}
+      {/* 3. ĐỒ HỌA VECTOR SVG ĐĨA BAY UFO THU NHỎ THANH THOÁT, LƯỢN TRÁI PHẢI TRÊN CAO */}
       <div
         className="absolute flex flex-col items-center pointer-events-none z-40 transition-opacity duration-500 ease-out"
         style={{
@@ -141,97 +143,79 @@ export const UfoSaucer = ({
           opacity: isVisible ? 1 : 0
         }}
       >
-        <div className="relative w-[230px] sm:w-[270px] md:w-[300px] filter drop-shadow-[0_12px_28px_rgba(0,0,0,0.6)]">
+        {/* Kích thước đĩa bay nhỏ gọn vừa vặn: w-[210px] sm:w-[250px] md:w-[280px] */}
+        <div className="relative w-[210px] sm:w-[250px] md:w-[280px] filter drop-shadow-[0_10px_24px_rgba(0,0,0,0.65)]">
           <svg
-            viewBox="0 0 520 180"
+            viewBox="0 0 800 240"
             className="w-full h-auto overflow-visible select-none"
           >
             <defs>
-              {/* Gradient vòm kính xanh ngọc trong suốt */}
-              <linearGradient id="domeGlassGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#e0f2fe" stopOpacity="0.95" />
-                <stop offset="35%" stopColor="#bae6fd" stopOpacity="0.85" />
-                <stop offset="75%" stopColor="#38bdf8" stopOpacity="0.75" />
-                <stop offset="100%" stopColor="#0284c7" stopOpacity="0.9" />
+              <linearGradient id="ufoDomeGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#258cfb" />
+                <stop offset="100%" stopColor="#1e7ddb" />
               </linearGradient>
 
-              {/* Gradient đĩa bay tím xanh (Indigo Purple Body) */}
-              <linearGradient id="ufoPurpleBodyGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#818cf8" />
-                <stop offset="25%" stopColor="#6366f1" />
-                <stop offset="60%" stopColor="#4f46e5" />
-                <stop offset="100%" stopColor="#3730a3" />
+              <linearGradient id="ufoRimGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" />
+                <stop offset="35%" stopColor="#f1f5f9" />
+                <stop offset="75%" stopColor="#cbd5e1" />
+                <stop offset="100%" stopColor="#94a3b8" />
               </linearGradient>
 
-              {/* Vành đĩa bên dưới tím sẫm viền cyan */}
-              <linearGradient id="ufoUnderRimGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#312e81" />
-                <stop offset="100%" stopColor="#1e1b4b" />
+              <linearGradient id="ufoFaceGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4a5568" />
+                <stop offset="50%" stopColor="#374151" />
+                <stop offset="100%" stopColor="#1f2937" />
               </linearGradient>
             </defs>
 
-            {/* Vòm kính buồng lái màu xanh da trời trong suốt (Glass Dome) */}
-            <path
-              d="M 195 72 C 195 18, 325 18, 325 72 Z"
-              fill="url(#domeGlassGrad)"
-              stroke="#e0f2fe"
-              strokeWidth="2.5"
-            />
-            {/* Vệt sáng cong phản chiếu trên vòm kính (Glossy Highlight) */}
-            <path
-              d="M 215 55 C 225 30, 295 30, 305 55"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="4"
-              strokeLinecap="round"
-              opacity="0.85"
-            />
-            <circle cx="230" cy="38" r="4" fill="#ffffff" opacity="0.9" />
+            {/* Lớp 1: Vòm buồng lái hình tròn màu xanh ngọc ở phía sau đỉnh */}
+            <circle cx="400" cy="115" r="92" fill="url(#ufoDomeGrad)" />
+            <circle cx="400" cy="72" r="13" fill="#10b981" />
+            <circle cx="400" cy="72" r="7" fill="#047857" />
 
-            {/* Vành đĩa trên màu tím rực rỡ (Upper Purple Saucer Rim) */}
-            <ellipse
-              cx="260"
-              cy="80"
-              rx="230"
-              ry="32"
-              fill="url(#ufoPurpleBodyGrad)"
-              stroke="#a5b4fc"
-              strokeWidth="2.5"
-            />
+            {/* Lớp 2: Vành đĩa bay màu trắng bạc thanh thoát */}
+            <ellipse cx="400" cy="130" rx="360" ry="58" fill="url(#ufoRimGrad)" stroke="#e2e8f0" strokeWidth="2" />
 
-            {/* Vành đĩa dưới tím sẫm (Lower Bevel Rim) */}
-            <path
-              d="M 40 82 C 60 120, 460 120, 480 82 C 430 112, 90 112, 40 82 Z"
-              fill="url(#ufoUnderRimGrad)"
-              stroke="#4338ca"
-              strokeWidth="2"
-            />
+            {/* Lớp 3: Mặt đĩa trong màu xám than sắc nét */}
+            <ellipse cx="400" cy="144" rx="320" ry="44" fill="url(#ufoFaceGrad)" />
 
-            {/* Bảng đếm số LED điện tử hiển thị tỷ số (ví dụ: 0/2) */}
+            {/* Lớp 4: Khung bảng LED điện tử hiển thị tỷ số (ví dụ: 0/2) */}
             <rect
-              x="220"
-              y="68"
-              width="80"
-              height="24"
-              rx="5"
-              fill="#030712"
-              stroke="#38bdf8"
-              strokeWidth="2"
+              x="335"
+              y="124"
+              width="130"
+              height="40"
+              rx="6"
+              fill="#030b14"
+              stroke="#10b981"
+              strokeWidth="2.5"
             />
+            {/* Chữ số LED màu xanh neon sắc nét */}
             <text
-              x="260"
-              y="85"
+              x="400"
+              y="152"
               textAnchor="middle"
               fontFamily="monospace, Courier, monospace"
-              fontSize="16"
+              fontSize="26"
               fontWeight="900"
-              fill="#38bdf8"
-              style={{ filter: 'drop-shadow(0 0 6px #38bdf8)' }}
+              fill="#10b981"
+              style={{ filter: 'drop-shadow(0 0 6px #10b981)' }}
             >
               {capturedCount}/{targetCount}
             </text>
 
-            {/* Dãy các bóng đèn LED tròn Cyan neon rực rỡ quanh vành đĩa chuẩn theo ảnh */}
+            {/* Hiển thị số giây đếm ngược nếu có */}
+            {countdownSeconds !== null && countdownSeconds > 0 && (
+              <g transform="translate(432, 126)">
+                <rect width="28" height="15" rx="3" fill="#451a03" stroke="#f59e0b" strokeWidth="1" />
+                <text x="14" y="11" textAnchor="middle" fontFamily="monospace" fontSize="9" fontWeight="bold" fill="#f59e0b">
+                  {countdownSeconds}s
+                </text>
+              </g>
+            )}
+
+            {/* Lớp 5: Dãy 10 bóng đèn LED nhiều màu bo tròn quanh vành đĩa */}
             {LED_ITEMS.map((led, idx) => {
               const isActive = (idx + lightOffset) % 2 === 0;
               return (
@@ -241,41 +225,26 @@ export const UfoSaucer = ({
                       cx={led.cx}
                       cy={led.cy}
                       r="12"
-                      fill="#22d3ee"
+                      fill={led.color}
                       opacity="0.55"
-                      filter="blur(3px)"
+                      filter="blur(2px)"
                     />
                   )}
                   <circle
                     cx={led.cx}
                     cy={led.cy}
                     r="7.5"
-                    fill="#38bdf8"
+                    fill={led.color}
                     stroke="#ffffff"
-                    strokeWidth="1.5"
-                    opacity={isActive ? 1 : 0.45}
-                  />
-                  <circle
-                    cx={led.cx - 2}
-                    cy={led.cy - 2}
-                    r="2"
-                    fill="#ffffff"
-                    opacity="0.8"
+                    strokeWidth="1.2"
+                    opacity={isActive ? 1 : 0.4}
                   />
                 </g>
               );
             })}
 
-            {/* Đáy cửa khoang hút ánh sáng */}
-            <ellipse
-              cx="260"
-              cy="114"
-              rx="65"
-              ry="10"
-              fill="#0f172a"
-              stroke="#22d3ee"
-              strokeWidth="2"
-            />
+            {/* Lớp 6: Cửa khoang hút đáy đĩa bay */}
+            <ellipse cx="400" cy="188" rx="80" ry="7" fill="#0f172a" stroke="#22d3ee" strokeWidth="1.2" opacity="0.9" />
           </svg>
         </div>
       </div>
