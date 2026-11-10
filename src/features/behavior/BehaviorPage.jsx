@@ -20,6 +20,7 @@ import { RewardAllModal } from './components/RewardAllModal';
 import { MarbleRaceModal } from '../marble-race/MarbleRaceModal';
 import { UfoRaceModal } from '../ufo-race/UfoRaceModal';
 import { BlindfoldDuckModal } from '../blindfold-duck/BlindfoldDuckModal';
+import { BoatManModal } from '../boat-man/BoatManModal';
 
 export const BehaviorPage = ({
   currentClass,
@@ -54,6 +55,7 @@ export const BehaviorPage = ({
     marbleRace: false,
     ufoRace: false,
     blindfoldDuck: false,
+    boatMan: false,
     timer: false,
     seating: false
   });
@@ -576,6 +578,7 @@ export const BehaviorPage = ({
         onOpenMarbleRace={() => openModal('marbleRace')}
         onOpenUfoRace={() => openModal('ufoRace')}
         onOpenBlindfoldDuck={() => openModal('blindfoldDuck')}
+        onOpenBoatMan={() => openModal('boatMan')}
         onOpenTimer={() => openModal('timer')}
         onOpenSeatingChart={() => openModal('seating')}
         onResetCalled={handleResetCalled}
@@ -885,6 +888,23 @@ export const BehaviorPage = ({
         onClose={() => closeModal('blindfoldDuck')}
         currentClass={currentClass}
         students={students}
+        onAwardPointsToStudent={(studentId, points, reason) => {
+          handleApplyPointChange(studentId, points, 'plus', reason);
+        }}
+      />
+
+      {/* 16. Người Lái Đò - Trò Chơi Giáo Dục Gọi Tên Học Sinh Ngủ Quên 🚣 */}
+      <BoatManModal
+        isOpen={modalState.boatMan}
+        onClose={() => closeModal('boatMan')}
+        currentClass={currentClass}
+        students={students}
+        calledStudentIds={calledStudentIds}
+        onConfirmCallStudent={(studentId) => {
+          if (studentId && !calledStudentIds.includes(studentId)) {
+            setCalledStudentIds(prev => [...prev, studentId]);
+          }
+        }}
         onAwardPointsToStudent={(studentId, points, reason) => {
           handleApplyPointChange(studentId, points, 'plus', reason);
         }}

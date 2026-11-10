@@ -33,6 +33,7 @@ export const TopActionBar = ({
   onOpenMarbleRace,
   onOpenUfoRace,
   onOpenBlindfoldDuck,
+  onOpenBoatMan,
   onOpenTimer,
   onOpenSeatingChart,
   onResetCalled,
@@ -221,6 +222,19 @@ export const TopActionBar = ({
         >
           <span className="text-sm">🦆</span>
           <span>Bịt Mắt Bắt Vịt 🌾</span>
+        </button>
+
+        {/* 10.8. Người Lái Đò (Gọi Tên Học Sinh Ngủ Quên) 🚣 */}
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            onOpenBoatMan?.();
+          }}
+          className="shrink-0 flex items-center space-x-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 text-white font-extrabold text-xs shadow-md shadow-sky-200 hover:scale-105 active:scale-95 transition-all animate-pulse"
+          title="Trò chơi giáo dục Người Lái Đò: gọi tên học sinh ngủ quên khi cập bến"
+        >
+          <span className="text-sm">🚣</span>
+          <span>Người Lái Đò ⛵</span>
         </button>
 
         {/* 11. Bấm Giờ ⏱️ */}
